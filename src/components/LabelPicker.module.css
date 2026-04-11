@@ -1,0 +1,373 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Note detail: one row — title + info (children) + chips | picker */
+.rootNoteHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.noteHeaderLeft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.titleInfoGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.noteHeaderRight {
+  flex: 0 0 auto;
+  width: min(13rem, 100%);
+  max-width: 13rem;
+  align-self: center;
+}
+
+/* .rootCompact alone sets gap: 0.3rem; keep the header row’s horizontal rhythm */
+.rootNoteHeader.rootCompact {
+  gap: 0.5rem 1rem;
+}
+
+.noteHeaderLeft .chips {
+  justify-content: flex-start;
+  opacity: 0.92;
+}
+
+/* Note detail: chips under title (left), combobox on the right */
+.rootSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, 13rem);
+  gap: 0.65rem 1rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.splitChipsCol {
+  min-width: 0;
+}
+
+.splitComboCol {
+  width: 100%;
+  max-width: 13rem;
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .rootSplit {
+    grid-template-columns: 1fr;
+  }
+
+  .splitComboCol {
+    justify-self: stretch;
+    max-width: none;
+  }
+}
+
+.rootStretch {
+  align-items: stretch;
+}
+
+.rootStretch .comboWrap {
+  width: 100%;
+  align-self: stretch;
+}
+
+.rootStretch .chips {
+  justify-content: flex-start;
+}
+
+/* Tighter control for note detail (does not change behavior) */
+.rootCompact {
+  gap: 0.3rem;
+}
+
+.rootCompact .chips {
+  min-height: 1.25rem;
+  gap: 0.2rem;
+  justify-content: flex-start;
+}
+
+.rootCompact .chip {
+  font-size: 0.7rem;
+  padding: 0.04rem 0.28rem 0.04rem 0.32rem;
+}
+
+.rootCompact .chipRemove {
+  width: 1rem;
+  height: 1rem;
+  font-size: 0.8rem;
+}
+
+.rootCompact .comboWrap {
+  width: min(14rem, 100%);
+}
+
+.rootNoteHeader.rootCompact .noteHeaderRight .comboWrap {
+  width: 100%;
+  max-width: 13rem;
+}
+
+.rootCompact.rootStretch .comboWrap {
+  width: 100%;
+}
+
+.rootCompact .combo {
+  min-height: 1.65rem;
+  border-radius: 6px;
+}
+
+.rootCompact .input {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.rootCompact .toggleBtn {
+  width: 1.65rem;
+  min-height: 1.65rem;
+}
+
+.rootCompact .toggleBtn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.rootCompact .dropdown {
+  max-height: 9rem;
+  border-radius: 6px;
+}
+
+.rootCompact .option {
+  padding: 0.32rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+.rootCompact .hint {
+  padding: 0.35rem 0.45rem;
+  font-size: 0.72rem;
+}
+
+.rootCompact .noMatchBlock {
+  padding: 0.35rem 0.45rem;
+  gap: 0.3rem;
+}
+
+.rootCompact .noMatchText {
+  font-size: 0.72rem;
+}
+
+.rootCompact .addNewBtn {
+  padding: 0.28rem 0.4rem;
+  font-size: 0.75rem;
+  gap: 0.28rem;
+}
+
+.rootCompact .addNewBtn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.1rem 0.35rem 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.chipText {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  background: var(--surface-active);
+  color: var(--text);
+}
+
+.comboWrap {
+  position: relative;
+  width: min(16rem, 100%);
+  align-self: flex-end;
+}
+
+.combo {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.82rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+.input:focus {
+  outline: none;
+}
+
+.combo:focus-within {
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+.toggleBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  padding: 0;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: var(--surface-active);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.toggleBtn:hover {
+  color: var(--text);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 11rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.option {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.option:last-of-type {
+  border-bottom: none;
+}
+
+.option:hover {
+  background: var(--surface-active);
+}
+
+.hint {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.noMatchBlock {
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.noMatchText {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.addNewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px dashed var(--accent-muted);
+  border-radius: 6px;
+  background: var(--surface-active);
+  font-size: 0.82rem;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+}
+
+.addNewBtn:hover {
+  filter: brightness(0.98);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

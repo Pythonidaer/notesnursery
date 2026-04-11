@@ -1,0 +1,29 @@
+import { Routes, Route, Link } from 'react-router-dom';
+import AppHeaderNav from './components/AppHeaderNav.jsx';
+import ImportPage from './pages/ImportPage.jsx';
+import LibraryPage from './pages/LibraryPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import NoteDetailPage from './pages/NoteDetailPage.jsx';
+import SignupPage from './pages/SignupPage.jsx';
+
+export default function App() {
+  return (
+    <div className="appShell">
+      <header className="appHeader">
+        <Link to="/" className="appBrand">
+          Notes Nursery
+        </Link>
+        <AppHeaderNav />
+      </header>
+      <main className="appMain">
+        <Routes>
+          <Route path="/" element={<ImportPage />} />
+          <Route path="/library" element={<LibraryPage />} />
+          <Route path="/notes/:noteId" element={<NoteDetailPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
