@@ -343,11 +343,11 @@ export async function updateNoteRemote(userId, noteId, updates) {
   }
   if ('createdAtSource' in updates && updates.createdAtSource !== undefined) {
     const t = updates.createdAtSource != null ? String(updates.createdAtSource).trim() : '';
-    if (t) payload.created_at_source = t;
+    payload.created_at_source = t || null;
   }
   if ('modifiedAtSource' in updates && updates.modifiedAtSource !== undefined) {
     const t = updates.modifiedAtSource != null ? String(updates.modifiedAtSource).trim() : '';
-    if (t) payload.modified_at_source = t;
+    payload.modified_at_source = t || null;
   }
 
   const { error } = await supabase.from('notes').update(payload).eq('id', noteId).eq('user_id', userId);

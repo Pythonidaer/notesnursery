@@ -12,6 +12,8 @@ export function NotesProvider({ children }) {
   const [notes, setNotes] = useState(/** @type {ParsedNote[]} */ ([]));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(/** @type {string | null} */ (null));
+  /** False until the first notes list fetch for the current session/user finishes (Supabase only). Local mode is always ready. */
+  const [noteListReady, setNoteListReady] = useState(() => !useSupabaseBackend());
 
   const userId = user?.id;
   const useRemote = useSupabaseBackend();
@@ -19,14 +21,17 @@ export function NotesProvider({ children }) {
   useEffect(() => {
     setError(null);
     if (!useRemote) {
+      setNoteListReady(true);
       return;
     }
     if (authInitializing) return;
     if (!userId) {
       setNotes([]);
+      setNoteListReady(true);
       return;
     }
     let cancelled = false;
+    setNoteListReady(false);
     setLoading(true);
     remote
       .fetchNotesForUser(userId)
@@ -37,7 +42,10 @@ export function NotesProvider({ children }) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load notes');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setNoteListReady(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -144,12 +152,13 @@ export function NotesProvider({ children }) {
     () => ({
       notes,
       loading,
+      noteListReady,
       error,
       addNotes,
       updateNote,
       deleteNote,
     }),
-    [notes, loading, error, addNotes, updateNote, deleteNote]
+    [notes, loading, noteListReady, error, addNotes, updateNote, deleteNote]
   );
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

@@ -1,0 +1,58 @@
+.transferPanel {
+  z-index: 950;
+  max-height: min(78vh, 38rem);
+}
+
+.snippetPreview {
+  padding: 0.5rem 0.55rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text);
+  resize: vertical;
+  min-height: 3.5rem;
+  font-family: inherit;
+}
+
+.destTitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.appendBtn {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-active);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.appendBtn:hover {
+  background: var(--surface);
+}
+
+.hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+}

@@ -1,0 +1,30 @@
+.prompt {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 910;
+  padding: 0.55rem 1.15rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  max-width: min(90vw, 20rem);
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.prompt:hover {
+  filter: brightness(1.06);
+}
+
+@media (max-width: 480px) {
+  .prompt {
+    left: 1.5rem;
+    right: 1.5rem;
+    max-width: none;
+  }
+}

@@ -1,5 +1,6 @@
 /**
- * Parse Apple Notes export date strings (e.g. "Sunday, March 29, 2026 at 12:40:05 PM").
+ * Parse Apple Notes export date strings (e.g. "Sunday, March 29, 2026 at 12:40:05 PM")
+ * and ISO 8601 strings (e.g. from import fallbacks). Uses Date.parse first.
  * @param {string | undefined | null} raw
  * @returns {Date | null}
  */
@@ -22,4 +23,28 @@ export function parseAppleNoteDateString(raw) {
   }
 
   return null;
+}
+
+/**
+ * Normalize user input for stored source dates (YYYY-MM-DD when possible, else trimmed text).
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function normalizeNoteSourceDateInput(raw) {
+  if (raw == null) return '';
+  const s = String(raw).trim();
+  if (!s) return '';
+
+  const isoDay = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDay) {
+    return `${isoDay[1]}-${isoDay[2]}-${isoDay[3]}`;
+  }
+
+  const t = Date.parse(s);
+  if (!Number.isNaN(t)) {
+    const d = new Date(t);
+    return d.toISOString().slice(0, 10);
+  }
+
+  return s;
 }

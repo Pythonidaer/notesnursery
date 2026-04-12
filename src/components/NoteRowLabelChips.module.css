@@ -1,0 +1,20 @@
+/* Container for read-only chips; pill styles come from LabelPicker.module.css */
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: flex-end;
+  align-items: center;
+  align-content: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(48%, 20rem);
+  opacity: 0.9;
+}
+
+@media (max-width: 520px) {
+  .wrap {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+}

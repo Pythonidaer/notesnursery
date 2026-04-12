@@ -53,7 +53,7 @@ export function sortNotesByEffectiveDateDesc(notes) {
  * @param {Date} now
  * @returns {{ bucketKey: string, label: string }}
  */
-function classifyNote(note, now) {
+export function classifyNote(note, now) {
   const d = getEffectiveNoteDate(note);
   if (!d) {
     return { bucketKey: 'unknown', label: 'Unknown Date' };
@@ -146,4 +146,61 @@ export function groupNotesByDate(notes, now = new Date()) {
   addIfPresent('unknown', 'Unknown Date');
 
   return ordered;
+}
+
+/**
+ * @param {ParsedNote[]} notes
+ * @param {string} filterKey `all` or a {@link classifyNote} bucketKey
+ * @param {Date} [now]
+ */
+export function filterNotesByDateBucket(notes, filterKey, now = new Date()) {
+  if (!filterKey || filterKey === 'all') return notes;
+  return notes.filter((n) => classifyNote(n, now).bucketKey === filterKey);
+}
+
+/**
+ * Build &lt;select&gt; options from buckets that appear in `notes` (plus “All dates”).
+ * Order: All → Previous 30 Days → Today → Jan…Dec (current year, present only) → years desc → Unknown.
+ * @param {ParsedNote[]} notes
+ * @param {Date} [now]
+ * @returns {{ value: string, label: string }[]}
+ */
+export function deriveDateFilterOptions(notes, now = new Date()) {
+  const keys = new Set();
+  for (const n of notes) {
+    keys.add(classifyNote(n, now).bucketKey);
+  }
+
+  /** @type {{ value: string, label: string }[]} */
+  const options = [{ value: 'all', label: 'All dates' }];
+
+  if (keys.has('previous30')) {
+    options.push({ value: 'previous30', label: 'Previous 30 Days' });
+  }
+  if (keys.has('today')) {
+    options.push({ value: 'today', label: 'Today' });
+  }
+
+  for (let m = 0; m < 12; m++) {
+    const bucketKey = `month-${m}`;
+    if (keys.has(bucketKey)) {
+      options.push({ value: bucketKey, label: MONTH_LABELS[m] });
+    }
+  }
+
+  const yearNums = [...keys]
+    .filter((k) => k.startsWith('year-'))
+    .map((k) => Number(k.slice('year-'.length)))
+    .filter((y) => !Number.isNaN(y))
+    .sort((a, b) => b - a);
+
+  for (const y of yearNums) {
+    options.push({ value: `year-${y}`, label: String(y) });
+  }
+
+  if (keys.has('unknown')) {
+    options.push({ value: 'unknown', label: 'Unknown Date' });
+  }
+
+  return options;
 }

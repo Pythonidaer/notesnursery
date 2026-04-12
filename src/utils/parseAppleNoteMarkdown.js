@@ -1,3 +1,5 @@
+import { parseAppleNoteDateString } from './parseAppleNoteDate.js';
+
 /**
  * Parses Apple Notes exported markdown files.
  * First line: markdown heading (# Title). Body: HTML/markdown. Bottom: Created / Modified lines.
@@ -43,6 +45,14 @@ export function parseAppleNoteMarkdown(sourceFileName, text) {
   }
 
   bodyHtml = bodyHtml.trim();
+
+  const createdTrim = createdAtSource.trim();
+  if (!createdTrim || !parseAppleNoteDateString(createdTrim)) {
+    console.log('[import] missing created_at_source, assigned fallback timestamp');
+    createdAtSource = new Date().toISOString();
+  } else {
+    createdAtSource = createdTrim;
+  }
 
   return {
     id: crypto.randomUUID(),
