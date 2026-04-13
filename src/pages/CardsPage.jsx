@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import NoteCard from '../components/NoteCard.jsx';
+import NoteFiltersToolbar from '../components/NoteFiltersToolbar.jsx';
 import Toast from '../components/Toast.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
@@ -16,11 +18,9 @@ import {
   groupNotesByDate,
   sortNotesByEffectiveDateDesc,
 } from '../utils/groupNotesByDate.js';
-import NoteFiltersToolbar from '../components/NoteFiltersToolbar.jsx';
-import NoteRowLabelChips from '../components/NoteRowLabelChips.jsx';
-import styles from './LibraryPage.module.css';
+import styles from '../styles/CardsPage.module.css';
 
-export default function LibraryPage() {
+export default function CardsPage() {
   const { notes, loading, error } = useNotes();
   const {
     user,
@@ -173,86 +173,72 @@ export default function LibraryPage() {
 
   return (
     <>
-    <div className={styles.wrap}>
-      <div className={styles.topBar}>
-        <h1 className={styles.heading}>Library</h1>
-        <div className={styles.segment} role="group" aria-label="Library view">
-          <button
-            type="button"
-            className={`${styles.segmentBtn} ${!groupByDate ? styles.segmentBtnActive : ''}`}
-            aria-pressed={!groupByDate}
-            onClick={() => setGroupByDate(false)}
-          >
-            All Notes
-          </button>
-          <button
-            type="button"
-            className={`${styles.segmentBtn} ${groupByDate ? styles.segmentBtnActive : ''}`}
-            aria-pressed={groupByDate}
-            onClick={() => setGroupByDate(true)}
-          >
-            Group by Date
-          </button>
+      <div className={styles.wrap}>
+        <div className={styles.topBar}>
+          <h1 className={styles.heading}>Cards</h1>
+          <div className={styles.segment} role="group" aria-label="Cards view">
+            <button
+              type="button"
+              className={`${styles.segmentBtn} ${!groupByDate ? styles.segmentBtnActive : ''}`}
+              aria-pressed={!groupByDate}
+              onClick={() => setGroupByDate(false)}
+            >
+              All Notes
+            </button>
+            <button
+              type="button"
+              className={`${styles.segmentBtn} ${groupByDate ? styles.segmentBtnActive : ''}`}
+              aria-pressed={groupByDate}
+              onClick={() => setGroupByDate(true)}
+            >
+              Group by Date
+            </button>
+          </div>
         </div>
+
+        <NoteFiltersToolbar
+          idPrefix="cards"
+          labelFilter={labelFilter}
+          setLabelFilter={setLabelFilter}
+          dateFilter={dateFilter}
+          setDateFilter={setDateFilter}
+          dateOptions={dateOptions}
+          labelSelectOptions={labelSelectOptions}
+          defaultLabelName={defaultLabelName}
+          defaultLabelId={defaultLabelId}
+          defaultLabelSaving={defaultLabelSaving}
+          useRemote={useRemote}
+          user={user}
+          filtersActive={filtersActive}
+          onSetDefault={handleSetDefaultLabel}
+          onClearDefault={handleClearDefaultLabel}
+          onResetFilters={handleResetFilters}
+        />
+
+        {filteredNotes.length === 0 ? (
+          <p className={styles.noMatches}>No notes match your filters.</p>
+        ) : !groupByDate ? (
+          <div className={styles.grid}>
+            {sortedFlat.map((note) => (
+              <NoteCard key={note.id} note={note} />
+            ))}
+          </div>
+        ) : (
+          <div className={styles.grouped}>
+            {groups.map((group) => (
+              <section key={group.key} className={styles.groupSection}>
+                <h2 className={styles.groupHeading}>{group.label}</h2>
+                <div className={styles.grid}>
+                  {group.notes.map((note) => (
+                    <NoteCard key={note.id} note={note} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
-
-      <NoteFiltersToolbar
-        idPrefix="library"
-        labelFilter={labelFilter}
-        setLabelFilter={setLabelFilter}
-        dateFilter={dateFilter}
-        setDateFilter={setDateFilter}
-        dateOptions={dateOptions}
-        labelSelectOptions={labelSelectOptions}
-        defaultLabelName={defaultLabelName}
-        defaultLabelId={defaultLabelId}
-        defaultLabelSaving={defaultLabelSaving}
-        useRemote={useRemote}
-        user={user}
-        filtersActive={filtersActive}
-        onSetDefault={handleSetDefaultLabel}
-        onClearDefault={handleClearDefaultLabel}
-        onResetFilters={handleResetFilters}
-      />
-
-      {filteredNotes.length === 0 ? (
-        <p className={styles.noMatches}>No notes match your filters.</p>
-      ) : !groupByDate ? (
-        <ul className={styles.list}>
-          {sortedFlat.map((note) => (
-            <li key={note.id}>
-              <Link to={`/notes/${note.id}`} className={styles.row}>
-                <span className={styles.rowMain}>
-                  <span className={styles.titleOnly}>{note.title}</span>
-                </span>
-                <NoteRowLabelChips labels={note.labels} />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className={styles.grouped}>
-          {groups.map((group) => (
-            <section key={group.key} className={styles.groupSection}>
-              <h2 className={styles.groupHeading}>{group.label}</h2>
-              <ul className={styles.list}>
-                {group.notes.map((note) => (
-                  <li key={note.id}>
-                    <Link to={`/notes/${note.id}`} className={styles.row}>
-                      <span className={styles.rowMain}>
-                        <span className={styles.titleOnly}>{note.title}</span>
-                      </span>
-                      <NoteRowLabelChips labels={note.labels} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
-    </div>
-    {toastEl}
+      {toastEl}
     </>
   );
 }

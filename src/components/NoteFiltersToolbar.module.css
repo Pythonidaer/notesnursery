@@ -1,0 +1,207 @@
+.filterBlock {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 1rem;
+}
+
+.filterMobileBar {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  .filterMobileBar {
+    display: flex;
+  }
+}
+
+/* Matches app toolbar buttons (e.g. Set default, Reset filters) — not a one-off pill */
+.mobileBarBtn {
+  padding: 0.32rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.mobileBarBtn:hover {
+  color: var(--text);
+  background: var(--surface-active);
+}
+
+.mobileBarBtn:focus {
+  outline: none;
+}
+
+.mobileBarBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mobile: animated collapse; desktop: no height clamp */
+.filterToolbarSlide {
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .filterToolbarSlide {
+    overflow: hidden;
+    transition:
+      max-height 0.28s ease,
+      opacity 0.2s ease;
+  }
+
+  .filterToolbarSlide[data-open='false'] {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .filterToolbarSlide[data-open='true'] {
+    max-height: 28rem;
+    opacity: 1;
+  }
+}
+
+.filterToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .filterToolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    gap: 0.65rem;
+  }
+}
+
+.filterField {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  .filterField {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}
+
+.filterLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.filterSelect {
+  box-sizing: border-box;
+  width: auto;
+  min-width: 0;
+  max-width: min(11rem, 100%);
+  padding: 0.32rem 0.45rem;
+  font-size: 0.86rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+@media (max-width: 639px) {
+  .filterSelect {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+.defaultPrefs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .defaultPrefs {
+    padding-left: 0.5rem;
+    margin-left: 0.25rem;
+    border-left: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 639px) {
+  .defaultPrefs {
+    flex-direction: column;
+    align-items: stretch;
+    padding-left: 0;
+    margin-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-top: 0.65rem;
+    margin-top: 0.15rem;
+  }
+}
+
+.toolbarBtn {
+  padding: 0.32rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.toolbarBtn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-active);
+}
+
+.toolbarBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolbarBtn:focus {
+  outline: none;
+}
+
+.toolbarBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 639px) {
+  .filterToolbar .toolbarBtn {
+    width: 100%;
+    text-align: center;
+  }
+}

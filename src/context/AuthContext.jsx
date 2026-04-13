@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSupabaseBackend } from '../config/appConfig.js';
+import * as profileRemote from '../data/profileSupabase.js';
 import { getSupabase } from '../lib/supabaseClient.js';
 
 const AuthContext = createContext(null);
@@ -26,12 +27,16 @@ export async function getCurrentUser() {
 }
 
 export function AuthProvider({ children }) {
+  const useRemote = useSupabaseBackend();
   const [session, setSession] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [lastError, setLastError] = useState(/** @type {string | null} */ (null));
+  const [defaultLabelId, setDefaultLabelId] = useState(/** @type {string | null} */ (null));
+  const [defaultLabelName, setDefaultLabelName] = useState(/** @type {string | null} */ (null));
+  const [profilePreferencesLoaded, setProfilePreferencesLoaded] = useState(() => !useRemote);
 
   useEffect(() => {
-    if (!useSupabaseBackend()) {
+    if (!useRemote) {
       setInitializing(false);
       return;
     }
@@ -52,6 +57,56 @@ export function AuthProvider({ children }) {
       setSession(nextSession);
     });
     return () => subscription.unsubscribe();
+  }, [useRemote]);
+
+  useEffect(() => {
+    if (!useRemote) {
+      setDefaultLabelId(null);
+      setDefaultLabelName(null);
+      setProfilePreferencesLoaded(true);
+      return;
+    }
+    if (initializing) {
+      setProfilePreferencesLoaded(false);
+      return;
+    }
+    const userId = session?.user?.id;
+    if (!userId) {
+      setDefaultLabelId(null);
+      setDefaultLabelName(null);
+      setProfilePreferencesLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    setProfilePreferencesLoaded(false);
+    profileRemote
+      .fetchProfileDefaultLabel(userId)
+      .then((p) => {
+        if (!cancelled) {
+          setDefaultLabelId(p.defaultLabelId);
+          setDefaultLabelName(p.defaultLabelName);
+        }
+      })
+      .catch((e) => {
+        console.error('[auth] fetchProfileDefaultLabel', e);
+        if (!cancelled) {
+          setDefaultLabelId(null);
+          setDefaultLabelName(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProfilePreferencesLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [useRemote, initializing, session?.user?.id]);
+
+  const applyDefaultLabelPreference = useCallback((id, name) => {
+    setDefaultLabelId(id);
+    setDefaultLabelName(name);
   }, []);
 
   const signIn = useCallback(async (email, password) => {
@@ -134,11 +189,27 @@ export function AuthProvider({ children }) {
       authInitializing: initializing,
       authError: lastError,
       setAuthError: setLastError,
+      defaultLabelId,
+      defaultLabelName,
+      profilePreferencesLoaded,
+      applyDefaultLabelPreference,
       signIn,
       signUp,
       signOut,
     }),
-    [session, user, initializing, lastError, signIn, signUp, signOut]
+    [
+      session,
+      user,
+      initializing,
+      lastError,
+      defaultLabelId,
+      defaultLabelName,
+      profilePreferencesLoaded,
+      applyDefaultLabelPreference,
+      signIn,
+      signUp,
+      signOut,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

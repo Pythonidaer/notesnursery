@@ -1,6 +1,8 @@
 import { Routes, Route, Link } from 'react-router-dom';
 import AppHeaderNav from './components/AppHeaderNav.jsx';
 import ImportPage from './pages/ImportPage.jsx';
+import CardsPage from './pages/CardsPage.jsx';
+import InstructionsPage from './pages/InstructionsPage.jsx';
 import LibraryPage from './pages/LibraryPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NoteDetailPage from './pages/NoteDetailPage.jsx';
@@ -19,6 +21,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ImportPage />} />
           <Route path="/library" element={<LibraryPage />} />
+          <Route path="/cards" element={<CardsPage />} />
+          <Route path="/instructions" element={<InstructionsPage />} />
           <Route path="/notes/:noteId" element={<NoteDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
