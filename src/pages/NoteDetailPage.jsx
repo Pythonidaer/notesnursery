@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import AddToNotePrompt from '../components/AddToNotePrompt.jsx';
 import DeleteNoteModal from '../components/DeleteNoteModal.jsx';
 import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
 import LabelPicker from '../components/LabelPicker.jsx';
@@ -151,69 +150,28 @@ export default function NoteDetailPage() {
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState(/** @type {string | null} */ (null));
   const [actionError, setActionError] = useState(/** @type {string | null} */ (null));
-  const [selectedText, setSelectedText] = useState('');
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferSnippet, setTransferSnippet] = useState('');
-  const bodyRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const textareaRef = useRef(/** @type {HTMLTextAreaElement | null} */ (null));
-  const addToNotePromptRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
 
   const labelSuggestions = useMemo(() => collectAllLabels(notes), [notes]);
 
-  /**
-   * @param {MouseEvent | KeyboardEvent | TouchEvent | undefined} [e]
-   */
-  const syncSelection = useCallback((e) => {
-    if (transferOpen) return;
-    const t = e && 'target' in e ? e.target : null;
-    if (t instanceof Node && addToNotePromptRef.current?.contains(t)) {
+  const openTransferWithEditorSelection = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const snippet = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim();
+    if (!snippet) {
+      setToastMessage('Select text in the note body first');
       return;
     }
-    if (isEditing) {
-      const ta = textareaRef.current;
-      if (!ta) {
-        setSelectedText('');
-        return;
-      }
-      const str = ta.value.slice(ta.selectionStart, ta.selectionEnd);
-      if (str.trim()) {
-        setSelectedText(str);
-        return;
-      }
-      if (addToNotePromptRef.current?.contains(document.activeElement)) return;
-      setSelectedText('');
-      return;
-    }
-    const host = bodyRef.current;
-    if (!host) {
-      setSelectedText('');
-      return;
-    }
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
-      if (addToNotePromptRef.current?.contains(document.activeElement)) return;
-      setSelectedText('');
-      return;
-    }
-    const range = sel.getRangeAt(0);
-    // Require both endpoints inside the note body so we never accept a stray range.
-    // Do not use the host's full innerText/textContent — only the live Range string.
-    const startOk = host.contains(range.startContainer);
-    const endOk = host.contains(range.endContainer);
-    if (!startOk || !endOk) {
-      setSelectedText('');
-      return;
-    }
-    const text = range.toString();
-    if (text.trim()) setSelectedText(text);
-    else setSelectedText('');
-  }, [isEditing, transferOpen]);
+    setTransferSnippet(snippet);
+    setTransferOpen(true);
+  }, []);
 
   useEffect(() => {
     setIsEditing(false);
     setComposerOpen(false);
     setDeleteModalOpen(false);
-    setSelectedText('');
     setTransferOpen(false);
     setTransferSnippet('');
     setDraftPlain('');
@@ -224,20 +182,6 @@ export default function NoteDetailPage() {
     originalCreatedRef.current = '';
     originalModifiedRef.current = '';
   }, [noteId]);
-
-  useEffect(() => {
-    // Avoid document "selectionchange" for read mode: it fires mid-drag with unstable
-    // ranges (often wrong "from start of block" text). Sync after the browser finalizes
-    // the selection on mouse/touch release or keyboard moves.
-    document.addEventListener('mouseup', syncSelection);
-    document.addEventListener('keyup', syncSelection);
-    document.addEventListener('touchend', syncSelection, { passive: true });
-    return () => {
-      document.removeEventListener('mouseup', syncSelection);
-      document.removeEventListener('keyup', syncSelection);
-      document.removeEventListener('touchend', syncSelection);
-    };
-  }, [syncSelection]);
 
   const dismissToast = useCallback(() => setToastMessage(null), []);
 
@@ -462,14 +406,27 @@ export default function NoteDetailPage() {
             <label className={styles.metaEditLabel} htmlFor="note-source-created">
               Source created
             </label>
-            <input
-              id="note-source-created"
-              className={styles.metaEditInput}
-              value={draftCreatedAt}
-              onChange={(e) => setDraftCreatedAt(e.target.value)}
-              placeholder="YYYY-MM-DD or paste text"
-              autoComplete="off"
-            />
+            <div className={styles.metaEditControlRow}>
+              <input
+                id="note-source-created"
+                className={styles.metaEditInput}
+                value={draftCreatedAt}
+                onChange={(e) => setDraftCreatedAt(e.target.value)}
+                placeholder="YYYY-MM-DD or paste text"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className={styles.addToExistingNoteBtn}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+                onClick={() => openTransferWithEditorSelection()}
+                aria-label="Add selected text to another note"
+              >
+                Add to Existing Note
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -500,30 +457,13 @@ export default function NoteDetailPage() {
             className={styles.textarea}
             value={draftPlain}
             onChange={(e) => void onDraftChange(e.target.value)}
-            onMouseUp={syncSelection}
-            onKeyUp={syncSelection}
             rows={16}
             spellCheck
           />
         </div>
       ) : (
-        <div
-          ref={bodyRef}
-          className={styles.body}
-          dangerouslySetInnerHTML={{ __html: note.bodyHtml }}
-        />
+        <div className={styles.body} dangerouslySetInnerHTML={{ __html: note.bodyHtml }} />
       )}
-
-      <AddToNotePrompt
-        ref={addToNotePromptRef}
-        visible={Boolean(selectedText.trim()) && !transferOpen}
-        onClick={() => {
-          const snippet = selectedText.trim();
-          if (!snippet) return;
-          setTransferSnippet(snippet);
-          setTransferOpen(true);
-        }}
-      />
 
       <NoteTransferPanel
         visible={transferOpen}

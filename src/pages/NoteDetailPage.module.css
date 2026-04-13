@@ -88,11 +88,48 @@
 .metaEditLabel {
   font-size: 0.78rem;
   font-weight: 500;
+  line-height: 1.25;
   color: var(--muted);
 }
 
+.metaEditControlRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.addToExistingNoteBtn {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.3;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addToExistingNoteBtn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+  background: var(--surface-active);
+}
+
+.addToExistingNoteBtn:focus-visible {
+  outline: 2px solid var(--border);
+  outline-offset: 2px;
+}
+
 .metaEditInput {
-  max-width: 24rem;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0.4rem 0.5rem;
   font-size: 0.9rem;
   font-family: inherit;
@@ -129,6 +166,15 @@
   color: var(--accent);
 }
 
+.infoBtn:focus {
+  outline: none;
+}
+
+.infoBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .iconBtn {
   display: inline-flex;
   align-items: center;
@@ -149,9 +195,55 @@
   border-color: var(--accent-muted);
 }
 
+.iconBtn:focus {
+  outline: none;
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .iconBtn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+@media (max-width: 639px) {
+  .topBar {
+    margin-bottom: 0.65rem;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .topActions {
+    gap: 0.12rem;
+    padding: 0.2rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .iconBtn {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .header {
+    margin-bottom: 0.85rem;
+  }
+
+  .title {
+    font-size: 1.42rem;
+  }
+
+  .titleInput {
+    font-size: 1.42rem;
+  }
+
+  .back {
+    font-size: 0.86rem;
+  }
 }
 
 .body {

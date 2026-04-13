@@ -7,24 +7,49 @@
   min-width: 0;
 }
 
-/* Note detail: one row — title + info (children) + chips | picker */
+/* Note detail: row1 = title + info | combo; row2 = label chips */
 .rootNoteHeader {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
+  flex-direction: column;
   width: 100%;
   min-width: 0;
 }
 
-.noteHeaderLeft {
+.noteHeaderMain {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.noteHeaderTopRow {
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.35rem 0.65rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.titleInfoCluster {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   min-width: 0;
   flex: 1 1 auto;
+}
+
+.titleBlock {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.infoSlot {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .titleInfoGroup {
@@ -36,19 +61,45 @@
 
 .noteHeaderRight {
   flex: 0 0 auto;
-  width: min(13rem, 100%);
+  width: min(13rem, 42%);
   max-width: 13rem;
-  align-self: center;
+  min-width: 0;
 }
 
-/* .rootCompact alone sets gap: 0.3rem; keep the header row’s horizontal rhythm */
-.rootNoteHeader.rootCompact {
-  gap: 0.5rem 1rem;
+.noteHeaderRight .comboWrap {
+  width: 100%;
 }
 
-.noteHeaderLeft .chips {
+.noteHeaderChipsRow {
+  width: 100%;
+  min-width: 0;
+}
+
+.noteHeaderChipsRow .chips {
   justify-content: flex-start;
+  align-items: center;
   opacity: 0.92;
+  min-width: 0;
+}
+
+.rootNoteHeader.rootCompact {
+  gap: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  .noteHeaderTopRow {
+    gap: 0.35rem;
+  }
+
+  .noteHeaderRight {
+    width: auto;
+    max-width: 11rem;
+    flex: 0 0 auto;
+  }
+
+  .rootNoteHeader.rootCompact .noteHeaderRight .comboWrap {
+    max-width: 11rem;
+  }
 }
 
 /* Note detail: chips under title (left), combobox on the right */
@@ -232,6 +283,16 @@
 .chipRemove:hover {
   background: var(--surface-active);
   color: var(--text);
+}
+
+.chipRemove:focus {
+  outline: none;
+}
+
+.chipRemove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
 }
 
 .comboWrap {

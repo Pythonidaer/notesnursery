@@ -74,11 +74,7 @@ export default function ImportPage() {
   return (
     <div className={styles.wrap}>
       <h1 className={styles.heading}>Import notes</h1>
-      <p className={styles.lead}>
-        Drop exported Apple Notes markdown files here, or use the file picker. In local mode,
-        notes stay in memory only. In production with Supabase, imports save to your account
-        after you sign in.
-      </p>
+      <p className={styles.lead}>Drop markdown files here, or use the file picker.</p>
 
       <div
         className={`${styles.dropzone} ${dragOver ? styles.dropzoneActive : ''}`}
@@ -93,7 +89,7 @@ export default function ImportPage() {
             <p className={styles.dropHint}>Importing notes…</p>
           </div>
         ) : (
-          <p className={styles.dropHint}>Drag and drop .md files here</p>
+          <p className={styles.dropHint}>Drop .md files here</p>
         )}
         <button
           type="button"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Children, useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeLabel } from '../utils/noteLabels.js';
 import styles from './LabelPicker.module.css';
 
@@ -48,6 +48,8 @@ function PlusIcon() {
  *   align?: 'end' | 'stretch',
  *   variant?: 'default' | 'compact',
  *   layout?: 'stacked' | 'split' | 'noteHeader',
+ *   For `noteHeader`, pass two children in order: title element, then info button.
+ *   Layout: title + info share the top row with the label combo on the right; chips render below.
  *   children?: import('react').ReactNode,
  * }} props
  */
@@ -226,16 +228,25 @@ export default function LabelPicker({
   const isNoteHeader = layout === 'noteHeader';
 
   if (isNoteHeader) {
+    const childList = Children.toArray(children);
+    const titleChild = childList[0] ?? null;
+    const infoChild = childList[1] ?? null;
+
     return (
       <div
         className={`${styles.rootNoteHeader} ${variant === 'compact' ? styles.rootCompact : ''}`}
         ref={rootRef}
       >
-        <div className={styles.noteHeaderLeft}>
-          <div className={styles.titleInfoGroup}>{children}</div>
-          {chipsEl}
+        <div className={styles.noteHeaderMain}>
+          <div className={styles.noteHeaderTopRow}>
+            <div className={styles.titleInfoCluster}>
+              <div className={styles.titleBlock}>{titleChild}</div>
+              {infoChild ? <div className={styles.infoSlot}>{infoChild}</div> : null}
+            </div>
+            <div className={styles.noteHeaderRight}>{comboEl}</div>
+          </div>
+          <div className={styles.noteHeaderChipsRow}>{chipsEl}</div>
         </div>
-        <div className={styles.noteHeaderRight}>{comboEl}</div>
       </div>
     );
   }
