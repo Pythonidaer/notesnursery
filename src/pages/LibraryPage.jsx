@@ -10,11 +10,19 @@ import {
 } from '../data/profileSupabase.js';
 import { useInitialLabelFilter } from '../hooks/useInitialLabelFilter.js';
 import { collectAllLabels, filterNotesByLabel } from '../utils/noteLabels.js';
+import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
+import PlusIcon from '../components/PlusIcon.jsx';
+import ComedyRatingSortToggle from '../components/ComedyRatingSortToggle.jsx';
+import ComedyRatingTrigger from '../components/ComedyRatingTrigger.jsx';
+import {
+  applyComedyRatingSortToGroups,
+  isAdminComedyRatingUser,
+  sortNotesForCardsOrLibrary,
+} from '../utils/comedyRating.js';
 import {
   deriveDateFilterOptions,
   filterNotesByDateBucket,
   groupNotesByDate,
-  sortNotesByEffectiveDateDesc,
 } from '../utils/groupNotesByDate.js';
 import NoteFiltersToolbar from '../components/NoteFiltersToolbar.jsx';
 import NoteRowLabelChips from '../components/NoteRowLabelChips.jsx';
@@ -32,6 +40,10 @@ export default function LibraryPage() {
   const useRemote = useSupabaseBackend();
   const navigate = useNavigate();
   const location = useLocation();
+  const noteDetailLinkState = useMemo(
+    () => ({ from: `${location.pathname}${location.search}` }),
+    [location.pathname, location.search]
+  );
   const [toastMessage, setToastMessage] = useState(/** @type {string | null} */ (null));
   const dismissToast = useCallback(() => setToastMessage(null), []);
   const [groupByDate, setGroupByDate] = useState(false);
@@ -43,6 +55,8 @@ export default function LibraryPage() {
   });
   const [dateFilter, setDateFilter] = useState(/** @type {string} */ ('all'));
   const [defaultLabelSaving, setDefaultLabelSaving] = useState(false);
+  const [ratingSortMode, setRatingSortMode] = useState(/** @type {'off' | 'high' | 'low'} */ ('off'));
+  const [composerOpen, setComposerOpen] = useState(false);
 
   useEffect(() => {
     const msg = location.state?.flashToast;
@@ -109,6 +123,19 @@ export default function LibraryPage() {
     setDateFilter('all');
   }, [setLabelFilter, setDateFilter]);
 
+  const cycleRatingSort = useCallback(() => {
+    setRatingSortMode((m) => (m === 'off' ? 'high' : m === 'high' ? 'low' : 'off'));
+  }, []);
+
+  const sortedFlat = useMemo(
+    () => sortNotesForCardsOrLibrary(filteredNotes, ratingSortMode),
+    [filteredNotes, ratingSortMode]
+  );
+  const groups = useMemo(
+    () => applyComedyRatingSortToGroups(groupNotesByDate(filteredNotes), ratingSortMode),
+    [filteredNotes, ratingSortMode]
+  );
+
   const filtersActive = labelFilter !== 'all' || dateFilter !== 'all';
 
   const toastEl = <Toast message={toastMessage} onDismiss={dismissToast} />;
@@ -168,30 +195,45 @@ export default function LibraryPage() {
     );
   }
 
-  const groups = groupNotesByDate(filteredNotes);
-  const sortedFlat = sortNotesByEffectiveDateDesc(filteredNotes);
-
   return (
     <>
     <div className={styles.wrap}>
       <div className={styles.topBar}>
         <h1 className={styles.heading}>Library</h1>
-        <div className={styles.segment} role="group" aria-label="Library view">
+        <div className={styles.topBarEnd}>
+          <div className={styles.segment} role="group" aria-label="Library view">
+            <button
+              type="button"
+              className={`${styles.segmentBtn} ${!groupByDate ? styles.segmentBtnActive : ''}`}
+              aria-pressed={!groupByDate}
+              onClick={() => setGroupByDate(false)}
+            >
+              All Notes
+            </button>
+            <button
+              type="button"
+              className={`${styles.segmentBtn} ${groupByDate ? styles.segmentBtnActive : ''}`}
+              aria-pressed={groupByDate}
+              onClick={() => setGroupByDate(true)}
+            >
+              Group by Date
+            </button>
+            {isAdminComedyRatingUser(user) ? (
+              <ComedyRatingSortToggle
+                mode={ratingSortMode}
+                onCycle={cycleRatingSort}
+                className={`${styles.segmentBtn} ${ratingSortMode !== 'off' ? styles.segmentBtnActive : ''}`}
+              />
+            ) : null}
+          </div>
           <button
             type="button"
-            className={`${styles.segmentBtn} ${!groupByDate ? styles.segmentBtnActive : ''}`}
-            aria-pressed={!groupByDate}
-            onClick={() => setGroupByDate(false)}
+            className={styles.iconBtn}
+            onClick={() => setComposerOpen(true)}
+            aria-label="Add new note"
+            title="Add note"
           >
-            All Notes
-          </button>
-          <button
-            type="button"
-            className={`${styles.segmentBtn} ${groupByDate ? styles.segmentBtnActive : ''}`}
-            aria-pressed={groupByDate}
-            onClick={() => setGroupByDate(true)}
-          >
-            Group by Date
+            <PlusIcon />
           </button>
         </div>
       </div>
@@ -221,12 +263,15 @@ export default function LibraryPage() {
         <ul className={styles.list}>
           {sortedFlat.map((note) => (
             <li key={note.id}>
-              <Link to={`/notes/${note.id}`} className={styles.row}>
-                <span className={styles.rowMain}>
-                  <span className={styles.titleOnly}>{note.title}</span>
+              <div className={styles.row}>
+                <span className={styles.rowLeft}>
+                  <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
+                    <span className={styles.titleOnly}>{note.title}</span>
+                  </Link>
+                  <ComedyRatingTrigger note={note} variant="library" />
                 </span>
                 <NoteRowLabelChips labels={note.labels} />
-              </Link>
+              </div>
             </li>
           ))}
         </ul>
@@ -238,12 +283,15 @@ export default function LibraryPage() {
               <ul className={styles.list}>
                 {group.notes.map((note) => (
                   <li key={note.id}>
-                    <Link to={`/notes/${note.id}`} className={styles.row}>
-                      <span className={styles.rowMain}>
-                        <span className={styles.titleOnly}>{note.title}</span>
+                    <div className={styles.row}>
+                      <span className={styles.rowLeft}>
+                        <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
+                          <span className={styles.titleOnly}>{note.title}</span>
+                        </Link>
+                        <ComedyRatingTrigger note={note} variant="library" />
                       </span>
                       <NoteRowLabelChips labels={note.labels} />
-                    </Link>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -252,6 +300,7 @@ export default function LibraryPage() {
         </div>
       )}
     </div>
+    <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
     {toastEl}
     </>
   );

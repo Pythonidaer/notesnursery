@@ -3,7 +3,7 @@ import { useSupabaseBackend } from '../config/appConfig.js';
 import * as remote from '../data/notesSupabase.js';
 import { useAuth } from './AuthContext.jsx';
 
-/** @typedef {{ id: string, sourceFileName: string, title: string, bodyHtml: string, createdAtSource: string, modifiedAtSource: string, labels: string[] }} ParsedNote */
+/** @typedef {{ id: string, sourceFileName: string, title: string, bodyHtml: string, createdAtSource: string, modifiedAtSource: string, comedyRating?: number | null, labels: string[] }} ParsedNote */
 
 const NotesContext = createContext(null);
 

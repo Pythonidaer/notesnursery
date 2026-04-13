@@ -26,9 +26,16 @@
 
 .back {
   display: inline-block;
+  margin: 0;
+  padding: 0;
+  font: inherit;
   font-size: 0.9rem;
   color: var(--muted);
   text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
 }
 
 .back:hover {
@@ -40,6 +47,16 @@
   min-height: 2.25rem;
 }
 
+/* Title + info sit inline; combo stays on the right (see LabelPicker noteHeader). */
+.titleInfoRow {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .title {
   margin: 0;
   font-size: 1.65rem;
@@ -47,11 +64,12 @@
   letter-spacing: -0.02em;
   line-height: 1.25;
   min-width: 0;
+  display: inline;
 }
 
 .titleInput {
   margin: 0;
-  width: 100%;
+  flex: 1 1 12rem;
   min-width: 0;
   font-size: 1.65rem;
   font-weight: 600;
@@ -458,8 +476,11 @@
   font-weight: 500;
   color: var(--on-accent);
   background: var(--accent);
+  border: none;
   border-radius: 8px;
   text-decoration: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .backLink:hover {

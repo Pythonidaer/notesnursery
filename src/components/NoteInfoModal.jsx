@@ -3,14 +3,13 @@ import { createPortal } from 'react-dom';
 import styles from './NoteInfoModal.module.css';
 
 /**
- * @param {{ open: boolean, onClose: () => void, sourceFileName: string, createdAtSource: string, modifiedAtSource: string }} props
+ * @param {{ open: boolean, onClose: () => void, sourceFileName: string, createdAtSource: string }} props
  */
 export default function NoteInfoModal({
   open,
   onClose,
   sourceFileName,
   createdAtSource,
-  modifiedAtSource,
 }) {
   useEffect(() => {
     if (!open) return;
@@ -60,10 +59,6 @@ export default function NoteInfoModal({
           <div className={styles.row}>
             <dt>Created</dt>
             <dd>{createdAtSource || '—'}</dd>
-          </div>
-          <div className={styles.row}>
-            <dt>Modified</dt>
-            <dd>{modifiedAtSource || '—'}</dd>
           </div>
         </dl>
       </div>

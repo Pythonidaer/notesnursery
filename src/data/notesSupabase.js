@@ -1,4 +1,5 @@
 import { getSupabase } from '../lib/supabaseClient.js';
+import { parseComedyRating } from '../utils/comedyRating.js';
 import { normalizeLabel } from '../utils/noteLabels.js';
 
 /**
@@ -74,6 +75,7 @@ function mapRowToNote(row) {
     sourceFileName: row.source_file_name ?? '',
     createdAtSource: row.created_at_source ?? '',
     modifiedAtSource: row.modified_at_source ?? '',
+    comedyRating: parseComedyRating(row.comedy_rating),
     labels,
   };
 }
@@ -314,6 +316,7 @@ export async function insertNote(userId, note) {
     sourceFileName: data.source_file_name ?? '',
     createdAtSource: data.created_at_source ?? '',
     modifiedAtSource: data.modified_at_source ?? '',
+    comedyRating: parseComedyRating(data.comedy_rating),
     labels,
   };
   console.log('[db] insertNote ok', { id: mapped.id });
@@ -348,6 +351,9 @@ export async function updateNoteRemote(userId, noteId, updates) {
   if ('modifiedAtSource' in updates && updates.modifiedAtSource !== undefined) {
     const t = updates.modifiedAtSource != null ? String(updates.modifiedAtSource).trim() : '';
     payload.modified_at_source = t || null;
+  }
+  if ('comedyRating' in updates && updates.comedyRating !== undefined) {
+    payload.comedy_rating = updates.comedyRating === null ? null : updates.comedyRating;
   }
 
   const { error } = await supabase.from('notes').update(payload).eq('id', noteId).eq('user_id', userId);

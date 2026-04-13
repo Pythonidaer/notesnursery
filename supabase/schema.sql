@@ -20,7 +20,8 @@ create table if not exists public.notes (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   created_at_source text,
-  modified_at_source text
+  modified_at_source text,
+  comedy_rating numeric(2, 1)
 );
 
 create index if not exists notes_user_id_updated_at_idx on public.notes (user_id, updated_at desc);

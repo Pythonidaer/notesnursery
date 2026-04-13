@@ -1,0 +1,126 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  max-height: 100dvh;
+  overflow-y: auto;
+  background: rgba(26, 25, 23, 0.35);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 24rem;
+  max-height: min(90dvh, 100%);
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.header {
+  padding: 0.85rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.noteTitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin: 0;
+  padding: 0.75rem 1rem 0.25rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.stars {
+  padding: 0.75rem 1rem 0.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.saveError {
+  margin: 0;
+  padding: 0 1rem 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0 1rem 1rem;
+}
+
+.btnCancel,
+.btnClear,
+.btnSave {
+  min-height: 2.25rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btnCancel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btnCancel:hover:not(:disabled) {
+  background: var(--surface-active);
+}
+
+.btnClear {
+  border: 1px solid var(--border);
+  background: var(--surface-active);
+  color: var(--text);
+}
+
+.btnClear:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.btnSave {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btnSave:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.btnCancel:disabled,
+.btnClear:disabled,
+.btnSave:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

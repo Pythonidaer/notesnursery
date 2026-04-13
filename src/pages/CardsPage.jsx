@@ -12,11 +12,18 @@ import {
 } from '../data/profileSupabase.js';
 import { useInitialLabelFilter } from '../hooks/useInitialLabelFilter.js';
 import { collectAllLabels, filterNotesByLabel } from '../utils/noteLabels.js';
+import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
+import PlusIcon from '../components/PlusIcon.jsx';
+import ComedyRatingSortToggle from '../components/ComedyRatingSortToggle.jsx';
+import {
+  applyComedyRatingSortToGroups,
+  isAdminComedyRatingUser,
+  sortNotesForCardsOrLibrary,
+} from '../utils/comedyRating.js';
 import {
   deriveDateFilterOptions,
   filterNotesByDateBucket,
   groupNotesByDate,
-  sortNotesByEffectiveDateDesc,
 } from '../utils/groupNotesByDate.js';
 import styles from '../styles/CardsPage.module.css';
 
@@ -43,6 +50,8 @@ export default function CardsPage() {
   });
   const [dateFilter, setDateFilter] = useState(/** @type {string} */ ('all'));
   const [defaultLabelSaving, setDefaultLabelSaving] = useState(false);
+  const [ratingSortMode, setRatingSortMode] = useState(/** @type {'off' | 'high' | 'low'} */ ('off'));
+  const [composerOpen, setComposerOpen] = useState(false);
 
   useEffect(() => {
     const msg = location.state?.flashToast;
@@ -109,6 +118,19 @@ export default function CardsPage() {
     setDateFilter('all');
   }, [setLabelFilter, setDateFilter]);
 
+  const cycleRatingSort = useCallback(() => {
+    setRatingSortMode((m) => (m === 'off' ? 'high' : m === 'high' ? 'low' : 'off'));
+  }, []);
+
+  const sortedFlat = useMemo(
+    () => sortNotesForCardsOrLibrary(filteredNotes, ratingSortMode),
+    [filteredNotes, ratingSortMode]
+  );
+  const groups = useMemo(
+    () => applyComedyRatingSortToGroups(groupNotesByDate(filteredNotes), ratingSortMode),
+    [filteredNotes, ratingSortMode]
+  );
+
   const filtersActive = labelFilter !== 'all' || dateFilter !== 'all';
 
   const toastEl = <Toast message={toastMessage} onDismiss={dismissToast} />;
@@ -168,30 +190,45 @@ export default function CardsPage() {
     );
   }
 
-  const groups = groupNotesByDate(filteredNotes);
-  const sortedFlat = sortNotesByEffectiveDateDesc(filteredNotes);
-
   return (
     <>
       <div className={styles.wrap}>
         <div className={styles.topBar}>
           <h1 className={styles.heading}>Cards</h1>
-          <div className={styles.segment} role="group" aria-label="Cards view">
+          <div className={styles.topBarEnd}>
+            <div className={styles.segment} role="group" aria-label="Cards view">
+              <button
+                type="button"
+                className={`${styles.segmentBtn} ${!groupByDate ? styles.segmentBtnActive : ''}`}
+                aria-pressed={!groupByDate}
+                onClick={() => setGroupByDate(false)}
+              >
+                All Notes
+              </button>
+              <button
+                type="button"
+                className={`${styles.segmentBtn} ${groupByDate ? styles.segmentBtnActive : ''}`}
+                aria-pressed={groupByDate}
+                onClick={() => setGroupByDate(true)}
+              >
+                Group by Date
+              </button>
+              {isAdminComedyRatingUser(user) ? (
+                <ComedyRatingSortToggle
+                  mode={ratingSortMode}
+                  onCycle={cycleRatingSort}
+                  className={`${styles.segmentBtn} ${ratingSortMode !== 'off' ? styles.segmentBtnActive : ''}`}
+                />
+              ) : null}
+            </div>
             <button
               type="button"
-              className={`${styles.segmentBtn} ${!groupByDate ? styles.segmentBtnActive : ''}`}
-              aria-pressed={!groupByDate}
-              onClick={() => setGroupByDate(false)}
+              className={styles.iconBtn}
+              onClick={() => setComposerOpen(true)}
+              aria-label="Add new note"
+              title="Add note"
             >
-              All Notes
-            </button>
-            <button
-              type="button"
-              className={`${styles.segmentBtn} ${groupByDate ? styles.segmentBtnActive : ''}`}
-              aria-pressed={groupByDate}
-              onClick={() => setGroupByDate(true)}
-            >
-              Group by Date
+              <PlusIcon />
             </button>
           </div>
         </div>
@@ -238,6 +275,7 @@ export default function CardsPage() {
           </div>
         )}
       </div>
+      <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
       {toastEl}
     </>
   );

@@ -1,0 +1,40 @@
+/* Centers star + arrows in the segment; parent .segmentBtn may not be flex. */
+.ratingSegmentBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pair {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  line-height: 0;
+}
+
+/* SVGs align on one row without baseline drift */
+.pair svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.starInactive {
+  color: var(--muted);
+  opacity: 0.88;
+}
+
+.starActive {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.arrowNeutral {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.arrowStrong {
+  color: var(--text);
+  opacity: 1;
+}

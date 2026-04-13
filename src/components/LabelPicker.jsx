@@ -1,4 +1,4 @@
-import { Children, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeLabel } from '../utils/noteLabels.js';
 import styles from './LabelPicker.module.css';
 
@@ -48,8 +48,9 @@ function PlusIcon() {
  *   align?: 'end' | 'stretch',
  *   variant?: 'default' | 'compact',
  *   layout?: 'stacked' | 'split' | 'noteHeader',
- *   For `noteHeader`, pass two children in order: title element, then info button.
- *   Layout: title + info share the top row with the label combo on the right; chips render below.
+ *   For `noteHeader`, pass one child: the title row (e.g. title + info button) beside the label combo.
+ *   Chips render below.
+ *   chipsRowEnd?: import('react').ReactNode — optional trailing content in the chips row (e.g. comedy stars), right-aligned.
  *   children?: import('react').ReactNode,
  * }} props
  */
@@ -63,6 +64,7 @@ export default function LabelPicker({
   variant = 'default',
   layout = 'stacked',
   children = null,
+  chipsRowEnd = null,
 }) {
   const rootRef = useRef(null);
   const inputRef = useRef(null);
@@ -228,10 +230,6 @@ export default function LabelPicker({
   const isNoteHeader = layout === 'noteHeader';
 
   if (isNoteHeader) {
-    const childList = Children.toArray(children);
-    const titleChild = childList[0] ?? null;
-    const infoChild = childList[1] ?? null;
-
     return (
       <div
         className={`${styles.rootNoteHeader} ${variant === 'compact' ? styles.rootCompact : ''}`}
@@ -239,13 +237,13 @@ export default function LabelPicker({
       >
         <div className={styles.noteHeaderMain}>
           <div className={styles.noteHeaderTopRow}>
-            <div className={styles.titleInfoCluster}>
-              <div className={styles.titleBlock}>{titleChild}</div>
-              {infoChild ? <div className={styles.infoSlot}>{infoChild}</div> : null}
-            </div>
+            <div className={styles.titleInfoCluster}>{children}</div>
             <div className={styles.noteHeaderRight}>{comboEl}</div>
           </div>
-          <div className={styles.noteHeaderChipsRow}>{chipsEl}</div>
+          <div className={styles.noteHeaderChipsRow}>
+            {chipsEl}
+            {chipsRowEnd}
+          </div>
         </div>
       </div>
     );

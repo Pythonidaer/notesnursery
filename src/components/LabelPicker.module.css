@@ -41,24 +41,6 @@
   flex: 1 1 auto;
 }
 
-.titleBlock {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.infoSlot {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-}
-
-.titleInfoGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
 .noteHeaderRight {
   flex: 0 0 auto;
   width: min(13rem, 42%);
@@ -71,15 +53,20 @@
 }
 
 .noteHeaderChipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   min-width: 0;
 }
 
 .noteHeaderChipsRow .chips {
+  flex: 1 1 auto;
+  min-width: 0;
   justify-content: flex-start;
   align-items: center;
   opacity: 0.92;
-  min-width: 0;
 }
 
 .rootNoteHeader.rootCompact {
