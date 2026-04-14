@@ -4,6 +4,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
+import { normalizeAppleNotesHtml } from '../utils/normalizeAppleNotesHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 
 /**
@@ -36,7 +37,7 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
     if (mode !== CONTENT_TYPE_HTML) return '';
     const raw = bodyHtml ?? '';
     if (!raw.trim()) return '';
-    return sanitizeNoteHtml(raw);
+    return sanitizeNoteHtml(normalizeAppleNotesHtml(raw));
   }, [mode, bodyHtml]);
 
   if (mode === CONTENT_TYPE_MARKDOWN) {

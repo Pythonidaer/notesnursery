@@ -6,6 +6,7 @@ import { useNotes } from '../context/NotesContext.jsx';
 import { formatNoteTimestamp } from '../utils/formatNoteTimestamp.js';
 import { collectAllLabels } from '../utils/noteLabels.js';
 import { CONTENT_TYPE_HTML } from '../utils/noteContentModel.js';
+import { normalizeAppleNotesHtml } from '../utils/normalizeAppleNotesHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import LabelPicker from './LabelPicker.jsx';
 import NoteRichTextEditor from './NoteRichTextEditor.jsx';
@@ -72,7 +73,7 @@ export default function FloatingNewNoteComposer({ visible, onRequestClose }) {
           id: crypto.randomUUID(),
           sourceFileName: 'Notes Nursery',
           title: title.trim() || 'Untitled',
-          bodyHtml: sanitizeNoteHtml(bodyHtml),
+          bodyHtml: sanitizeNoteHtml(normalizeAppleNotesHtml(bodyHtml)),
           bodyMarkdown: null,
           contentType: CONTENT_TYPE_HTML,
           createdAtSource: ts,

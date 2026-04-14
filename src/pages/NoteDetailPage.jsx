@@ -21,6 +21,7 @@ import {
   normalizeContentType,
 } from '../utils/noteContentModel.js';
 import { markdownToHtmlForEditor } from '../utils/markdownToHtmlForEditor.js';
+import { normalizeAppleNotesHtml } from '../utils/normalizeAppleNotesHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import styles from './NoteDetailPage.module.css';
 
@@ -253,7 +254,7 @@ export default function NoteDetailPage() {
     setEditStartedFromMarkdown(fromMd);
     const html = fromMd
       ? markdownToHtmlForEditor(note.bodyMarkdown ?? '')
-      : sanitizeNoteHtml(note.bodyHtml ?? '') || '<p></p>';
+      : sanitizeNoteHtml(normalizeAppleNotesHtml(note.bodyHtml ?? '')) || '<p></p>';
     setDraftHtml(html);
     setEditSessionKey((k) => k + 1);
     setDraftTitle(note.title);
@@ -306,7 +307,7 @@ export default function NoteDetailPage() {
     const createdNorm = normalizeNoteSourceDateInput(draftCreatedAt);
     const modifiedNorm = normalizeNoteSourceDateInput(originalModifiedRef.current);
     const titleSaved = draftTitle.trim() || 'Untitled';
-    const bodySaved = sanitizeNoteHtml(draftHtml);
+    const bodySaved = sanitizeNoteHtml(normalizeAppleNotesHtml(draftHtml));
     try {
       await updateNote(note.id, {
         title: titleSaved,

@@ -4,6 +4,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import { EditorContent, useEditor } from '@tiptap/react';
+import { Paragraph } from '@tiptap/extension-paragraph';
 import { StarterKit } from '@tiptap/starter-kit';
 import {
   Bold,
@@ -22,8 +23,60 @@ import {
   TextQuote,
   Underline,
 } from 'lucide-react';
+import { normalizeAppleNotesHtml } from '../utils/normalizeAppleNotesHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import styles from './NoteRichTextEditor.module.css';
+
+/** Block elements: if a <div> contains any of these, TipTap must not treat the div as a paragraph. */
+const DIV_PARAGRAPH_BLOCK_CHILD = new Set([
+  'P',
+  'DIV',
+  'UL',
+  'OL',
+  'LI',
+  'BLOCKQUOTE',
+  'PRE',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+  'TABLE',
+  'HR',
+  'FIGURE',
+  'SECTION',
+  'ARTICLE',
+  'ASIDE',
+  'HEADER',
+  'FOOTER',
+  'NAV',
+  'MAIN',
+  'FORM',
+  'FIELDSET',
+  'ADDRESS',
+  'DL',
+  'DT',
+  'DD',
+]);
+
+const ParagraphWithAppleDiv = Paragraph.extend({
+  parseHTML() {
+    return [
+      { tag: 'p' },
+      {
+        tag: 'div',
+        getAttrs: (element) => {
+          const el = /** @type {HTMLElement} */ (element);
+          for (const child of el.children) {
+            if (DIV_PARAGRAPH_BLOCK_CHILD.has(child.tagName)) return false;
+          }
+          return {};
+        },
+      },
+    ];
+  },
+});
 
 /** Compact palette: default + common hues for annotation. */
 const TEXT_COLOR_SWATCHES = [
@@ -323,13 +376,16 @@ export default function NoteRichTextEditor({
   'aria-label': ariaLabel = 'Note body',
 }) {
   /** One snapshot per mount so parent `draftHtml` updates do not reset the editor. */
-  const [initialSnapshot] = useState(
-    () => (initialHtml && initialHtml.trim()) ? initialHtml : '<p></p>'
-  );
+  const [initialSnapshot] = useState(() => {
+    const raw = initialHtml && initialHtml.trim() ? initialHtml : '<p></p>';
+    const n = normalizeAppleNotesHtml(raw);
+    return n && n.trim() ? n : '<p></p>';
+  });
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        paragraph: false,
         heading: { levels: [1, 2, 3] },
         link: {
           openOnClick: false,
@@ -342,6 +398,7 @@ export default function NoteRichTextEditor({
           },
         },
       }),
+      ParagraphWithAppleDiv,
       TextStyle,
       Color.configure({ types: ['textStyle'] }),
       TaskList,

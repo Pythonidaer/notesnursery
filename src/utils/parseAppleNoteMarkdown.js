@@ -1,4 +1,5 @@
 import { parseAppleNoteDateString } from './parseAppleNoteDate.js';
+import { normalizeAppleNotesHtml } from './normalizeAppleNotesHtml.js';
 
 /**
  * Parses Apple Notes exported markdown files.
@@ -44,7 +45,7 @@ export function parseAppleNoteMarkdown(sourceFileName, text) {
     }
   }
 
-  bodyHtml = bodyHtml.trim();
+  bodyHtml = normalizeAppleNotesHtml(bodyHtml.trim());
 
   const createdTrim = createdAtSource.trim();
   if (!createdTrim || !parseAppleNoteDateString(createdTrim)) {
