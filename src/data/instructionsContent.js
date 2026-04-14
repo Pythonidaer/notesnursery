@@ -76,7 +76,8 @@ export const MANUAL_INSTRUCTION_ROWS = [
   {
     step: 2,
     action: 'Choose an Apple Notes–compatible HTML body or a Markdown-first body (see examples below).',
-    notes: 'Read mode renders the body as HTML. Pure Markdown syntax in the body is not auto-converted—see guidance.',
+    notes:
+      'Imported files are stored as HTML when the body is HTML-heavy. Notes you create in the app are Markdown and render with Markdown + GitHub-style extras.',
   },
   {
     step: 3,

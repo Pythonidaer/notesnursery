@@ -3,6 +3,8 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import PlusIcon from '../components/PlusIcon.jsx';
 import ComedyRatingTrigger from '../components/ComedyRatingTrigger.jsx';
 import DeleteNoteModal from '../components/DeleteNoteModal.jsx';
+import NoteBodyContent from '../components/NoteBodyContent.jsx';
+import NoteRichTextEditor from '../components/NoteRichTextEditor.jsx';
 import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
 import LabelPicker from '../components/LabelPicker.jsx';
 import NoteInfoModal from '../components/NoteInfoModal.jsx';
@@ -13,7 +15,13 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
 import { collectAllLabels } from '../utils/noteLabels.js';
 import { normalizeNoteSourceDateInput } from '../utils/parseAppleNoteDate.js';
-import { htmlToPlain, plainTextToHtmlBody } from '../utils/noteBodyPlain.js';
+import {
+  CONTENT_TYPE_HTML,
+  CONTENT_TYPE_MARKDOWN,
+  normalizeContentType,
+} from '../utils/noteContentModel.js';
+import { markdownToHtmlForEditor } from '../utils/markdownToHtmlForEditor.js';
+import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import styles from './NoteDetailPage.module.css';
 
 function PencilIcon() {
@@ -149,10 +157,17 @@ export default function NoteDetailPage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [draftPlain, setDraftPlain] = useState('');
+  const [draftHtml, setDraftHtml] = useState('');
+  /** Bumps when entering edit so TipTap remounts with fresh HTML. */
+  const [editSessionKey, setEditSessionKey] = useState(0);
+  /** True when this edit session started from a markdown-stored note (hint only). */
+  const [editStartedFromMarkdown, setEditStartedFromMarkdown] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftCreatedAt, setDraftCreatedAt] = useState('');
   const originalBodyRef = useRef('');
+  const originalMarkdownRef = useRef('');
+  /** Snapshot of `content_type` when edit began (for discard). */
+  const originalContentTypeRef = useRef(/** @type {string} */ (CONTENT_TYPE_HTML));
   const originalTitleRef = useRef('');
   const originalCreatedRef = useRef('');
   const originalModifiedRef = useRef('');
@@ -164,14 +179,19 @@ export default function NoteDetailPage() {
   const [actionError, setActionError] = useState(/** @type {string | null} */ (null));
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferSnippet, setTransferSnippet] = useState('');
-  const textareaRef = useRef(/** @type {HTMLTextAreaElement | null} */ (null));
+  const tiptapRef = useRef(/** @type {import('@tiptap/core').Editor | null} */ (null));
 
   const labelSuggestions = useMemo(() => collectAllLabels(notes), [notes]);
 
+  const handleEditorReady = useCallback((ed) => {
+    tiptapRef.current = ed;
+  }, []);
+
   const openTransferWithEditorSelection = useCallback(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const snippet = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim();
+    const ed = tiptapRef.current;
+    if (!ed) return;
+    const { from, to } = ed.state.selection;
+    const snippet = ed.state.doc.textBetween(from, to, '\n\n').trim();
     if (!snippet) {
       setToastMessage('Select text in the note body first');
       return;
@@ -186,10 +206,13 @@ export default function NoteDetailPage() {
     setDeleteModalOpen(false);
     setTransferOpen(false);
     setTransferSnippet('');
-    setDraftPlain('');
+    setDraftHtml('');
+    setEditStartedFromMarkdown(false);
     setDraftTitle('');
     setDraftCreatedAt('');
     originalBodyRef.current = '';
+    originalMarkdownRef.current = '';
+    originalContentTypeRef.current = CONTENT_TYPE_HTML;
     originalTitleRef.current = '';
     originalCreatedRef.current = '';
     originalModifiedRef.current = '';
@@ -222,10 +245,19 @@ export default function NoteDetailPage() {
     originalTitleRef.current = note.title;
     originalCreatedRef.current = note.createdAtSource ?? '';
     originalModifiedRef.current = note.modifiedAtSource ?? '';
-    originalBodyRef.current = note.bodyHtml;
+    originalBodyRef.current = note.bodyHtml ?? '';
+    originalMarkdownRef.current = note.bodyMarkdown ?? '';
+    const ct = normalizeContentType(note.contentType);
+    originalContentTypeRef.current = ct;
+    const fromMd = ct === CONTENT_TYPE_MARKDOWN;
+    setEditStartedFromMarkdown(fromMd);
+    const html = fromMd
+      ? markdownToHtmlForEditor(note.bodyMarkdown ?? '')
+      : sanitizeNoteHtml(note.bodyHtml ?? '') || '<p></p>';
+    setDraftHtml(html);
+    setEditSessionKey((k) => k + 1);
     setDraftTitle(note.title);
     setDraftCreatedAt(note.createdAtSource ?? '');
-    setDraftPlain(htmlToPlain(note.bodyHtml));
     setIsEditing(true);
   };
 
@@ -233,24 +265,34 @@ export default function NoteDetailPage() {
   const exitEditMode = async () => {
     setActionError(null);
     try {
-      await updateNote(note.id, {
+      const base = {
         title: originalTitleRef.current,
-        bodyHtml: originalBodyRef.current,
         createdAtSource: originalCreatedRef.current,
         modifiedAtSource: originalModifiedRef.current,
-      });
+      };
+      if (originalContentTypeRef.current === CONTENT_TYPE_MARKDOWN) {
+        await updateNote(note.id, {
+          ...base,
+          bodyHtml: originalBodyRef.current,
+          bodyMarkdown: originalMarkdownRef.current,
+          contentType: CONTENT_TYPE_MARKDOWN,
+        });
+      } else {
+        await updateNote(note.id, {
+          ...base,
+          bodyHtml: originalBodyRef.current,
+          bodyMarkdown: null,
+          contentType: CONTENT_TYPE_HTML,
+        });
+      }
       setDraftTitle(originalTitleRef.current);
       setDraftCreatedAt(originalCreatedRef.current);
-      setDraftPlain(htmlToPlain(originalBodyRef.current));
+      setEditStartedFromMarkdown(false);
       setIsEditing(false);
     } catch (e) {
       console.error('[notes] discard edit failed', e);
       setActionError(e instanceof Error ? e.message : 'Could not revert changes');
     }
-  };
-
-  const onDraftChange = (value) => {
-    setDraftPlain(value);
   };
 
   const handleSave = async () => {
@@ -261,24 +303,27 @@ export default function NoteDetailPage() {
       return;
     }
     setSaving(true);
-    const html = plainTextToHtmlBody(draftPlain);
     const createdNorm = normalizeNoteSourceDateInput(draftCreatedAt);
     const modifiedNorm = normalizeNoteSourceDateInput(originalModifiedRef.current);
     const titleSaved = draftTitle.trim() || 'Untitled';
-    console.log('[notes] save from detail start', { noteId: note.id });
+    const bodySaved = sanitizeNoteHtml(draftHtml);
     try {
       await updateNote(note.id, {
         title: titleSaved,
-        bodyHtml: html,
+        bodyHtml: bodySaved,
+        bodyMarkdown: null,
+        contentType: CONTENT_TYPE_HTML,
         createdAtSource: createdNorm,
         modifiedAtSource: modifiedNorm,
       });
       originalTitleRef.current = titleSaved;
       originalCreatedRef.current = createdNorm;
-      originalBodyRef.current = html;
+      originalMarkdownRef.current = '';
+      originalBodyRef.current = bodySaved;
+      originalContentTypeRef.current = CONTENT_TYPE_HTML;
+      setEditStartedFromMarkdown(false);
       setIsEditing(false);
       setToastMessage('Note saved');
-      console.log('[notes] save from detail ok', { noteId: note.id });
     } catch (e) {
       console.error('[notes] save from detail failed', e);
       setActionError(e instanceof Error ? e.message : 'Could not save note');
@@ -294,11 +339,9 @@ export default function NoteDetailPage() {
       navigate('/login');
       return;
     }
-    console.log('[notes] delete from detail start', { noteId: note.id });
     setDeleteInProgress(true);
     try {
       await deleteNote(note.id);
-      console.log('[notes] delete from detail ok', { noteId: note.id });
       setDeleteModalOpen(false);
       navigate('/library', { replace: true, state: { flashToast: 'Note deleted' } });
     } catch (e) {
@@ -353,7 +396,7 @@ export default function NoteDetailPage() {
             onClick={() => setDeleteModalOpen(true)}
             disabled={saving}
             aria-label="Delete note"
-            title="Delete note"
+            title="Delete"
           >
             <TrashIcon />
           </button>
@@ -462,17 +505,31 @@ export default function NoteDetailPage() {
 
       {isEditing ? (
         <div className={styles.editWrap}>
-          <textarea
-            ref={textareaRef}
-            className={styles.textarea}
-            value={draftPlain}
-            onChange={(e) => void onDraftChange(e.target.value)}
-            rows={16}
-            spellCheck
+          <NoteRichTextEditor
+            key={`${note.id}-${editSessionKey}`}
+            initialHtml={draftHtml}
+            onChange={setDraftHtml}
+            onEditorReady={handleEditorReady}
+            placeholder="Write your note…"
+            aria-label="Note body"
           />
+          {editStartedFromMarkdown ? (
+            <p className={styles.convertHint}>
+              This note was stored as Markdown. It has been opened in the rich editor; saving stores HTML as the
+              source from here on.
+            </p>
+          ) : null}
+          <p className={styles.markdownHint}>
+            Edit with the toolbar for bold, lists, headings, links, and quotes. Content is saved as HTML.
+          </p>
         </div>
       ) : (
-        <div className={styles.body} dangerouslySetInnerHTML={{ __html: note.bodyHtml }} />
+        <NoteBodyContent
+          className={styles.body}
+          contentType={note.contentType}
+          bodyHtml={note.bodyHtml}
+          bodyMarkdown={note.bodyMarkdown}
+        />
       )}
 
       <NoteTransferPanel

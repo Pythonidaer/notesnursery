@@ -6,7 +6,7 @@ import { parseAppleNoteDateString } from './parseAppleNoteDate.js';
  *
  * @param {string} sourceFileName
  * @param {string} text
- * @returns {{ id: string, sourceFileName: string, title: string, bodyHtml: string, createdAtSource: string, modifiedAtSource: string, labels: string[] }}
+ * @returns {{ id: string, sourceFileName: string, title: string, bodyHtml: string, bodyMarkdown: string, contentType: 'html', createdAtSource: string, modifiedAtSource: string, labels: string[] }}
  */
 export function parseAppleNoteMarkdown(sourceFileName, text) {
   const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -48,7 +48,6 @@ export function parseAppleNoteMarkdown(sourceFileName, text) {
 
   const createdTrim = createdAtSource.trim();
   if (!createdTrim || !parseAppleNoteDateString(createdTrim)) {
-    console.log('[import] missing created_at_source, assigned fallback timestamp');
     createdAtSource = new Date().toISOString();
   } else {
     createdAtSource = createdTrim;
@@ -59,6 +58,8 @@ export function parseAppleNoteMarkdown(sourceFileName, text) {
     sourceFileName,
     title,
     bodyHtml,
+    bodyMarkdown: '',
+    contentType: 'html',
     createdAtSource,
     modifiedAtSource,
     labels: [],

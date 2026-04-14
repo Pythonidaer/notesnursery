@@ -15,7 +15,7 @@ const MONTH_LABELS = [
   'December',
 ];
 
-/** @typedef {{ id: string, sourceFileName: string, title: string, bodyHtml: string, createdAtSource: string, modifiedAtSource: string, labels?: string[] }} ParsedNote */
+/** @typedef {{ id: string, sourceFileName: string, title: string, bodyHtml: string, bodyMarkdown?: string, contentType?: string, createdAtSource: string, modifiedAtSource: string, labels?: string[] }} ParsedNote */
 
 /**
  * Prefer modified, then created.

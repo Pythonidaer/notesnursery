@@ -16,6 +16,8 @@ create table if not exists public.notes (
   user_id uuid not null references auth.users (id) on delete cascade,
   title text not null default '',
   body_html text not null default '',
+  body_markdown text,
+  content_type text not null default 'html' check (content_type in ('markdown', 'html')),
   source_file_name text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

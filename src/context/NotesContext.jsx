@@ -3,7 +3,7 @@ import { useSupabaseBackend } from '../config/appConfig.js';
 import * as remote from '../data/notesSupabase.js';
 import { useAuth } from './AuthContext.jsx';
 
-/** @typedef {{ id: string, sourceFileName: string, title: string, bodyHtml: string, createdAtSource: string, modifiedAtSource: string, comedyRating?: number | null, labels: string[] }} ParsedNote */
+/** @typedef {{ id: string, sourceFileName: string, title: string, bodyHtml: string, bodyMarkdown: string, contentType: string, createdAtSource: string, modifiedAtSource: string, comedyRating?: number | null, labels: string[] }} ParsedNote */
 
 const NotesContext = createContext(null);
 
@@ -65,14 +65,12 @@ export function NotesProvider({ children }) {
       }
       setLoading(true);
       setError(null);
-      console.log('[notes] addNotes start', { count: imported.length });
       try {
         const created = [];
         for (const note of imported) {
           const row = await remote.upsertImportedNote(userId, note);
           created.push(row);
         }
-        console.log('[notes] addNotes ok', { saved: created.length });
         setNotes((prev) => {
           const next = [...prev];
           for (const row of created) {
@@ -97,7 +95,6 @@ export function NotesProvider({ children }) {
     async (/** @type {string} */ id, /** @type {Partial<ParsedNote>} */ updates) => {
       if (!useRemote) {
         setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)));
-        console.log('[notes] updateNote ok (local)', { id });
         return;
       }
       if (!userId) {
@@ -109,7 +106,6 @@ export function NotesProvider({ children }) {
       try {
         await remote.updateNoteRemote(userId, id, updates);
         setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)));
-        console.log('[notes] updateNote ok', { id });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Could not update note';
         console.error('[notes] updateNote failed', { id, err: e });
@@ -123,9 +119,7 @@ export function NotesProvider({ children }) {
   const deleteNote = useCallback(
     async (/** @type {string} */ id) => {
       if (!useRemote) {
-        console.log('[notes] deleteNote start (local)', { id });
         setNotes((prev) => prev.filter((n) => n.id !== id));
-        console.log('[notes] deleteNote ok (local)');
         return;
       }
       if (!userId) {
@@ -137,7 +131,6 @@ export function NotesProvider({ children }) {
       try {
         await remote.deleteNoteRemote(userId, id);
         setNotes((prev) => prev.filter((n) => n.id !== id));
-        console.log('[notes] deleteNote ok (remote)', { id });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Could not delete note';
         console.error('[notes] deleteNote failed', { id, err: e });

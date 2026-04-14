@@ -30,23 +30,19 @@ export default function ImportPage() {
       }
       setError(null);
       setBusy(true);
-      console.log('[import] start', { fileCount: files.length });
       try {
         const parsed = [];
         for (const file of files) {
           const text = await file.text();
           parsed.push(parseAppleNoteMarkdown(file.name, text));
         }
-        console.log('[import] parsed', { noteCount: parsed.length });
         await addNotes(parsed);
-        console.log('[import] addNotes complete');
         navigate('/library');
       } catch (e) {
         console.error('[import] failed', e);
         setError(e instanceof Error ? e.message : 'Could not read files.');
       } finally {
         setBusy(false);
-        console.log('[import] loading state off');
       }
     },
     [addNotes, navigate, user]

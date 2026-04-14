@@ -128,7 +128,6 @@ export function AuthProvider({ children }) {
       setLastError(error.message);
       return { error };
     }
-    console.log('[auth] login success');
     return { error: null };
   }, []);
 
@@ -166,7 +165,6 @@ export function AuthProvider({ children }) {
       }
     }
 
-    console.log('[auth] signup success', uid ? `(user id ${uid})` : '(awaiting confirmation?)');
     return { error: null };
   }, []);
 

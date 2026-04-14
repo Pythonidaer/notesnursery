@@ -1,0 +1,285 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.toolbar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-active);
+  padding: 0.45rem 0.5rem;
+}
+
+.toolbarInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: 100%;
+}
+
+.icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.colorWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.colorPopover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 11.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.colorSwatchBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-active);
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    transform 0.08s ease;
+}
+
+.colorSwatchBtn:hover {
+  border-color: var(--accent-muted);
+}
+
+.colorSwatchBtn:focus {
+  outline: none;
+}
+
+.colorSwatchBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.colorSwatch {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.colorSwatchDefault {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.toolBtn {
+  margin: 0;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 0 0.4rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.toolBtn:hover {
+  border-color: var(--accent-muted);
+  background: var(--surface-active);
+}
+
+.toolBtn:focus {
+  outline: none;
+}
+
+.toolBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.toolBtnActive {
+  border-color: var(--accent-muted);
+  background: var(--surface-active);
+  color: var(--accent);
+}
+
+.toolbarSep {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.12rem;
+  background: var(--border);
+  align-self: center;
+}
+
+.underlineLabel {
+  text-decoration: underline;
+  font-style: normal;
+}
+
+.surface {
+  min-height: 14rem;
+  padding: 0.85rem 1rem 1.15rem;
+}
+
+.surface :global(.tiptap) {
+  min-height: 12rem;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text);
+  outline: none;
+}
+
+.surface :global(.tiptap p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.prose :global(p) {
+  margin: 0 0 0.85em;
+}
+
+.prose :global(ul),
+.prose :global(ol) {
+  margin: 0 0 0.85em;
+  padding-left: 1.35em;
+}
+
+.prose :global(li) {
+  margin-bottom: 0.35em;
+}
+
+.prose :global(li p) {
+  margin: 0;
+}
+
+.prose :global(h1),
+.prose :global(h2),
+.prose :global(h3) {
+  margin: 0.75em 0 0.45em;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.prose :global(h1) {
+  font-size: 1.45rem;
+}
+
+.prose :global(h2) {
+  font-size: 1.25rem;
+}
+
+.prose :global(h3) {
+  font-size: 1.08rem;
+}
+
+.prose :global(blockquote) {
+  margin: 0.85em 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.prose :global(a) {
+  color: var(--accent);
+}
+
+.prose :global(code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+
+.prose :global(pre),
+.prose :global(pre.nn-code-block) {
+  margin: 0.85em 0;
+  padding: 0.75rem 0.85rem;
+  font-size: 0.88em;
+  line-height: 1.45;
+  background: var(--code-bg);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.prose :global(pre code) {
+  padding: 0;
+  background: none;
+}
+
+.prose :global(hr) {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.prose :global(ul[data-type='taskList']) {
+  list-style: none;
+  padding-left: 0;
+}
+
+.prose :global(ul[data-type='taskList'] li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.prose :global(ul[data-type='taskList'] li > label) {
+  flex-shrink: 0;
+  margin-top: 0.2em;
+}
+
+@media (max-width: 639px) {
+  .toolbar {
+    padding: 0.35rem 0.4rem;
+  }
+
+  .toolBtn {
+    min-width: 1.7rem;
+    height: 1.7rem;
+    font-size: 0.74rem;
+  }
+
+  .surface {
+    padding: 0.65rem 0.75rem 0.9rem;
+    min-height: 12rem;
+  }
+}

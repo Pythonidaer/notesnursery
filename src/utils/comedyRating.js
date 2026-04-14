@@ -132,52 +132,6 @@ export function getComedyRatingSortKey(note) {
   return getComedyRatingValue(note) ?? 0;
 }
 
-/** TEMP: set `true` to log sort order / parsed ratings in the console. */
-export const DEBUG_RATING_SORT = false;
-/** `true` = also `console.table` for each date group (very chatty). */
-export const DEBUG_RATING_SORT_VERBOSE = false;
-
-/**
- * One line + optional table per sort (flat list gets the table; groups only if VERBOSE).
- *
- * @param {{ comedyRating?: unknown, comedy_rating?: unknown, id?: string, title?: string, labels?: string[] }[]} before
- * @param {typeof before} after
- * @param {'high' | 'low'} mode
- * @param {string} context
- */
-function debugRatingSortOnce(before, after, mode, context) {
-  if (!DEBUG_RATING_SORT || !context) return;
-  const beforeIds = before.map((n) => n.id);
-  const afterIds = after.map((n) => n.id);
-  const isFlat = context.startsWith('CardsLibrary:flat');
-  const showTable = isFlat || DEBUG_RATING_SORT_VERBOSE;
-  const orderUnchanged =
-    beforeIds.length === afterIds.length && beforeIds.every((id, i) => id === afterIds[i]);
-  const parsedNullCount = after.filter((n) => getComedyRatingValue(n) == null).length;
-  // Stringify ids so copy/paste shows order (plain `{ beforeIds }` collapses to Array(n) in console).
-  console.log(
-    `[rating-sort] ${context} | mode=${mode} | n=${beforeIds.length} | orderUnchanged=${orderUnchanged} | parsedNullCount=${parsedNullCount}`,
-    '\n  beforeIds:',
-    JSON.stringify(beforeIds),
-    '\n  afterIds: ',
-    JSON.stringify(afterIds)
-  );
-  if (!showTable) return;
-  const rows = after.map((n, idx) => {
-    const raw = n.comedyRating ?? n.comedy_rating;
-    return {
-      idx,
-      id: n.id != null ? String(n.id).slice(0, 12) : '',
-      title: (n.title ?? '').slice(0, 32),
-      parsed: getComedyRatingValue(n),
-      comedyLabel: noteHasComedyLabel(n),
-      raw,
-      typeOfRaw: raw === undefined ? 'undefined' : typeof raw,
-    };
-  });
-  console.table(rows);
-}
-
 const RATING_SORT_EPS = 1e-9;
 
 function compareTieBreakByDateDesc(a, b) {
@@ -194,9 +148,8 @@ function compareTieBreakByDateDesc(a, b) {
  *
  * @param {{ comedyRating?: number | null, labels?: string[] }[]} notes
  * @param {'high' | 'low'} mode
- * @param {string} [debugContext] — e.g. `flat` or `group:month-3` (TEMP debug)
  */
-export function sortNotesByComedyRatingOrder(notes, mode, debugContext = '') {
+export function sortNotesByComedyRatingOrder(notes, mode) {
   const indexed = notes.map((note, index) => ({ note, index }));
   indexed.sort((a, b) => {
     const ra = getComedyRatingSortKey(a.note);
@@ -220,11 +173,7 @@ export function sortNotesByComedyRatingOrder(notes, mode, debugContext = '') {
     }
     return cmp;
   });
-  const sorted = indexed.map(({ note }) => note);
-  if (DEBUG_RATING_SORT && debugContext) {
-    debugRatingSortOnce(notes, sorted, mode, debugContext);
-  }
-  return sorted;
+  return indexed.map(({ note }) => note);
 }
 
 /**
@@ -236,7 +185,7 @@ export function sortNotesForCardsOrLibrary(filteredNotes, mode) {
   if (mode === 'off') {
     return sortNotesByEffectiveDateDesc(filteredNotes);
   }
-  return sortNotesByComedyRatingOrder(filteredNotes, mode, 'CardsLibrary:flat');
+  return sortNotesByComedyRatingOrder(filteredNotes, mode);
 }
 
 /**
@@ -248,6 +197,6 @@ export function applyComedyRatingSortToGroups(groups, mode) {
   if (mode === 'off') return groups;
   return groups.map((g) => ({
     ...g,
-    notes: sortNotesByComedyRatingOrder(g.notes, mode, `CardsLibrary:group:${g.label}`),
+    notes: sortNotesByComedyRatingOrder(g.notes, mode),
   }));
 }

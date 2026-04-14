@@ -1,5 +1,6 @@
 import { getSupabase } from '../lib/supabaseClient.js';
 import { parseComedyRating } from '../utils/comedyRating.js';
+import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
 import { normalizeLabel } from '../utils/noteLabels.js';
 
 /**
@@ -31,16 +32,24 @@ function logSupabaseNotesError(context, err) {
  * when they have non-empty values so minimal / legacy schemas still accept rows.
  *
  * @param {string} userId
- * @param {{ title?: string, bodyHtml?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string }} note
+ * @param {{ title?: string, bodyHtml?: string, bodyMarkdown?: string, contentType?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string }} note
  * @returns {Record<string, unknown>}
  */
 function buildNotesInsertRow(userId, note) {
+  const ct = normalizeContentType(note.contentType);
   const row = {
     user_id: userId,
     title: note.title ?? '',
-    body_html: note.bodyHtml ?? '',
+    content_type: ct,
     source_file_name: note.sourceFileName ?? '',
   };
+  if (ct === CONTENT_TYPE_MARKDOWN) {
+    row.body_markdown = note.bodyMarkdown ?? '';
+    row.body_html = note.bodyHtml ?? '';
+  } else {
+    row.body_html = note.bodyHtml ?? '';
+    row.body_markdown = null;
+  }
   const cas = note.createdAtSource != null ? String(note.createdAtSource).trim() : '';
   const mas = note.modifiedAtSource != null ? String(note.modifiedAtSource).trim() : '';
   if (cas) row.created_at_source = cas;
@@ -50,7 +59,7 @@ function buildNotesInsertRow(userId, note) {
 
 /**
  * @param {string} userId
- * @param {{ title?: string, bodyHtml?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string }} note
+ * @param {{ title?: string, bodyHtml?: string, bodyMarkdown?: string, contentType?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string }} note
  */
 async function insertNotesRowRaw(userId, note) {
   const supabase = getSupabase();
@@ -61,17 +70,20 @@ async function insertNotesRowRaw(userId, note) {
 
 /**
  * @param {object} row
- * @returns {{ id: string, title: string, bodyHtml: string, sourceFileName: string, createdAtSource: string, modifiedAtSource: string, labels: string[] }}
+ * @returns {{ id: string, title: string, bodyHtml: string, bodyMarkdown: string, contentType: string, sourceFileName: string, createdAtSource: string, modifiedAtSource: string, labels: string[] }}
  */
 function mapRowToNote(row) {
   const nl = row.note_labels ?? [];
   const labels = nl
     .map((x) => (x.labels && x.labels.name ? String(x.labels.name) : null))
     .filter(Boolean);
+  const contentType = normalizeContentType(row.content_type);
   return {
     id: row.id,
     title: row.title ?? '',
     bodyHtml: row.body_html ?? '',
+    bodyMarkdown: row.body_markdown ?? '',
+    contentType,
     sourceFileName: row.source_file_name ?? '',
     createdAtSource: row.created_at_source ?? '',
     modifiedAtSource: row.modified_at_source ?? '',
@@ -94,11 +106,9 @@ async function getOrCreateLabelId(userId, rawName) {
     .maybeSingle();
   if (selErr) throw selErr;
   if (existing?.id) {
-    console.log('[db] label found', { userId, name });
     return existing.id;
   }
 
-  console.log('[db] label create', { userId, name });
   const { data: created, error: insErr } = await supabase
     .from('labels')
     .insert({ user_id: userId, name })
@@ -131,8 +141,6 @@ export async function syncNoteLabels(noteId, userId, labelNames) {
     seen.add(key);
     uniq.push(n);
   }
-
-  console.log('[db] syncNoteLabels', { noteId, userId, labelCount: uniq.length });
 
   for (const name of uniq) {
     const labelId = await getOrCreateLabelId(userId, name);
@@ -179,8 +187,6 @@ export async function fetchNotesForUser(userId) {
   const supabase = getSupabase();
   if (!supabase) return [];
 
-  console.log('[db] fetchNotesForUser start', { userId });
-
   const { data, error } = await supabase
     .from('notes')
     .select(SELECT_NOTE_WITH_LABELS)
@@ -191,9 +197,7 @@ export async function fetchNotesForUser(userId) {
     logSupabaseNotesError('fetchNotesForUser', error);
     throw error;
   }
-  const rows = (data ?? []).map(mapRowToNote);
-  console.log('[db] fetchNotesForUser ok', { count: rows.length });
-  return rows;
+  return (data ?? []).map(mapRowToNote);
 }
 
 /** Same as {@link fetchNotesForUser}; name reflects “logged-in user” usage. */
@@ -266,20 +270,20 @@ export async function findNoteByImportFingerprint(userId, note) {
  * Composer-created notes always insert (no fingerprint dedupe).
  *
  * @param {string} userId
- * @param {{ title?: string, bodyHtml?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string, labels?: string[] }} note
+ * @param {{ title?: string, bodyHtml?: string, bodyMarkdown?: string, contentType?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string, labels?: string[] }} note
  */
 export async function upsertImportedNote(userId, note) {
   if (isComposerCreatedNote(note)) {
-    console.log('[db] upsertImportedNote: composer note, insert');
     return insertNote(userId, note);
   }
 
   const existing = await findNoteByImportFingerprint(userId, note);
   if (existing) {
-    console.log('[db] upsertImportedNote: fingerprint match, update', { noteId: existing.id });
     await updateNoteRemote(userId, existing.id, {
       title: note.title,
       bodyHtml: note.bodyHtml,
+      bodyMarkdown: note.bodyMarkdown,
+      contentType: note.contentType ?? CONTENT_TYPE_HTML,
       sourceFileName: note.sourceFileName,
       createdAtSource: note.createdAtSource,
       modifiedAtSource: note.modifiedAtSource,
@@ -288,17 +292,14 @@ export async function upsertImportedNote(userId, note) {
     return fetchNoteById(userId, existing.id);
   }
 
-  console.log('[db] upsertImportedNote: new import, insert');
   return insertNote(userId, note);
 }
 
 /**
  * @param {string} userId
- * @param {{ title?: string, bodyHtml?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string, labels?: string[] }} note
+ * @param {{ title?: string, bodyHtml?: string, bodyMarkdown?: string, contentType?: string, sourceFileName?: string, createdAtSource?: string, modifiedAtSource?: string, labels?: string[] }} note
  */
 export async function insertNote(userId, note) {
-  console.log('[db] insertNote start', { userId, title: note.title?.slice(0, 40) });
-
   const { data, error } = await insertNotesRowRaw(userId, note);
 
   if (error) {
@@ -313,13 +314,14 @@ export async function insertNote(userId, note) {
     id: data.id,
     title: data.title ?? '',
     bodyHtml: data.body_html ?? '',
+    bodyMarkdown: data.body_markdown ?? '',
+    contentType: normalizeContentType(data.content_type),
     sourceFileName: data.source_file_name ?? '',
     createdAtSource: data.created_at_source ?? '',
     modifiedAtSource: data.modified_at_source ?? '',
     comedyRating: parseComedyRating(data.comedy_rating),
     labels,
   };
-  console.log('[db] insertNote ok', { id: mapped.id });
   return mapped;
 }
 
@@ -332,15 +334,13 @@ export async function updateNoteRemote(userId, noteId, updates) {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Supabase not configured');
 
-  console.log('[db] updateNoteRemote start', {
-    userId,
-    noteId,
-    fields: Object.keys(updates),
-  });
-
   const payload = { updated_at: new Date().toISOString() };
   if ('title' in updates && updates.title !== undefined) payload.title = updates.title;
   if ('bodyHtml' in updates && updates.bodyHtml !== undefined) payload.body_html = updates.bodyHtml;
+  if ('bodyMarkdown' in updates && updates.bodyMarkdown !== undefined) payload.body_markdown = updates.bodyMarkdown;
+  if ('contentType' in updates && updates.contentType !== undefined) {
+    payload.content_type = normalizeContentType(updates.contentType);
+  }
   if ('sourceFileName' in updates && updates.sourceFileName !== undefined) {
     payload.source_file_name = updates.sourceFileName;
   }
@@ -365,8 +365,6 @@ export async function updateNoteRemote(userId, noteId, updates) {
   if ('labels' in updates && updates.labels !== undefined) {
     await syncNoteLabels(noteId, userId, /** @type {string[]} */ (updates.labels));
   }
-
-  console.log('[db] updateNoteRemote ok', { noteId });
 }
 
 /**
@@ -378,13 +376,11 @@ export async function deleteNoteRemote(userId, noteId) {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Supabase not configured');
 
-  console.log('[db] deleteNote start', { userId, noteId });
   const { error } = await supabase.from('notes').delete().eq('id', noteId).eq('user_id', userId);
   if (error) {
     logSupabaseNotesError('deleteNoteRemote', error);
     throw error;
   }
-  console.log('[db] deleteNote ok', { noteId });
 }
 
 /**
@@ -414,11 +410,9 @@ export async function attachLabelsToNote(noteId, labelNames, userId) {
  */
 export async function saveNoteToSupabase(userId, note, existingId) {
   if (existingId) {
-    console.log('[db] saveNoteToSupabase update', { existingId });
     await updateNoteRemote(userId, existingId, note);
     return fetchNoteById(userId, existingId);
   }
-  console.log('[db] saveNoteToSupabase insert');
   return insertNote(userId, /** @type {Parameters<typeof insertNote>[1]} */ (note));
 }
 

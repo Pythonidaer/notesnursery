@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requiresAuthForPersistence } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
 import { formatNoteTimestamp } from '../utils/formatNoteTimestamp.js';
 import { collectAllLabels } from '../utils/noteLabels.js';
-import { plainTextToHtmlBody } from '../utils/noteBodyPlain.js';
+import { CONTENT_TYPE_HTML } from '../utils/noteContentModel.js';
+import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import LabelPicker from './LabelPicker.jsx';
+import NoteRichTextEditor from './NoteRichTextEditor.jsx';
 import styles from './FloatingNewNoteComposer.module.css';
 
 function CloseIcon() {
@@ -32,16 +34,20 @@ export default function FloatingNewNoteComposer({ visible, onRequestClose }) {
   const suggestions = useMemo(() => collectAllLabels(notes), [notes]);
 
   const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
+  const [bodyHtml, setBodyHtml] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
   const [labels, setLabels] = useState(/** @type {string[]} */ ([]));
   const [minimized, setMinimized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(/** @type {string | null} */ (null));
 
+  const noopEditorReady = useCallback(() => {}, []);
+
   useEffect(() => {
     if (!visible) {
       setTitle('');
-      setBody('');
+      setBodyHtml('');
+      setEditorKey((k) => k + 1);
       setLabels([]);
       setMinimized(false);
       setSaving(false);
@@ -66,14 +72,17 @@ export default function FloatingNewNoteComposer({ visible, onRequestClose }) {
           id: crypto.randomUUID(),
           sourceFileName: 'Notes Nursery',
           title: title.trim() || 'Untitled',
-          bodyHtml: plainTextToHtmlBody(body),
+          bodyHtml: sanitizeNoteHtml(bodyHtml),
+          bodyMarkdown: null,
+          contentType: CONTENT_TYPE_HTML,
           createdAtSource: ts,
           modifiedAtSource: ts,
           labels: [...labels],
         },
       ]);
       setTitle('');
-      setBody('');
+      setBodyHtml('');
+      setEditorKey((k) => k + 1);
       setLabels([]);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Could not create note');
@@ -123,14 +132,16 @@ export default function FloatingNewNoteComposer({ visible, onRequestClose }) {
           <label className={styles.fieldLabel} htmlFor="floating-note-body">
             Body
           </label>
-          <textarea
-            id="floating-note-body"
-            className={styles.textarea}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={5}
-            placeholder="Write something…"
-          />
+          <div className={styles.richComposer}>
+            <NoteRichTextEditor
+              key={editorKey}
+              initialHtml={bodyHtml}
+              onChange={setBodyHtml}
+              onEditorReady={noopEditorReady}
+              placeholder="Write something…"
+              aria-label="Note body"
+            />
+          </div>
           <p className={styles.fieldLabel}>Labels</p>
           <LabelPicker
             idPrefix="floating"

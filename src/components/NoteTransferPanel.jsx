@@ -4,7 +4,8 @@ import { requiresAuthForPersistence } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
 import { formatNoteTimestamp } from '../utils/formatNoteTimestamp.js';
-import { htmlToPlain, plainTextToHtmlBody } from '../utils/noteBodyPlain.js';
+import { CONTENT_TYPE_HTML, getNoteBodyPlain } from '../utils/noteContentModel.js';
+import { plainTextToHtmlBody } from '../utils/noteBodyPlain.js';
 import NotePicker from './NotePicker.jsx';
 import composerStyles from './FloatingNewNoteComposer.module.css';
 import styles from './NoteTransferPanel.module.css';
@@ -66,7 +67,7 @@ export default function NoteTransferPanel({
       return;
     }
     const n = notes.find((x) => x.id === id);
-    if (n) setDestPlain(htmlToPlain(n.bodyHtml));
+    if (n) setDestPlain(getNoteBodyPlain(n));
   };
 
   const appendSnippet = () => {
@@ -88,9 +89,17 @@ export default function NoteTransferPanel({
     setSaveError(null);
     setSaving(true);
     const ts = formatNoteTimestamp(new Date());
+    const dest = notes.find((n) => n.id === destId);
+    if (!dest) {
+      setSaveError('Destination note not found');
+      setSaving(false);
+      return;
+    }
     try {
       await updateNote(destId, {
         bodyHtml: plainTextToHtmlBody(destPlain),
+        bodyMarkdown: null,
+        contentType: CONTENT_TYPE_HTML,
         modifiedAtSource: ts,
       });
       onSaved();

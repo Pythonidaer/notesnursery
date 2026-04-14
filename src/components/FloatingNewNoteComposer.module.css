@@ -72,6 +72,15 @@
   color: var(--muted);
 }
 
+.richComposer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-height: min(34vh, 17rem);
+  overflow: auto;
+}
+
 .input {
   padding: 0.45rem 0.55rem;
   font-size: 0.9rem;
