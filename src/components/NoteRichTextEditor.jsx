@@ -23,7 +23,7 @@ import {
   TextQuote,
   Underline,
 } from 'lucide-react';
-import { normalizeAppleNotesHtml } from '../utils/normalizeAppleNotesHtml.js';
+import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import styles from './NoteRichTextEditor.module.css';
 
@@ -378,7 +378,7 @@ export default function NoteRichTextEditor({
   /** One snapshot per mount so parent `draftHtml` updates do not reset the editor. */
   const [initialSnapshot] = useState(() => {
     const raw = initialHtml && initialHtml.trim() ? initialHtml : '<p></p>';
-    const n = normalizeAppleNotesHtml(raw);
+    const n = prepareNoteBodyHtml(raw);
     return n && n.trim() ? n : '<p></p>';
   });
 
@@ -390,7 +390,7 @@ export default function NoteRichTextEditor({
         link: {
           openOnClick: false,
           autolink: true,
-          HTMLAttributes: { rel: 'noopener noreferrer' },
+          HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
         },
         codeBlock: {
           HTMLAttributes: {

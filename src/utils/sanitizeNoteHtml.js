@@ -6,7 +6,8 @@ import DOMPurify from 'dompurify';
  */
 const NOTE_HTML_PURIFY = {
   USE_PROFILES: { html: true },
-  ADD_ATTR: ['style'],
+  /** `target` on `<a>` so `target="_blank"` round-trips (read view + editor). */
+  ADD_ATTR: ['style', 'target'],
 };
 
 /**

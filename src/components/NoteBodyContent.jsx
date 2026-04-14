@@ -4,7 +4,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
-import { normalizeAppleNotesHtml } from '../utils/normalizeAppleNotesHtml.js';
+import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 
 /**
@@ -19,6 +19,7 @@ const markdownSanitizeSchema = {
   attributes: {
     ...defaultSchema.attributes,
     span: ['style'],
+    a: [...new Set([...(defaultSchema.attributes?.a ?? []), 'href', 'title', 'target', 'rel'])],
   },
 };
 
@@ -37,7 +38,7 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
     if (mode !== CONTENT_TYPE_HTML) return '';
     const raw = bodyHtml ?? '';
     if (!raw.trim()) return '';
-    return sanitizeNoteHtml(normalizeAppleNotesHtml(raw));
+    return sanitizeNoteHtml(prepareNoteBodyHtml(raw));
   }, [mode, bodyHtml]);
 
   if (mode === CONTENT_TYPE_MARKDOWN) {
@@ -50,6 +51,13 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
+          components={{
+            a: ({ href, children, ...rest }) => (
+              <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
+                {children}
+              </a>
+            ),
+          }}
         >
           {md}
         </ReactMarkdown>
