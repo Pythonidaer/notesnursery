@@ -30,8 +30,12 @@ import { NOTE_AUDIO_MAX_UPLOAD_BYTES } from '../constants/noteAudio.js';
 import { noteAudioExtension } from '../tiptap/noteAudioExtension.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
+import AudioInsertBlockedModal from './AudioInsertBlockedModal.jsx';
 import AudioUploadErrorModal from './AudioUploadErrorModal.jsx';
 import InsertAudioModal from './InsertAudioModal.jsx';
+import InsertLinkModal from './InsertLinkModal.jsx';
+import { escapeHtmlAttr } from '../utils/escapeHtmlAttr.js';
+import { isSelectionInsideListItem } from '../utils/insertNoteAudioBlock.js';
 import styles from './NoteRichTextEditor.module.css';
 
 /** Block elements: if a <div> contains any of these, TipTap must not treat the div as a paragraph. */
@@ -127,7 +131,11 @@ function useToolbarRerender(editor) {
 function MenuBar({ editor, audioStorageScopeId }) {
   const [colorOpen, setColorOpen] = useState(false);
   const colorWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkInitialUrl, setLinkInitialUrl] = useState('');
+  const [linkCanRemove, setLinkCanRemove] = useState(false);
   const [insertAudioOpen, setInsertAudioOpen] = useState(false);
+  const [audioInsertBlockedOpen, setAudioInsertBlockedOpen] = useState(false);
   const [uploadErr, setUploadErr] = useState(
     /** @type {null | { fileName: string, fileSizeBytes: number, maxBytes: number, reason: string, isLikelySizeLimit: boolean }} */ (
       null
@@ -159,15 +167,32 @@ function MenuBar({ editor, audioStorageScopeId }) {
   const currentColor = typeof textStyleAttrs.color === 'string' ? textStyleAttrs.color : null;
   const colorControlActive = focused && currentColor != null && currentColor !== '';
 
-  const setLink = () => {
-    const prev = editor.getAttributes('link').href;
-    const url = typeof window !== 'undefined' ? window.prompt('Link URL', prev ?? '') : null;
-    if (url === null) return;
-    if (url === '') {
+  const openLinkModal = () => {
+    editor.chain().focus();
+    const inLink = editor.isActive('link');
+    const href = editor.getAttributes('link').href;
+    setLinkInitialUrl(typeof href === 'string' ? href : '');
+    setLinkCanRemove(inLink);
+    setLinkModalOpen(true);
+  };
+
+  const applyLinkFromModal = (urlRaw) => {
+    const trimmed = urlRaw.trim();
+    if (trimmed === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    const { empty } = editor.state.selection;
+    if (empty) {
+      const h = escapeHtmlAttr(trimmed);
+      editor.chain().focus().insertContent(`<a href="${h}">${h}</a>`).run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: trimmed }).run();
+    }
+  };
+
+  const removeLinkFromModal = () => {
+    editor.chain().focus().extendMarkRange('link').unsetLink().run();
   };
 
   const applyColor = (/** @type {string | null} */ value) => {
@@ -185,7 +210,14 @@ function MenuBar({ editor, audioStorageScopeId }) {
 
   const openInsertAudio = () => {
     if (!canUploadAudio) return;
-    setInsertAudioOpen(true);
+    editor.commands.focus();
+    queueMicrotask(() => {
+      if (isSelectionInsideListItem(editor)) {
+        setAudioInsertBlockedOpen(true);
+        return;
+      }
+      setInsertAudioOpen(true);
+    });
   };
 
   return (
@@ -361,9 +393,10 @@ function MenuBar({ editor, audioStorageScopeId }) {
         <button
           type="button"
           className={`${styles.toolBtn} ${active('link') ? styles.toolBtnActive : ''}`}
-          onClick={setLink}
+          onClick={openLinkModal}
           aria-pressed={active('link')}
           aria-label="Link"
+          aria-haspopup="dialog"
           title="Link"
         >
           <Link2 className={styles.icon} strokeWidth={2} aria-hidden />
@@ -397,12 +430,17 @@ function MenuBar({ editor, audioStorageScopeId }) {
           userId={user.id}
           audioStorageScopeId={audioStorageScopeId}
           editor={editor}
+          onBlocked={() => setAudioInsertBlockedOpen(true)}
           onUploadFailure={(detail) => {
             setUploadErr(detail);
             setInsertAudioOpen(false);
           }}
         />
       ) : null}
+      <AudioInsertBlockedModal
+        open={audioInsertBlockedOpen}
+        onClose={() => setAudioInsertBlockedOpen(false)}
+      />
       <AudioUploadErrorModal
         open={uploadErr != null}
         onClose={() => setUploadErr(null)}
@@ -411,6 +449,14 @@ function MenuBar({ editor, audioStorageScopeId }) {
         maxUploadBytes={uploadErr?.maxBytes ?? NOTE_AUDIO_MAX_UPLOAD_BYTES}
         reason={uploadErr?.reason ?? ''}
         isLikelySizeLimit={uploadErr?.isLikelySizeLimit ?? false}
+      />
+      <InsertLinkModal
+        open={linkModalOpen}
+        onClose={() => setLinkModalOpen(false)}
+        initialUrl={linkInitialUrl}
+        canRemoveLink={linkCanRemove}
+        onApply={(url) => applyLinkFromModal(url)}
+        onRemoveLink={removeLinkFromModal}
       />
     </>
   );

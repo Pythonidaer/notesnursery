@@ -47,6 +47,7 @@
 }
 
 .subheading {
+  display: block;
   margin: 0.35rem 0 0;
   font-size: 0.82rem;
   font-weight: 600;
@@ -67,18 +68,82 @@
   font-size: 0.88rem;
 }
 
-.list {
-  list-style: none;
+.pickerWrap {
+  position: relative;
+  margin-top: 0.35rem;
+}
+
+.pickerTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface-active);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pickerTrigger:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.pickerTrigger:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pickerTrigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pickerTriggerOpen {
+  border-color: var(--accent);
+}
+
+.pickerTriggerLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerChevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.pickerTriggerOpen .pickerChevron {
+  transform: rotate(180deg);
+}
+
+.pickerPanel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
   max-height: 14rem;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-active);
+  background: var(--surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
 }
 
-.rowBtn {
+.pickerOption {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -96,20 +161,20 @@
   cursor: pointer;
 }
 
-.rowBtn:last-child {
+.pickerOption:last-child {
   border-bottom: none;
 }
 
-.rowBtn:hover {
-  background: var(--surface);
+.pickerOption:hover {
+  background: var(--surface-active);
 }
 
-.rowName {
+.pickerOptionTitle {
   font-weight: 600;
   word-break: break-word;
 }
 
-.rowMeta {
+.pickerOptionMeta {
   font-size: 0.8rem;
   color: var(--muted);
 }

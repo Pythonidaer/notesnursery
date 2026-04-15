@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
 import { Info, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
 import AudioFileInfoModal from './AudioFileInfoModal.jsx';
 import '../styles/noteAudio.css';
@@ -9,8 +10,9 @@ import styles from './NoteAudioNodeView.module.css';
 /**
  * @param {import('@tiptap/react').NodeViewProps} props
  */
-export default function NoteAudioNodeView({ node, deleteNode }) {
-  const { storagePath, fileName, mimeType, sizeBytes, uploadedAt } = node.attrs;
+export default function NoteAudioNodeView({ node, deleteNode, editor }) {
+  const { user } = useAuth();
+  const { storagePath, fileName, sizeBytes, uploadedAt } = node.attrs;
   const [src, setSrc] = useState(/** @type {string | null} */ (null));
   const [error, setError] = useState(/** @type {string | null} */ (null));
   const [infoOpen, setInfoOpen] = useState(false);
@@ -79,10 +81,11 @@ export default function NoteAudioNodeView({ node, deleteNode }) {
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
         fileName={typeof fileName === 'string' ? fileName : ''}
-        mimeType={typeof mimeType === 'string' ? mimeType : ''}
         sizeBytes={sizeBytes != null ? Number(sizeBytes) : null}
         uploadedAt={typeof uploadedAt === 'string' ? uploadedAt : ''}
+        userId={user?.id ?? null}
         storagePath={typeof storagePath === 'string' ? storagePath : ''}
+        editor={editor}
       />
     </NodeViewWrapper>
   );

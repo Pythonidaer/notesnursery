@@ -1,8 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import { useSupabaseBackend } from '../config/appConfig.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { fetchNoteAudioDisplayNamesForPaths } from '../lib/noteAudioDisplayNames.js';
 import { splitNoteHtmlForAudioRead } from '../utils/splitNoteHtmlForAudioRead.js';
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
@@ -37,17 +40,21 @@ const markdownSanitizeSchema = {
  */
 export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, className }) {
   const mode = normalizeContentType(contentType);
+  const { user } = useAuth();
+  const remote = useSupabaseBackend();
+  const audioUserId = remote && user?.id ? user.id : null;
+
   const [audioInfo, setAudioInfo] = useState(
-    /** @type {{ fileName: string, mimeType: string, sizeBytes: number | null, uploadedAt: string, storagePath: string } | null} */ (
+    /** @type {{ fileName: string, sizeBytes: number | null, uploadedAt: string, storagePath: string } | null} */ (
       null
     )
   );
+  const [displayNameByPath, setDisplayNameByPath] = useState(/** @type {Record<string, string>} */ ({}));
 
   const onOpenAudioInfo = useCallback(
     (attrs) => {
       setAudioInfo({
         fileName: attrs.fileName,
-        mimeType: attrs.mimeType,
         sizeBytes: attrs.sizeBytes,
         uploadedAt: attrs.uploadedAt,
         storagePath: attrs.storagePath,
@@ -67,6 +74,32 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
     if (mode !== CONTENT_TYPE_HTML || !safeHtml.trim()) return null;
     return splitNoteHtmlForAudioRead(safeHtml);
   }, [mode, safeHtml]);
+
+  useEffect(() => {
+    if (!audioUserId || !readSegments) return;
+    const paths = readSegments
+      .filter((s) => s.type === 'audio')
+      .map((s) => s.attrs.storagePath)
+      .filter(Boolean);
+    if (paths.length === 0) return;
+    let cancelled = false;
+    fetchNoteAudioDisplayNamesForPaths(audioUserId, paths).then((map) => {
+      if (!cancelled) setDisplayNameByPath(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [audioUserId, readSegments]);
+
+  const readSegmentsWithDisplayNames = useMemo(() => {
+    if (!readSegments) return null;
+    return readSegments.map((seg) => {
+      if (seg.type !== 'audio') return seg;
+      const dn = displayNameByPath[seg.attrs.storagePath];
+      if (!dn) return seg;
+      return { type: 'audio', attrs: { ...seg.attrs, fileName: dn } };
+    });
+  }, [readSegments, displayNameByPath]);
 
   if (mode === CONTENT_TYPE_MARKDOWN) {
     const md = bodyMarkdown ?? '';
@@ -99,8 +132,8 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
   return (
     <>
       <div className={className}>
-        {readSegments
-          ? readSegments.map((seg, i) =>
+        {readSegmentsWithDisplayNames
+          ? readSegmentsWithDisplayNames.map((seg, i) =>
               seg.type === 'html' ? (
                 <div
                   key={`read-html-${i}`}
@@ -121,10 +154,13 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
         open={audioInfo != null}
         onClose={() => setAudioInfo(null)}
         fileName={audioInfo?.fileName ?? ''}
-        mimeType={audioInfo?.mimeType ?? ''}
         sizeBytes={audioInfo?.sizeBytes ?? null}
         uploadedAt={audioInfo?.uploadedAt ?? ''}
+        userId={audioUserId}
         storagePath={audioInfo?.storagePath ?? ''}
+        onDisplayNameSaved={(path, name) => {
+          setDisplayNameByPath((prev) => ({ ...prev, [path]: name }));
+        }}
       />
     </>
   );

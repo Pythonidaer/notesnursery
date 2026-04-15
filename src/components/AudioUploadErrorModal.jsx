@@ -68,13 +68,15 @@ export default function AudioUploadErrorModal({
             <dt>File</dt>
             <dd>{fileName || '—'}</dd>
           </div>
-          <div className={styles.row}>
-            <dt>Size</dt>
-            <dd>{formatBytes(fileSizeBytes)}</dd>
-          </div>
-          <div className={styles.row}>
-            <dt>Upload limit (app check)</dt>
-            <dd>{formatBytes(maxUploadBytes)}</dd>
+          <div className={`${styles.row} ${styles.rowInline}`}>
+            <div className={styles.rowInlineItem}>
+              <dt>File size</dt>
+              <dd>{formatBytes(fileSizeBytes)}</dd>
+            </div>
+            <div className={`${styles.rowInlineItem} ${styles.rowInlineEnd}`}>
+              <dt>Upload limit</dt>
+              <dd>{formatBytes(maxUploadBytes)}</dd>
+            </div>
           </div>
           <div className={styles.row}>
             <dt>What went wrong</dt>
@@ -84,16 +86,22 @@ export default function AudioUploadErrorModal({
             <div className={styles.row}>
               <dt>What you can try</dt>
               <dd>
-                <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.15rem' }}>
-                  <li>Compress or export a smaller audio file, then try again.</li>
-                  <li>Split long recordings into shorter clips.</li>
+                <ul className={styles.helpList}>
                   <li>
-                    If your project uses a lower Storage limit, reduce file size to fit (
-                    <a href="#audio-compression-help" style={{ color: 'var(--accent)' }}>
-                      compression help
-                    </a>{' '}
-                    — placeholder for future guidance).
+                    Large <code className={styles.codeInline}>.wav</code> files are often much smaller as{' '}
+                    <code className={styles.codeInline}>.mp3</code>. Try converting first (for example:{' '}
+                    <a
+                      href="https://cloudconvert.com/wav-to-mp3"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.helpLink}
+                    >
+                      CloudConvert WAV to MP3
+                    </a>
+                    ), then upload again.
                   </li>
+                  <li>Re-export from your editor or recorder at a lower bitrate or as a smaller file.</li>
+                  <li>If the recording is very long, split it into shorter clips and upload each part.</li>
                 </ul>
               </dd>
             </div>

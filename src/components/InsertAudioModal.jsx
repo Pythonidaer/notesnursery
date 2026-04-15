@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ChevronDown } from 'lucide-react';
 import { listUserNoteAudioFiles } from '../lib/noteAudioList.js';
+import { upsertNoteAudioDisplayName } from '../lib/noteAudioDisplayNames.js';
 import { uploadNoteAudioFile } from '../lib/noteAudioUpload.js';
 import { NOTE_AUDIO_MAX_UPLOAD_BYTES } from '../constants/noteAudio.js';
 import { describeNoteAudioUploadFailure } from '../utils/noteAudioUploadErrors.js';
 import { validateNoteAudioFile } from '../utils/noteAudioValidation.js';
 import { formatBytes } from '../utils/formatBytes.js';
+import {
+  focusEditorAndCanInsertNoteAudio,
+  insertNoteAudioBlock,
+} from '../utils/insertNoteAudioBlock.js';
 import styles from './NoteInfoModal.module.css';
 import insertStyles from './InsertAudioModal.module.css';
 
@@ -16,6 +22,7 @@ import insertStyles from './InsertAudioModal.module.css';
  *   userId: string,
  *   audioStorageScopeId: string,
  *   editor: import('@tiptap/core').Editor | null,
+ *   onBlocked: () => void,
  *   onUploadFailure: (detail: {
  *     fileName: string,
  *     fileSizeBytes: number,
@@ -31,6 +38,7 @@ export default function InsertAudioModal({
   userId,
   audioStorageScopeId,
   editor,
+  onBlocked,
   onUploadFailure,
 }) {
   const fileInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
@@ -38,6 +46,8 @@ export default function InsertAudioModal({
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryError, setLibraryError] = useState(/** @type {string | null} */ (null));
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const pickerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
 
   useEffect(() => {
     if (!open) return;
@@ -47,6 +57,20 @@ export default function InsertAudioModal({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) setLibraryOpen(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!libraryOpen) return;
+    const onDown = (/** @type {MouseEvent} */ e) => {
+      const el = pickerRef.current;
+      if (el && e.target instanceof Node && !el.contains(e.target)) setLibraryOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [libraryOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -72,21 +96,23 @@ export default function InsertAudioModal({
 
   const insertAttrs = (attrs) => {
     if (!editor) return;
-    editor
-      .chain()
-      .focus()
-      .insertContent({
-        type: 'noteAudio',
-        attrs,
-      })
-      .run();
+    if (!insertNoteAudioBlock(editor, attrs)) {
+      onBlocked();
+      return;
+    }
     onClose();
   };
 
   const onPickExisting = (row) => {
+    if (!editor) return;
+    if (!focusEditorAndCanInsertNoteAudio(editor)) {
+      onBlocked();
+      return;
+    }
+    const label = row.displayName ?? row.fileName;
     insertAttrs({
       storagePath: row.path,
-      fileName: row.fileName,
+      fileName: label,
       mimeType: row.mimeType,
       sizeBytes: row.sizeBytes,
       uploadedAt: row.updatedAt || new Date().toISOString(),
@@ -98,6 +124,11 @@ export default function InsertAudioModal({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !editor) return;
+
+    if (!focusEditorAndCanInsertNoteAudio(editor)) {
+      onBlocked();
+      return;
+    }
 
     const check = validateNoteAudioFile(file);
     if (!check.ok) {
@@ -127,6 +158,8 @@ export default function InsertAudioModal({
     setUploading(true);
     try {
       const uploaded = await uploadNoteAudioFile(userId, audioStorageScopeId, file);
+      const rec = await upsertNoteAudioDisplayName(userId, uploaded.path, uploaded.fileName);
+      if (!rec.ok) console.error('[note-audio] record display name', rec.error);
       insertAttrs({
         storagePath: uploaded.path,
         fileName: uploaded.fileName,
@@ -151,6 +184,15 @@ export default function InsertAudioModal({
     } finally {
       setUploading(false);
     }
+  };
+
+  const onUploadButtonClick = () => {
+    if (!editor) return;
+    if (!focusEditorAndCanInsertNoteAudio(editor)) {
+      onBlocked();
+      return;
+    }
+    fileInputRef.current?.click();
   };
 
   return createPortal(
@@ -196,38 +238,67 @@ export default function InsertAudioModal({
             type="button"
             className={insertStyles.primaryBtn}
             disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={onUploadButtonClick}
           >
             {uploading ? 'Uploading…' : 'Upload new file'}
           </button>
           <p className={insertStyles.hint}>
-            .wav or .mp3 — max {formatBytes(NOTE_AUDIO_MAX_UPLOAD_BYTES)} per file (client check; your project may
-            enforce a different limit).
+            .wav or .mp3 — maximum {formatBytes(NOTE_AUDIO_MAX_UPLOAD_BYTES)} per file.
           </p>
 
-          <h3 className={insertStyles.subheading}>Your uploaded audio</h3>
+          <span className={insertStyles.subheading} id="insert-audio-library-label">
+            Your uploaded audio
+          </span>
           {libraryLoading ? <p className={insertStyles.muted}>Loading…</p> : null}
           {libraryError ? <p className={insertStyles.error}>{libraryError}</p> : null}
           {!libraryLoading && !libraryError && library.length === 0 ? (
             <p className={insertStyles.muted}>No audio in storage yet. Upload a file first.</p>
           ) : null}
           {!libraryLoading && library.length > 0 ? (
-            <ul className={insertStyles.list} role="listbox" aria-label="Previously uploaded audio">
-              {library.map((row) => (
-                <li key={row.path}>
-                  <button
-                    type="button"
-                    className={insertStyles.rowBtn}
-                    onClick={() => onPickExisting(row)}
-                  >
-                    <span className={insertStyles.rowName}>{row.fileName}</span>
-                    <span className={insertStyles.rowMeta}>
-                      {formatBytes(row.sizeBytes)} · {row.updatedAt ? new Date(row.updatedAt).toLocaleString() : '—'}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className={insertStyles.pickerWrap} ref={pickerRef}>
+              <button
+                type="button"
+                id="insert-audio-library-trigger"
+                className={`${insertStyles.pickerTrigger} ${libraryOpen ? insertStyles.pickerTriggerOpen : ''}`}
+                aria-expanded={libraryOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="insert-audio-library-label insert-audio-library-trigger"
+                disabled={library.length === 0}
+                onClick={() => setLibraryOpen((o) => !o)}
+              >
+                <span className={insertStyles.pickerTriggerLabel}>
+                  {libraryOpen ? 'Choose a file…' : 'Choose from your library…'}
+                </span>
+                <ChevronDown className={insertStyles.pickerChevron} strokeWidth={2} aria-hidden />
+              </button>
+              {libraryOpen ? (
+                <div
+                  className={insertStyles.pickerPanel}
+                  role="listbox"
+                  aria-label="Previously uploaded audio"
+                >
+                  {library.map((row) => (
+                    <button
+                      key={row.path}
+                      type="button"
+                      role="option"
+                      className={insertStyles.pickerOption}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setLibraryOpen(false);
+                        onPickExisting(row);
+                      }}
+                    >
+                      <span className={insertStyles.pickerOptionTitle}>{row.displayName ?? row.fileName}</span>
+                      <span className={insertStyles.pickerOptionMeta}>
+                        {formatBytes(row.sizeBytes)} ·{' '}
+                        {row.updatedAt ? new Date(row.updatedAt).toLocaleString() : '—'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>

@@ -1,7 +1,11 @@
 import { NOTE_AUDIO_BUCKET } from '../constants/noteAudio.js';
+import { fetchNoteAudioDisplayNamesForPaths } from './noteAudioDisplayNames.js';
 import { getSupabase } from './supabaseClient.js';
 
-/** Lists `.wav` / `.mp3` objects under each `{userId}/*` prefix (matches upload paths). */
+/**
+ * Lists `.wav` / `.mp3` objects under each `{userId}/*` prefix (matches upload paths).
+ * Merges user-editable `displayName` from `note_audio_display_names` when available.
+ */
 export async function listUserNoteAudioFiles(userId) {
   const supabase = getSupabase();
   if (!supabase) return [];
@@ -54,5 +58,13 @@ export async function listUserNoteAudioFiles(userId) {
   }
 
   out.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
-  return out;
+
+  const nameMap = await fetchNoteAudioDisplayNamesForPaths(
+    userId,
+    out.map((r) => r.path)
+  );
+  return out.map((r) => ({
+    ...r,
+    displayName: nameMap[r.path] ?? r.fileName,
+  }));
 }

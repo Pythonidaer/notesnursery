@@ -82,3 +82,61 @@
   margin: 0;
   word-break: break-word;
 }
+
+.rowInline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.rowInlineItem {
+  flex: 1 1 10rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.rowInline dt {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.rowInlineItem dd {
+  margin: 0;
+}
+
+.rowInlineEnd {
+  text-align: right;
+}
+
+.rowInlineEnd dt {
+  text-align: right;
+}
+
+.rowInlineEnd dd {
+  text-align: right;
+}
+
+.helpList {
+  margin: 0.25rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.helpLink {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.helpLink:hover {
+  filter: brightness(1.05);
+}
+
+.codeInline {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+}

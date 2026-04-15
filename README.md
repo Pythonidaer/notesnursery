@@ -4,7 +4,7 @@ A React single-page app for importing Apple Notes–style Markdown, organizing n
 
 ## Core features
 
-- **Import** (home `/`) — multi-file `.md` upload, parsed into title, body, and optional `Created` / `Modified` metadata
+- **Import** (home `/`) — multi-file `.md` upload, parsed into title, body, and optional `Created` / `Modified` metadata; in production, signed-in users with existing notes are redirected from `/` to **Library**
 - **Library** (`/library`) — browse notes with label and date filters, optional grouping by date, optional **comedy rating** sort (admin + Comedy label; see below)
 - **Cards** (`/cards`) — same filters in a card layout
 - **Note detail** (`/notes/:id`) — read with sanitized HTML or legacy Markdown; **edit** in a **TipTap** rich-text editor (toolbar, HTML saved to `body_html`); optional **audio clips** (`.wav` / `.mp3`) uploaded to private Supabase Storage and embedded in the note body; labels; transfer selected text to another note; delete with confirmation
@@ -66,7 +66,7 @@ Copy `.env.example` to `.env.local` and adjust.
 - `labels` — per-user label names
 - `note_labels` — many-to-many between notes and labels
 
-Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`).
+Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`) and optional audio display names (`005_note_audio_display_names.sql`).
 
 ## Scripts
 
