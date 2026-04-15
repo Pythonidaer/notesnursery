@@ -14,7 +14,7 @@ export function normalizeContentType(v) {
 }
 
 /**
- * Plain text for previews, transfer panel, and HTML note editing.
+ * Plain text for previews and HTML note editing (not for rich-editor hydration).
  * @param {{ contentType?: string, bodyHtml?: string, bodyMarkdown?: string }} note
  * @returns {string}
  */

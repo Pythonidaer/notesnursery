@@ -20,7 +20,7 @@ import {
   CONTENT_TYPE_MARKDOWN,
   normalizeContentType,
 } from '../utils/noteContentModel.js';
-import { markdownToHtmlForEditor } from '../utils/markdownToHtmlForEditor.js';
+import { getNoteHtmlForRichEditor } from '../utils/noteEditorHtml.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import styles from './NoteDetailPage.module.css';
@@ -252,10 +252,7 @@ export default function NoteDetailPage() {
     originalContentTypeRef.current = ct;
     const fromMd = ct === CONTENT_TYPE_MARKDOWN;
     setEditStartedFromMarkdown(fromMd);
-    const html = fromMd
-      ? markdownToHtmlForEditor(note.bodyMarkdown ?? '')
-      : sanitizeNoteHtml(prepareNoteBodyHtml(note.bodyHtml ?? '')) || '<p></p>';
-    setDraftHtml(html);
+    setDraftHtml(getNoteHtmlForRichEditor(note));
     setEditSessionKey((k) => k + 1);
     setDraftTitle(note.title);
     setDraftCreatedAt(note.createdAtSource ?? '');
