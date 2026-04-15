@@ -505,7 +505,6 @@ export default function NoteDetailPage() {
 
       {isEditing ? (
         <NoteEditFloatingAudioProvider>
-          {/* Dock before editor so the portal mount commits before the audio node view reads context */}
           <NoteEditFloatingAudioDock />
           <div className={styles.editWrap}>
             <NoteRichTextEditor

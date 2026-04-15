@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 /**
  * @typedef {{ audioEl: HTMLAudioElement, anchorEl: HTMLElement, label: string }} ActiveNoteAudioPlayback
@@ -11,9 +11,6 @@ const NoteEditFloatingAudioContext = createContext(
  *   clearActivePlayback: (audioEl: HTMLAudioElement) => void,
  *   dockUiVisible: boolean,
  *   setDockUiVisible: (v: boolean) => void,
- *   dockAudioMountRef: React.MutableRefObject<HTMLDivElement | null>,
- *   dockMountEl: HTMLDivElement | null,
- *   registerDockAudioMount: (el: HTMLDivElement | null) => void,
  * }} */ (null)
 );
 
@@ -26,8 +23,6 @@ const NoteEditFloatingAudioContext = createContext(
 export function NoteEditFloatingAudioProvider({ children }) {
   const [active, setActive] = useState(/** @type {ActiveNoteAudioPlayback | null} */ (null));
   const [dockUiVisible, setDockUiVisible] = useState(false);
-  const [dockMountEl, setDockMountEl] = useState(/** @type {HTMLDivElement | null} */ (null));
-  const dockAudioMountRef = useRef(/** @type {HTMLDivElement | null} */ (null));
 
   const setActivePlayback = useCallback((payload) => {
     if (import.meta.env.DEV) {
@@ -43,11 +38,6 @@ export function NoteEditFloatingAudioProvider({ children }) {
     setActive((prev) => (prev && prev.audioEl === audioEl ? null : prev));
   }, []);
 
-  const registerDockAudioMount = useCallback((el) => {
-    dockAudioMountRef.current = el;
-    setDockMountEl(el);
-  }, []);
-
   const value = useMemo(
     () => ({
       active,
@@ -55,11 +45,8 @@ export function NoteEditFloatingAudioProvider({ children }) {
       clearActivePlayback,
       dockUiVisible,
       setDockUiVisible,
-      dockAudioMountRef,
-      dockMountEl,
-      registerDockAudioMount,
     }),
-    [active, setActivePlayback, clearActivePlayback, dockUiVisible, dockMountEl, registerDockAudioMount]
+    [active, setActivePlayback, clearActivePlayback, dockUiVisible]
   );
 
   return (
@@ -74,9 +61,6 @@ export function NoteEditFloatingAudioProvider({ children }) {
  *   clearActivePlayback: (audioEl: HTMLAudioElement) => void,
  *   dockUiVisible: boolean,
  *   setDockUiVisible: (v: boolean) => void,
- *   dockAudioMountRef: React.MutableRefObject<HTMLDivElement | null>,
- *   dockMountEl: HTMLDivElement | null,
- *   registerDockAudioMount: (el: HTMLDivElement | null) => void,
  * }}
  */
 export function useNoteEditFloatingAudio() {

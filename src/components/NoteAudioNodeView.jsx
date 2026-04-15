@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { NodeViewWrapper } from '@tiptap/react';
-import { Info, Mic, Trash2 } from 'lucide-react';
+import { Grip, Info, Mic, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
@@ -22,7 +21,6 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
   const setActivePlayback = floatingCtx?.setActivePlayback;
   const clearActivePlayback = floatingCtx?.clearActivePlayback;
   const dockUiVisible = floatingCtx?.dockUiVisible ?? false;
-  const dockMountEl = floatingCtx?.dockMountEl ?? null;
   const audioRef = useRef(/** @type {HTMLAudioElement | null} */ (null));
   const anchorRef = useRef(/** @type {HTMLElement | null} */ (null));
   const { user } = useAuth();
@@ -36,12 +34,12 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
   const [transcribeTitle, setTranscribeTitle] = useState('Transcribe audio');
   const [transcribeMessage, setTranscribeMessage] = useState('');
   const [transcribeDetail, setTranscribeDetail] = useState(/** @type {string | null} */ (null));
-  const [playerSlotEl, setPlayerSlotEl] = useState(/** @type {HTMLDivElement | null} */ (null));
-  const setPlayerSlot = useCallback((/** @type {HTMLDivElement | null} */ el) => {
-    setPlayerSlotEl(el);
-  }, []);
+  const [dragOffset, setDragOffset] = useState(/** @type {{ x: number; y: number }} */ ({ x: 0, y: 0 }));
+  const dragStartRef = useRef(/** @type {{ clientX: number; clientY: number; ox: number; oy: number } | null} */ (null));
 
-  const audioPortalTarget = dockUiVisible && dockMountEl ? dockMountEl : playerSlotEl;
+  useEffect(() => {
+    if (!dockUiVisible) setDragOffset({ x: 0, y: 0 });
+  }, [dockUiVisible]);
 
   useEffect(() => {
     if (!storagePath) {
@@ -99,6 +97,40 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
   const pathStr = typeof storagePath === 'string' ? storagePath.trim() : '';
   const canTranscribe = Boolean(remote && user?.id && pathStr && src && !error);
 
+  const onGripPointerDown = useCallback(
+    (e) => {
+      if (!dockUiVisible) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+      const start = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        ox: dragOffset.x,
+        oy: dragOffset.y,
+      };
+      dragStartRef.current = start;
+
+      const onMove = (ev) => {
+        const s = dragStartRef.current;
+        if (!s) return;
+        setDragOffset({
+          x: s.ox + (ev.clientX - s.clientX),
+          y: s.oy + (ev.clientY - s.clientY),
+        });
+      };
+      const onUp = () => {
+        dragStartRef.current = null;
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    },
+    [dockUiVisible, dragOffset.x, dragOffset.y]
+  );
+
   const runTranscribe = async () => {
     if (!canTranscribe || !src || !editor || !pathStr) return;
     setTranscribeTitle('Transcribe audio');
@@ -150,22 +182,50 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
     <NodeViewWrapper className={styles.wrap} data-drag-handle>
       <figure ref={anchorRef} className="nn-audio-embed" aria-label={label}>
         <div className={styles.row}>
-          <div ref={setPlayerSlot} className={styles.playerSlot}>
+          <div className={styles.playerSlot}>
             {error ? <p className={styles.inlineError}>{error}</p> : null}
             {!error && !src ? <span className={styles.loading}>Loading…</span> : null}
-            {src && audioPortalTarget
-              ? createPortal(
-                  <audio
-                    ref={audioRef}
-                    className={styles.audio}
-                    controls
-                    preload="metadata"
-                    src={src}
-                    aria-label={label}
-                  />,
-                  audioPortalTarget
-                )
-              : null}
+            {src ? (
+              <div
+                className={dockUiVisible ? styles.floatingDock : styles.inlineDockRoot}
+                style={
+                  dockUiVisible
+                    ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }
+                    : undefined
+                }
+                role={dockUiVisible ? 'region' : undefined}
+                aria-label={dockUiVisible ? 'Now playing' : undefined}
+              >
+                {dockUiVisible ? (
+                  <div className={styles.fileLine} title={label}>
+                    {label}
+                  </div>
+                ) : null}
+                <div className={styles.chromeRow}>
+                  {dockUiVisible ? (
+                    <button
+                      type="button"
+                      className={styles.dockGrip}
+                      aria-label="Move player"
+                      title="Move"
+                      onPointerDown={onGripPointerDown}
+                    >
+                      <Grip className={styles.gripIcon} strokeWidth={2} aria-hidden />
+                    </button>
+                  ) : null}
+                  <div className={dockUiVisible ? styles.playerPill : styles.inlinePlayerOnly}>
+                    <audio
+                      ref={audioRef}
+                      className={styles.audio}
+                      controls
+                      preload="metadata"
+                      src={src}
+                      aria-label={label}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className={styles.actions}>
             <button
