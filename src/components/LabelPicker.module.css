@@ -61,6 +61,16 @@
   min-width: 0;
 }
 
+.noteHeaderChipsMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.noteHeaderChipsEnd {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .noteHeaderChipsRow .chips {
   flex: 1 1 auto;
   min-width: 0;
@@ -73,19 +83,111 @@
   gap: 0.5rem;
 }
 
+/* Mobile read-only note detail: explicit blocks (toolbar holds Grammar elsewhere). */
+.rootNoteHeaderMobileRead .noteHeaderMobileReadMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.noteReadStarsAboveTitle {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ComedyRatingTrigger `detailSlot` uses margin-left:auto for the old right column — reset for top-left row */
+.noteReadStarsAboveTitle > * {
+  margin-left: 0;
+}
+
+.noteReadTitleRow {
+  width: 100%;
+  min-width: 0;
+}
+
+.noteReadTitleRow .titleInfoCluster {
+  max-width: 100%;
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+/* Chips (left) + label combo (right). Stars render above the title (noteReadStarsAboveTitle). */
+.noteReadChipsComboGrid {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(9.25rem, 13rem);
+  grid-template-rows: auto;
+  column-gap: 0.65rem;
+  align-items: start;
+}
+
+.noteReadChipsCell {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.noteReadChipsCell .chips {
+  justify-content: flex-start;
+  align-items: center;
+  opacity: 0.92;
+}
+
+.noteReadComboCell {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.noteReadComboCell .comboWrap {
+  width: 100%;
+}
+
 @media (max-width: 639px) {
   .noteHeaderTopRow {
-    gap: 0.35rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+  }
+
+  .titleInfoCluster {
+    width: 100%;
+    min-width: 0;
   }
 
   .noteHeaderRight {
-    width: auto;
-    max-width: 11rem;
+    width: 100%;
+    max-width: none;
     flex: 0 0 auto;
   }
 
   .rootNoteHeader.rootCompact .noteHeaderRight .comboWrap {
-    max-width: 11rem;
+    max-width: none;
+    width: 100%;
+  }
+
+  .noteHeaderChipsRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .noteHeaderChipsEnd {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .noteReadChipsComboGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(8rem, 12rem);
+    column-gap: 0.5rem;
   }
 }
 

@@ -7,7 +7,9 @@ import NoteBodyContent from '../components/NoteBodyContent.jsx';
 import NoteRichTextEditor from '../components/NoteRichTextEditor.jsx';
 import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
 import LabelPicker from '../components/LabelPicker.jsx';
+import NoteInfoCircleIcon from '../components/NoteInfoCircleIcon.jsx';
 import NoteInfoModal from '../components/NoteInfoModal.jsx';
+import PosLegendPopover from '../components/PosLegendPopover.jsx';
 import NoteTransferPanel from '../components/NoteTransferPanel.jsx';
 import { NoteEditFloatingAudioProvider } from '../components/NoteEditFloatingAudioContext.jsx';
 import NoteEditFloatingAudioDock from '../components/NoteEditFloatingAudioDock.jsx';
@@ -25,6 +27,7 @@ import {
 import { getNoteHtmlForRichEditor } from '../utils/noteEditorHtml.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import styles from './NoteDetailPage.module.css';
 
 function PencilIcon() {
@@ -78,20 +81,6 @@ function TrashIcon() {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M12 16v-5M12 8h.01"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
       />
     </svg>
   );
@@ -182,7 +171,15 @@ export default function NoteDetailPage() {
   const [actionError, setActionError] = useState(/** @type {string | null} */ (null));
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferSnippet, setTransferSnippet] = useState('');
+  const [posAnalysisOn, setPosAnalysisOn] = useState(false);
+  const [posLegendOpen, setPosLegendOpen] = useState(false);
+  /** Must stay a ref: updating state after POS overlay runs re-renders the body and reapplies innerHTML, wiping tags. */
+  const posUsedAbbreviationsRef = useRef(/** @type {string[]} */ ([]));
+  const posToolbarClusterRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tiptapRef = useRef(/** @type {import('@tiptap/core').Editor | null} */ (null));
+
+  /** Switch to explicit mobile read-only header structure (title → chips → selector/stars). */
+  const isWideViewport = useMediaQuery('(min-width: 640px)');
 
   const labelSuggestions = useMemo(() => collectAllLabels(notes), [notes]);
 
@@ -213,6 +210,9 @@ export default function NoteDetailPage() {
     setEditStartedFromMarkdown(false);
     setDraftTitle('');
     setDraftCreatedAt('');
+    setPosAnalysisOn(false);
+    setPosLegendOpen(false);
+    posUsedAbbreviationsRef.current = [];
     originalBodyRef.current = '';
     originalMarkdownRef.current = '';
     originalContentTypeRef.current = CONTENT_TYPE_HTML;
@@ -222,6 +222,36 @@ export default function NoteDetailPage() {
   }, [noteId]);
 
   const dismissToast = useCallback(() => setToastMessage(null), []);
+
+  const handlePosUsedAbbreviationsChange = useCallback((abbrs) => {
+    posUsedAbbreviationsRef.current = Array.isArray(abbrs) ? abbrs : [];
+  }, []);
+
+  useEffect(() => {
+    if (!posAnalysisOn) {
+      setPosLegendOpen(false);
+      posUsedAbbreviationsRef.current = [];
+    }
+  }, [posAnalysisOn]);
+
+  useEffect(() => {
+    if (!posLegendOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setPosLegendOpen(false);
+    };
+    const onDown = (e) => {
+      const el = posToolbarClusterRef.current;
+      if (el && e.target instanceof Node && !el.contains(e.target)) {
+        setPosLegendOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDown, true);
+    };
+  }, [posLegendOpen]);
 
   if (remote && !authInitializing && !user) {
     return <Navigate to="/login" replace />;
@@ -355,80 +385,134 @@ export default function NoteDetailPage() {
 
   const currentLabels = note.labels ?? [];
 
-  return (
-    <article className={styles.article}>
-      <div className={styles.topBar}>
-        <BackNav />
-        <div className={styles.topActions} role="toolbar" aria-label="Note actions">
+  const posAnalysisClusterEl =
+    !isEditing ? (
+      <div className={styles.posToolbarCluster} ref={posToolbarClusterRef}>
+        <div className={styles.posLegendAnchor}>
           <button
             type="button"
-            className={styles.iconBtn}
-            onClick={startEdit}
-            disabled={isEditing || saving}
-            aria-label="Edit note"
-            title="Edit"
+            className={styles.infoBtn}
+            disabled={!posAnalysisOn}
+            aria-expanded={posAnalysisOn ? posLegendOpen : false}
+            aria-haspopup="dialog"
+            aria-controls="pos-legend-popover"
+            onClick={() => {
+              if (!posAnalysisOn) return;
+              setPosLegendOpen((o) => !o);
+            }}
+            aria-label="Word tag abbreviations in this note"
+            title={
+              posAnalysisOn
+                ? 'Tag key for word labels in this note'
+                : 'Turn on Grammar to use the tag key'
+            }
           >
-            <PencilIcon />
+            <NoteInfoCircleIcon />
           </button>
-          <button
-            type="button"
-            className={styles.iconBtn}
-            onClick={() => void handleSave()}
-            disabled={!isEditing || saving}
-            aria-label="Save note"
-            title="Save"
-          >
-            <SaveIcon />
-          </button>
-          <button
-            type="button"
-            className={styles.iconBtn}
-            onClick={() => setComposerOpen(true)}
-            disabled={saving}
-            aria-label="Add new note"
-            title="Add note"
-          >
-            <PlusIcon />
-          </button>
-          <button
-            type="button"
-            className={styles.iconBtn}
-            onClick={() => setDeleteModalOpen(true)}
-            disabled={saving}
-            aria-label="Delete note"
-            title="Delete"
-          >
-            <TrashIcon />
-          </button>
-          {isEditing ? (
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={() => void exitEditMode()}
-              disabled={saving}
-              aria-label="Exit edit mode"
-              title="Discard changes and exit edit"
+          {posAnalysisOn && posLegendOpen ? (
+            <div
+              className={styles.posLegendDropdown}
+              id="pos-legend-popover"
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setPosLegendOpen(false);
+              }}
             >
-              <XIcon />
-            </button>
+              <PosLegendPopover
+                abbreviations={[...posUsedAbbreviationsRef.current]}
+                onClose={() => setPosLegendOpen(false)}
+              />
+            </div>
           ) : null}
         </div>
-      </div>
-
-      {actionError ? <p className={styles.actionError}>{actionError}</p> : null}
-
-      <header className={styles.header}>
-        <LabelPicker
-          idPrefix="detail"
-          availableLabels={labelSuggestions}
-          selectedLabels={currentLabels}
-          onChange={(next) => void updateNote(note.id, { labels: next })}
-          placeholder="Add label…"
-          layout="noteHeader"
-          variant="compact"
-          chipsRowEnd={<ComedyRatingTrigger note={note} variant="detail" />}
+        <button
+          type="button"
+          className={styles.posAnalysisBtn}
+          aria-pressed={posAnalysisOn}
+          onClick={() => setPosAnalysisOn((on) => !on)}
+          title="Show word tags under each word (read-only)"
+          aria-label="Toggle grammar (word tags)"
         >
-          <div className={styles.titleInfoRow}>
+          Grammar
+        </button>
+      </div>
+    ) : null;
+
+  const noteToolbar = (
+    <div className={styles.topActions} role="toolbar" aria-label="Note actions">
+      {posAnalysisClusterEl}
+      <button
+        type="button"
+        className={styles.iconBtn}
+        onClick={startEdit}
+        disabled={isEditing || saving}
+        aria-label="Edit note"
+        title="Edit"
+      >
+        <PencilIcon />
+      </button>
+      <button
+        type="button"
+        className={styles.iconBtn}
+        onClick={() => void handleSave()}
+        disabled={!isEditing || saving}
+        aria-label="Save note"
+        title="Save"
+      >
+        <SaveIcon />
+      </button>
+      <button
+        type="button"
+        className={styles.iconBtn}
+        onClick={() => setComposerOpen(true)}
+        disabled={saving}
+        aria-label="Add new note"
+        title="Add note"
+      >
+        <PlusIcon />
+      </button>
+      <button
+        type="button"
+        className={styles.iconBtn}
+        onClick={() => setDeleteModalOpen(true)}
+        disabled={saving}
+        aria-label="Delete note"
+        title="Delete"
+      >
+        <TrashIcon />
+      </button>
+      {isEditing ? (
+        <button
+          type="button"
+          className={styles.iconBtn}
+          onClick={() => void exitEditMode()}
+          disabled={saving}
+          aria-label="Exit edit mode"
+          title="Discard changes and exit edit"
+        >
+          <XIcon />
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const actionErrorEl = actionError ? <p className={styles.actionError}>{actionError}</p> : null;
+
+  const headerSection = (
+    <header className={styles.header}>
+      <LabelPicker
+        idPrefix="detail"
+        availableLabels={labelSuggestions}
+        selectedLabels={currentLabels}
+        onChange={(next) => void updateNote(note.id, { labels: next })}
+        placeholder="Add label…"
+        layout="noteHeader"
+        variant="compact"
+        chipsRowEnd={<ComedyRatingTrigger note={note} variant="detail" />}
+        noteHeaderMobileRead={!isEditing && !isWideViewport}
+      >
+        <div className={styles.titleInfoRow}>
+          <span className={styles.titleInfoPair}>
             {isEditing ? (
               <input
                 id="note-detail-title"
@@ -448,11 +532,24 @@ export default function NoteDetailPage() {
               aria-label="Note info"
               title="Get info"
             >
-              <InfoIcon />
+              <NoteInfoCircleIcon />
             </button>
-          </div>
-        </LabelPicker>
-      </header>
+          </span>
+        </div>
+      </LabelPicker>
+    </header>
+  );
+
+  return (
+    <article className={styles.article}>
+      <>
+        <div className={styles.topBar}>
+          <BackNav />
+          {noteToolbar}
+        </div>
+        {actionErrorEl}
+        {headerSection}
+      </>
 
       {isEditing ? (
         <div className={styles.metaEdit}>
@@ -526,10 +623,14 @@ export default function NoteDetailPage() {
         </NoteEditFloatingAudioProvider>
       ) : (
         <NoteBodyContent
-          className={styles.body}
+          key={note.id}
+          className={`${styles.body} ${posAnalysisOn ? styles.bodyPosStudy : ''}`}
           contentType={note.contentType}
           bodyHtml={note.bodyHtml}
           bodyMarkdown={note.bodyMarkdown}
+          posAnalysisEnabled={posAnalysisOn}
+          posLegendOpen={posLegendOpen}
+          onPosUsedAbbreviationsChange={handlePosUsedAbbreviationsChange}
         />
       )}
 

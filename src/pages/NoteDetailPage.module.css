@@ -6,9 +6,12 @@
 .topBar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-start;
+  gap: 0.75rem;
   margin-bottom: 0.85rem;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
 }
 
 .actionError {
@@ -17,11 +20,41 @@
   color: var(--danger);
 }
 
+/* Title + note info: content-sized row — avoid 1fr / width:100% patterns that park the icon at the row edge. */
+.titleInfoPair {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.titleInfoPair .titleInput {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.titleInfoPair .title {
+  margin: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+}
+
 .topActions {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  overflow: visible;
 }
 
 .back {
@@ -193,6 +226,18 @@
   outline-offset: 2px;
 }
 
+.infoBtn[aria-expanded='true'] {
+  color: var(--accent);
+  border-color: var(--accent-muted);
+  background: var(--surface-active);
+}
+
+.infoBtn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .iconBtn {
   display: inline-flex;
   align-items: center;
@@ -227,6 +272,70 @@
   cursor: not-allowed;
 }
 
+.posAnalysisBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  padding: 0 0.55rem;
+  margin: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--muted);
+  text-transform: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.posAnalysisBtn:hover {
+  color: var(--text);
+  background: var(--surface-active);
+  border-color: var(--accent-muted);
+}
+
+.posAnalysisBtn:focus {
+  outline: none;
+}
+
+.posAnalysisBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.posAnalysisBtn[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent-muted);
+  background: var(--surface-active);
+}
+
+.posToolbarCluster {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.posLegendAnchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.posLegendDropdown {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: auto;
+  z-index: 500;
+}
+
 @media (max-width: 639px) {
   .topBar {
     margin-bottom: 0.65rem;
@@ -240,11 +349,56 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface);
+    flex-wrap: nowrap;
+    flex: 0 0 auto;
+    width: fit-content;
+    min-width: 0;
+    max-width: min(100%, calc(100% - 3.25rem));
+    margin-left: auto;
+    justify-content: flex-end;
+    overflow: visible;
   }
 
   .iconBtn {
     width: 2rem;
     height: 2rem;
+  }
+
+  .posAnalysisBtn {
+    height: 2rem;
+    padding: 0 0.45rem;
+    font-size: 0.74rem;
+  }
+
+  /* Tag key: centered modal over the viewport (avoids anchor-relative clipping). */
+  .posLegendDropdown {
+    position: fixed;
+    inset: 0;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 1rem;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 15, 18, 0.45);
+    z-index: 1000;
+  }
+
+  /* PosLegendPopover root is a different module — target the panel by child combinator */
+  .posLegendDropdown > * {
+    flex-shrink: 0;
+    max-width: min(18rem, calc(100vw - 2rem));
+  }
+
+  .titleInfoRow {
+    display: block;
+    width: 100%;
   }
 
   .header {
@@ -262,12 +416,132 @@
   .back {
     font-size: 0.86rem;
   }
+
+  .bodyPosStudy {
+    font-size: 1.04rem;
+  }
 }
 
 .body {
   font-size: 1rem;
   line-height: 1.65;
   color: var(--text);
+}
+
+/* Tags “study mode”: slightly larger type + POS spacing only — same width as normal read mode. */
+.bodyPosStudy {
+  box-sizing: border-box;
+  font-size: 1.07rem;
+  line-height: 1.68;
+}
+
+/* Read-only POS: typography only inside prose regions (not audio rows). */
+.body :global(.nn-pos-text-body) {
+  line-height: 2.45;
+}
+
+/* Study mode: extra line room for tags + a little air between wraps */
+.body.bodyPosStudy :global(.nn-pos-text-body) {
+  line-height: 2.65;
+}
+
+/* Study mode: wider gaps between word stacks; punctuation stays tight via punct paddings below */
+.body.bodyPosStudy :global(.nn-pos-text-body .nn-pos-unit) {
+  margin: 0 0.2em;
+  padding: 0 0.04em;
+}
+
+.body.bodyPosStudy :global(.nn-pos-text-body .nn-pos-punct--lead) {
+  padding: 0 0.018em 0 0;
+}
+
+.body.bodyPosStudy :global(.nn-pos-text-body .nn-pos-punct--trail) {
+  padding: 0 0 0 0.02em;
+}
+
+/* Word + attached punct: one horizontal row, baseline-aligned; tag only under the word column */
+.body :global(.nn-pos-text-body .nn-pos-unit) {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  max-width: 100%;
+  vertical-align: baseline;
+  margin: 0 0.12em;
+  padding: 0 0.02em;
+}
+
+.body :global(.nn-pos-text-body .nn-pos-line) {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0;
+  max-width: 100%;
+}
+
+/* Tight to the word column; no tag line */
+.body :global(.nn-pos-text-body .nn-pos-punct) {
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.body :global(.nn-pos-text-body .nn-pos-punct--lead) {
+  margin: 0;
+  padding: 0 0.015em 0 0;
+}
+
+.body :global(.nn-pos-text-body .nn-pos-punct--trail) {
+  margin: 0;
+  padding: 0 0 0 0.015em;
+}
+
+/* Read-only POS overlay (DOM only; see `noteReadPosOverlay.js`) */
+.body :global(.nn-pos-text-body .nn-pos-token) {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  line-height: 1.12;
+  max-width: 100%;
+}
+
+.body :global(.nn-pos-text-body .nn-pos-word) {
+  display: block;
+  font: inherit;
+}
+
+.body :global(.nn-pos-text-body .nn-pos-tag) {
+  display: block;
+  margin-top: 0.05em;
+  font-size: 0.5em;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* After base tag rules: study mode improves scan (must follow base .nn-pos-tag) */
+.body.bodyPosStudy :global(.nn-pos-text-body .nn-pos-tag) {
+  font-size: 0.54em;
+  font-weight: 500;
+  letter-spacing: 0.045em;
+  opacity: 0.94;
+}
+
+.body :global(.nn-pos-text-body strong .nn-pos-tag),
+.body :global(.nn-pos-text-body b .nn-pos-tag) {
+  font-weight: 400;
+}
+
+/* Keep stacking readable when words are bold/strong */
+.body :global(.nn-pos-text-body strong .nn-pos-unit),
+.body :global(.nn-pos-text-body b .nn-pos-unit),
+.body :global(.nn-pos-text-body strong .nn-pos-word),
+.body :global(.nn-pos-text-body b .nn-pos-word) {
+  font-weight: inherit;
 }
 
 /* Apple Notes–style HTML: nested divs in note content get block spacing */
@@ -277,6 +551,11 @@
 
 /* Top-level split segments (NoteBodyContent): no wrapper margin — spacing comes from inner p, figure, ul */
 .body :global(div.nn-body-html) {
+  margin: 0;
+}
+
+/* Markdown read body wrapper (POS class may also apply; no extra block gap) */
+.body :global(div.nn-read-md-body) {
   margin: 0;
 }
 

@@ -51,6 +51,7 @@ function PlusIcon() {
  *   For `noteHeader`, pass one child: the title row (e.g. title + info button) beside the label combo.
  *   Chips render below.
  *   chipsRowEnd?: import('react').ReactNode — optional trailing content in the chips row (e.g. comedy stars), right-aligned.
+ *   noteHeaderMobileRead?: boolean — when true with `layout="noteHeader"`, explicit mobile read-only stack: title row → chips (left) → label selector + stars.
  *   children?: import('react').ReactNode,
  * }} props
  */
@@ -65,6 +66,7 @@ export default function LabelPicker({
   layout = 'stacked',
   children = null,
   chipsRowEnd = null,
+  noteHeaderMobileRead = false,
 }) {
   const rootRef = useRef(null);
   const inputRef = useRef(null);
@@ -230,6 +232,28 @@ export default function LabelPicker({
   const isNoteHeader = layout === 'noteHeader';
 
   if (isNoteHeader) {
+    if (noteHeaderMobileRead) {
+      return (
+        <div
+          className={`${styles.rootNoteHeader} ${variant === 'compact' ? styles.rootCompact : ''} ${styles.rootNoteHeaderMobileRead}`}
+          ref={rootRef}
+        >
+          <div className={styles.noteHeaderMobileReadMain}>
+            {chipsRowEnd ? (
+              <div className={styles.noteReadStarsAboveTitle}>{chipsRowEnd}</div>
+            ) : null}
+            <div className={styles.noteReadTitleRow}>
+              <div className={styles.titleInfoCluster}>{children}</div>
+            </div>
+            <div className={styles.noteReadChipsComboGrid}>
+              <div className={styles.noteReadChipsCell}>{chipsEl}</div>
+              <div className={styles.noteReadComboCell}>{comboEl}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className={`${styles.rootNoteHeader} ${variant === 'compact' ? styles.rootCompact : ''}`}
@@ -241,8 +265,10 @@ export default function LabelPicker({
             <div className={styles.noteHeaderRight}>{comboEl}</div>
           </div>
           <div className={styles.noteHeaderChipsRow}>
-            {chipsEl}
-            {chipsRowEnd}
+            <div className={styles.noteHeaderChipsMain}>{chipsEl}</div>
+            {chipsRowEnd ? (
+              <div className={styles.noteHeaderChipsEnd}>{chipsRowEnd}</div>
+            ) : null}
           </div>
         </div>
       </div>

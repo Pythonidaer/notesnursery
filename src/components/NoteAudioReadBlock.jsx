@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Info } from 'lucide-react';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
+import NoteInfoCircleIcon from './NoteInfoCircleIcon.jsx';
 import '../styles/noteAudio.css';
 
 /**
@@ -55,12 +55,12 @@ export default function NoteAudioReadBlock({ attrs, onOpenInfo }) {
         <div className="nn-audio-tools">
           <button
             type="button"
-            className="nn-audio-tool-btn"
+            className="nn-app-info-btn"
             onClick={() => onOpenInfo(attrs)}
             aria-label="Audio file info"
             title="Info"
           >
-            <Info width={16} height={16} strokeWidth={2} aria-hidden />
+            <NoteInfoCircleIcon />
           </button>
         </div>
       </div>

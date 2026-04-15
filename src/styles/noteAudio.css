@@ -54,24 +54,37 @@ figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
   align-items: center;
 }
 
-.nn-audio-tool-btn {
+/* Matches note header `.infoBtn` (read-only audio info). */
+.nn-app-info-btn {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.45rem;
+  height: 1.45rem;
   margin: 0;
   padding: 0;
-  color: var(--muted);
-  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.nn-audio-tool-btn:hover {
-  color: var(--text);
+.nn-app-info-btn:hover {
+  background: var(--surface-active);
   border-color: var(--accent-muted);
+  color: var(--accent);
+}
+
+.nn-app-info-btn:focus {
+  outline: none;
+}
+
+.nn-app-info-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .nn-audio-read-error {

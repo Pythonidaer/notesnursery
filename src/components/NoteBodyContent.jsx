@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchNoteAudioDisplayNamesForPaths } from '../lib/noteAudioDisplayNames.js';
+import { applyPosOverlayToReadBody } from '../lib/noteReadPosOverlay.js';
 import { splitNoteHtmlForAudioRead } from '../utils/splitNoteHtmlForAudioRead.js';
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
@@ -36,10 +37,25 @@ const markdownSanitizeSchema = {
  *   bodyHtml?: string,
  *   bodyMarkdown?: string,
  *   className?: string,
+ *   posAnalysisEnabled?: boolean,
+ *   onPosUsedAbbreviationsChange?: (abbrs: string[]) => void,
+ *   posLegendOpen?: boolean,
  * }} props
  */
-export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, className }) {
+export default function NoteBodyContent({
+  contentType,
+  bodyHtml,
+  bodyMarkdown,
+  className,
+  posAnalysisEnabled = false,
+  posLegendOpen = false,
+  onPosUsedAbbreviationsChange,
+}) {
   const mode = normalizeContentType(contentType);
+  const readBodyRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  /** Bumps only when POS turns off so HTML/Markdown body remounts clean without remounting audio blocks. */
+  const [readBodyEpoch, setReadBodyEpoch] = useState(0);
+  const prevPosEnabledRef = useRef(posAnalysisEnabled);
   const { user } = useAuth();
   const remote = useSupabaseBackend();
   const audioUserId = remote && user?.id ? user.id : null;
@@ -101,43 +117,83 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
     });
   }, [readSegments, displayNameByPath]);
 
+  useLayoutEffect(() => {
+    const prev = prevPosEnabledRef.current;
+    prevPosEnabledRef.current = posAnalysisEnabled;
+    if (prev === true && posAnalysisEnabled === false) {
+      setReadBodyEpoch((e) => e + 1);
+    }
+  }, [posAnalysisEnabled]);
+
+  useLayoutEffect(() => {
+    if (!posAnalysisEnabled || !readBodyRef.current) {
+      onPosUsedAbbreviationsChange?.([]);
+      return;
+    }
+    applyPosOverlayToReadBody(readBodyRef.current, {
+      contentTypeHtml: mode === CONTENT_TYPE_HTML,
+    });
+    const found = new Set();
+    readBodyRef.current.querySelectorAll('.nn-pos-tag').forEach((el) => {
+      const t = el.textContent?.trim();
+      if (t) found.add(t);
+    });
+    onPosUsedAbbreviationsChange?.(Array.from(found).sort((a, b) => a.localeCompare(b)));
+  }, [
+    posAnalysisEnabled,
+    posLegendOpen,
+    mode,
+    safeHtml,
+    bodyMarkdown,
+    readSegmentsWithDisplayNames,
+    readBodyEpoch,
+    onPosUsedAbbreviationsChange,
+  ]);
+
   if (mode === CONTENT_TYPE_MARKDOWN) {
     const md = bodyMarkdown ?? '';
     if (!md.trim()) {
-      return <div className={className} />;
+      return <div ref={readBodyRef} className={className} data-nn-read-body-root />;
     }
     return (
-      <div className={className}>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
-          components={{
-            a: ({ href, children, ...rest }) => (
-              <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
-                {children}
-              </a>
-            ),
-          }}
+      <div ref={readBodyRef} className={className} data-nn-read-body-root>
+        <div
+          className={posAnalysisEnabled ? 'nn-read-md-body nn-pos-text-body' : 'nn-read-md-body'}
         >
-          {md}
-        </ReactMarkdown>
+          <ReactMarkdown
+            key={readBodyEpoch}
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]]}
+            components={{
+              a: ({ href, children, ...rest }) => (
+                <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
+                  {children}
+                </a>
+              ),
+            }}
+          >
+            {md}
+          </ReactMarkdown>
+        </div>
       </div>
     );
   }
 
   if (!safeHtml) {
-    return <div className={className} />;
+    return <div ref={readBodyRef} className={className} data-nn-read-body-root />;
   }
 
   return (
     <>
-      <div className={className}>
+      <div ref={readBodyRef} className={className} data-nn-read-body-root>
         {readSegmentsWithDisplayNames
           ? readSegmentsWithDisplayNames.map((seg, i) =>
               seg.type === 'html' ? (
                 <div
-                  key={`read-html-${i}`}
-                  className="nn-body-html"
+                  key={`read-html-${i}-${readBodyEpoch}`}
+                  className={
+                    posAnalysisEnabled ? 'nn-body-html nn-pos-text-body' : 'nn-body-html'
+                  }
                   dangerouslySetInnerHTML={{ __html: seg.html }}
                 />
               ) : (

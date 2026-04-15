@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 
 /**
- * @param {string} query CSS media query, e.g. '(max-width: 639px)'
+ * Subscribes to `window.matchMedia(query)`. Defaults to `true` when `window` is unavailable.
+ * @param {string} query
  */
 export function useMediaQuery(query) {
   const [matches, setMatches] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : true
   );
 
   useEffect(() => {
     const mq = window.matchMedia(query);
-    const handler = () => setMatches(mq.matches);
-    handler();
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    const onChange = () => setMatches(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, [query]);
 
   return matches;
