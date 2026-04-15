@@ -1,11 +1,15 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import { splitNoteHtmlForAudioRead } from '../utils/splitNoteHtmlForAudioRead.js';
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
+import AudioFileInfoModal from './AudioFileInfoModal.jsx';
+import NoteAudioReadBlock from './NoteAudioReadBlock.jsx';
+import '../styles/noteAudio.css';
 
 /**
  * GFM markdown with limited inline HTML (sanitized). `rehype-raw` runs before
@@ -33,6 +37,24 @@ const markdownSanitizeSchema = {
  */
 export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, className }) {
   const mode = normalizeContentType(contentType);
+  const [audioInfo, setAudioInfo] = useState(
+    /** @type {{ fileName: string, mimeType: string, sizeBytes: number | null, uploadedAt: string, storagePath: string } | null} */ (
+      null
+    )
+  );
+
+  const onOpenAudioInfo = useCallback(
+    (attrs) => {
+      setAudioInfo({
+        fileName: attrs.fileName,
+        mimeType: attrs.mimeType,
+        sizeBytes: attrs.sizeBytes,
+        uploadedAt: attrs.uploadedAt,
+        storagePath: attrs.storagePath,
+      });
+    },
+    []
+  );
 
   const safeHtml = useMemo(() => {
     if (mode !== CONTENT_TYPE_HTML) return '';
@@ -40,6 +62,11 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
     if (!raw.trim()) return '';
     return sanitizeNoteHtml(prepareNoteBodyHtml(raw));
   }, [mode, bodyHtml]);
+
+  const readSegments = useMemo(() => {
+    if (mode !== CONTENT_TYPE_HTML || !safeHtml.trim()) return null;
+    return splitNoteHtmlForAudioRead(safeHtml);
+  }, [mode, safeHtml]);
 
   if (mode === CONTENT_TYPE_MARKDOWN) {
     const md = bodyMarkdown ?? '';
@@ -69,5 +96,36 @@ export default function NoteBodyContent({ contentType, bodyHtml, bodyMarkdown, c
     return <div className={className} />;
   }
 
-  return <div className={className} dangerouslySetInnerHTML={{ __html: safeHtml }} />;
+  return (
+    <>
+      <div className={className}>
+        {readSegments
+          ? readSegments.map((seg, i) =>
+              seg.type === 'html' ? (
+                <div
+                  key={`read-html-${i}`}
+                  className="nn-body-html"
+                  dangerouslySetInnerHTML={{ __html: seg.html }}
+                />
+              ) : (
+                <NoteAudioReadBlock
+                  key={`read-audio-${i}-${seg.attrs.storagePath}`}
+                  attrs={seg.attrs}
+                  onOpenInfo={onOpenAudioInfo}
+                />
+              )
+            )
+          : null}
+      </div>
+      <AudioFileInfoModal
+        open={audioInfo != null}
+        onClose={() => setAudioInfo(null)}
+        fileName={audioInfo?.fileName ?? ''}
+        mimeType={audioInfo?.mimeType ?? ''}
+        sizeBytes={audioInfo?.sizeBytes ?? null}
+        uploadedAt={audioInfo?.uploadedAt ?? ''}
+        storagePath={audioInfo?.storagePath ?? ''}
+      />
+    </>
+  );
 }

@@ -1,0 +1,86 @@
+/* Read + edit: `figure.nn-audio-embed` — vertical rhythm aligned with prose paragraphs (~0.85em between blocks). */
+figure.nn-audio-embed {
+  position: relative;
+  /* Slightly tighter below than above: less gap before the next paragraph */
+  margin: 0.45rem 0 0.35rem 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-active);
+  /* Wider than a typical paragraph column so native <audio controls> get room for the timeline */
+  max-width: min(100%, 26rem);
+}
+
+/* Legacy embeds: hide visible caption under player (compact layout). */
+figure.nn-audio-embed .nn-audio-caption:not(.nn-audio-sr-only) {
+  display: none;
+}
+
+.nn-audio-sr-only,
+figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.nn-audio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nn-audio-player-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.nn-audio-element {
+  display: block;
+  width: 100%;
+  /* Fill .nn-audio-player-wrap (flex: 1); avoid a pixel cap so the scrub bar uses real width */
+  max-width: 100%;
+  height: 2rem;
+}
+
+.nn-audio-tools {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.nn-audio-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nn-audio-tool-btn:hover {
+  color: var(--text);
+  border-color: var(--accent-muted);
+}
+
+.nn-audio-read-error {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--danger, #b91c1c);
+}
+
+.nn-audio-read-loading {
+  font-size: 0.82rem;
+  color: var(--muted);
+}

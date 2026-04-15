@@ -250,6 +250,7 @@ export default function FloatingNewNoteComposer({ visible, onRequestClose }) {
               aria-labelledby="floating-note-body-label"
               className={isExpanded ? styles.composerEditorRoot : styles.dockedEditorRoot}
               surfaceClassName={isExpanded ? styles.composerEditorSurface : styles.dockedEditorSurface}
+              audioStorageScopeId={`composer-${editorKey}`}
             />
           </div>
           <p className={styles.fieldLabel}>Labels</p>

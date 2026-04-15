@@ -270,9 +270,19 @@
   color: var(--text);
 }
 
-/* Apple Notes–style HTML: readable prose, not a code dump */
+/* Apple Notes–style HTML: nested divs in note content get block spacing */
 .body :global(div) {
   margin: 0 0 0.75em;
+}
+
+/* Top-level split segments (NoteBodyContent): no wrapper margin — spacing comes from inner p, figure, ul */
+.body :global(div.nn-body-html) {
+  margin: 0;
+}
+
+/* Audio block uses inner divs (.nn-audio-row, .nn-audio-player-wrap, …) — they are NOT nn-body-html */
+.body :global(figure.nn-audio-embed div) {
+  margin: 0;
 }
 
 .body :global(.notePlainBody) {

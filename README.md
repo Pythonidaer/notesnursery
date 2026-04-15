@@ -7,7 +7,7 @@ A React single-page app for importing Apple Notes–style Markdown, organizing n
 - **Import** (home `/`) — multi-file `.md` upload, parsed into title, body, and optional `Created` / `Modified` metadata
 - **Library** (`/library`) — browse notes with label and date filters, optional grouping by date, optional **comedy rating** sort (admin + Comedy label; see below)
 - **Cards** (`/cards`) — same filters in a card layout
-- **Note detail** (`/notes/:id`) — read with sanitized HTML or legacy Markdown; **edit** in a **TipTap** rich-text editor (toolbar, HTML saved to `body_html`); labels; transfer selected text to another note; delete with confirmation
+- **Note detail** (`/notes/:id`) — read with sanitized HTML or legacy Markdown; **edit** in a **TipTap** rich-text editor (toolbar, HTML saved to `body_html`); optional **audio clips** (`.wav` / `.mp3`) uploaded to private Supabase Storage and embedded in the note body; labels; transfer selected text to another note; delete with confirmation
 - **Instructions** (`/instructions`) — in-app guidance
 - **New note composer** — docked bottom-right panel; **expand** widens the same right-anchored sheet (non-blocking, no backdrop); TipTap rich editor and HTML storage; Library, Cards, and note detail
 - **Labels** — per-note labels; in production, profiles can store a **default label** used when opening Library/Cards
@@ -109,10 +109,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - Auth UI is custom React (no Supabase Auth UI package).
 - Client code uses the **anon** key only; RLS enforces per-user access.
 - SQL lives in `supabase/schema.sql` for a repeatable setup.
-- Higher-level docs live in `/docs` (see `docs/NOTE_EDITING.md` for the rich editor and storage model).
+- Higher-level docs live in `/docs` (see `docs/NOTE_EDITING.md` for the rich editor, HTML pipeline, and audio embeds).
 
 ## Future To Dos
 
 - Optional: lazy-load the note editor (TipTap) and/or Markdown rendering to reduce initial JS size
-- Experiment with exporting and uploading audio files
+- Optional: storage cleanup for orphaned audio, export flows (toolbar upload is documented in `docs/NOTE_EDITING.md`)
 - Explore technology for detecting laughs, or at minimum mapping audio volume or intensity to text size and spacing

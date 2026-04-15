@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tiptap/core": "^3.22.3",
     "@supabase/supabase-js": "^2.103.0",
     "@tiptap/extension-link": "^3.22.3",
     "@tiptap/extension-paragraph": "^3.22.3",

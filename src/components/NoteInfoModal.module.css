@@ -18,6 +18,10 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
+.dialogWide {
+  max-width: 28rem;
+}
+
 .header {
   display: flex;
   align-items: center;

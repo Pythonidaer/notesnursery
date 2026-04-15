@@ -7,7 +7,20 @@ import DOMPurify from 'dompurify';
 const NOTE_HTML_PURIFY = {
   USE_PROFILES: { html: true },
   /** `target` on `<a>` so `target="_blank"` round-trips (read view + editor). */
-  ADD_ATTR: ['style', 'target'],
+  ADD_ATTR: [
+    'style',
+    'target',
+    'rel',
+    'controls',
+    'preload',
+    'class',
+    'data-nn-storage-path',
+    'data-nn-file-name',
+    'data-nn-mime-type',
+    'data-nn-size-bytes',
+    'data-nn-uploaded-at',
+  ],
+  ADD_TAGS: ['figure', 'figcaption', 'audio', 'source'],
 };
 
 /**

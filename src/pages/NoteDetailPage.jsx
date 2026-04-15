@@ -510,6 +510,7 @@ export default function NoteDetailPage() {
             onEditorReady={handleEditorReady}
             placeholder="Write your note…"
             aria-label="Note body"
+            audioStorageScopeId={note.id}
           />
           {editStartedFromMarkdown ? (
             <p className={styles.convertHint}>

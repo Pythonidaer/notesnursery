@@ -7,6 +7,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { StarterKit } from '@tiptap/starter-kit';
 import {
+  AudioLines,
   Bold,
   Code,
   FileCode,
@@ -23,8 +24,14 @@ import {
   TextQuote,
   Underline,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useSupabaseBackend } from '../config/appConfig.js';
+import { NOTE_AUDIO_MAX_UPLOAD_BYTES } from '../constants/noteAudio.js';
+import { noteAudioExtension } from '../tiptap/noteAudioExtension.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
+import AudioUploadErrorModal from './AudioUploadErrorModal.jsx';
+import InsertAudioModal from './InsertAudioModal.jsx';
 import styles from './NoteRichTextEditor.module.css';
 
 /** Block elements: if a <div> contains any of these, TipTap must not treat the div as a paragraph. */
@@ -112,11 +119,23 @@ function useToolbarRerender(editor) {
 }
 
 /**
- * @param {{ editor: import('@tiptap/core').Editor | null }} props
+ * @param {{
+ *   editor: import('@tiptap/core').Editor | null,
+ *   audioStorageScopeId: string,
+ * }} props
  */
-function MenuBar({ editor }) {
+function MenuBar({ editor, audioStorageScopeId }) {
   const [colorOpen, setColorOpen] = useState(false);
   const colorWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const [insertAudioOpen, setInsertAudioOpen] = useState(false);
+  const [uploadErr, setUploadErr] = useState(
+    /** @type {null | { fileName: string, fileSizeBytes: number, maxBytes: number, reason: string, isLikelySizeLimit: boolean }} */ (
+      null
+    )
+  );
+  const { user } = useAuth();
+  const remote = useSupabaseBackend();
+  const canUploadAudio = Boolean(remote && user?.id);
 
   useToolbarRerender(editor);
 
@@ -164,7 +183,13 @@ function MenuBar({ editor }) {
     editor.chain().focus().toggleCodeBlock().run();
   };
 
+  const openInsertAudio = () => {
+    if (!canUploadAudio) return;
+    setInsertAudioOpen(true);
+  };
+
   return (
+    <>
     <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
       <div className={styles.toolbarInner}>
         <button
@@ -345,6 +370,17 @@ function MenuBar({ editor }) {
         </button>
         <button
           type="button"
+          className={`${styles.toolBtn} ${!canUploadAudio ? styles.toolBtnDisabled : ''}`}
+          onClick={openInsertAudio}
+          disabled={!canUploadAudio}
+          aria-label="Insert audio"
+          aria-haspopup="dialog"
+          title={canUploadAudio ? 'Insert audio (upload or choose existing)' : 'Sign in (Supabase) to insert audio'}
+        >
+          <AudioLines className={styles.icon} strokeWidth={2} aria-hidden />
+        </button>
+        <button
+          type="button"
           className={styles.toolBtn}
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           aria-label="Horizontal rule"
@@ -354,6 +390,29 @@ function MenuBar({ editor }) {
         </button>
       </div>
     </div>
+      {canUploadAudio && user?.id ? (
+        <InsertAudioModal
+          open={insertAudioOpen}
+          onClose={() => setInsertAudioOpen(false)}
+          userId={user.id}
+          audioStorageScopeId={audioStorageScopeId}
+          editor={editor}
+          onUploadFailure={(detail) => {
+            setUploadErr(detail);
+            setInsertAudioOpen(false);
+          }}
+        />
+      ) : null}
+      <AudioUploadErrorModal
+        open={uploadErr != null}
+        onClose={() => setUploadErr(null)}
+        fileName={uploadErr?.fileName ?? ''}
+        fileSizeBytes={uploadErr?.fileSizeBytes ?? 0}
+        maxUploadBytes={uploadErr?.maxBytes ?? NOTE_AUDIO_MAX_UPLOAD_BYTES}
+        reason={uploadErr?.reason ?? ''}
+        isLikelySizeLimit={uploadErr?.isLikelySizeLimit ?? false}
+      />
+    </>
   );
 }
 
@@ -367,6 +426,7 @@ function MenuBar({ editor }) {
  *   surfaceClassName?: string,
  *   'aria-label'?: string,
  *   'aria-labelledby'?: string,
+ *   audioStorageScopeId?: string,
  * }} props
  */
 export default function NoteRichTextEditor({
@@ -378,7 +438,15 @@ export default function NoteRichTextEditor({
   surfaceClassName,
   'aria-label': ariaLabel = 'Note body',
   'aria-labelledby': ariaLabelledBy,
+  audioStorageScopeId: audioStorageScopeIdProp,
 }) {
+  const audioScopeFallbackRef = useRef(
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `audio-${Date.now()}`
+  );
+  const audioStorageScopeId = audioStorageScopeIdProp ?? audioScopeFallbackRef.current;
+
   /** One snapshot per mount so parent `draftHtml` updates do not reset the editor. */
   const [initialSnapshot] = useState(() => {
     const raw = initialHtml && initialHtml.trim() ? initialHtml : '<p></p>';
@@ -408,6 +476,7 @@ export default function NoteRichTextEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       Placeholder.configure({ placeholder }),
+      noteAudioExtension,
     ],
     content: initialSnapshot,
     editorProps: {
@@ -430,7 +499,7 @@ export default function NoteRichTextEditor({
 
   return (
     <div className={`${styles.root} ${className ?? ''}`}>
-      <MenuBar editor={editor} />
+      <MenuBar editor={editor} audioStorageScopeId={audioStorageScopeId} />
       <div className={`${styles.surface} ${surfaceClassName ?? ''}`}>
         <EditorContent editor={editor} />
       </div>
