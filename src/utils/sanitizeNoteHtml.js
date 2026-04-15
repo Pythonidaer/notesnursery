@@ -19,6 +19,7 @@ const NOTE_HTML_PURIFY = {
     'data-nn-mime-type',
     'data-nn-size-bytes',
     'data-nn-uploaded-at',
+    'data-nn-transcript-for',
   ],
   ADD_TAGS: ['figure', 'figcaption', 'audio', 'source'],
 };

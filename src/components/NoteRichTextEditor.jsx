@@ -72,6 +72,19 @@ const DIV_PARAGRAPH_BLOCK_CHILD = new Set([
 ]);
 
 const ParagraphWithAppleDiv = Paragraph.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      dataNnTranscriptFor: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-nn-transcript-for'),
+        renderHTML: (attributes) => {
+          if (!attributes.dataNnTranscriptFor) return {};
+          return { 'data-nn-transcript-for': attributes.dataNnTranscriptFor };
+        },
+      },
+    };
+  },
   parseHTML() {
     return [
       { tag: 'p' },

@@ -58,6 +58,16 @@
   color: var(--text);
 }
 
+.closeBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.closeBtn:disabled:hover {
+  background: transparent;
+  color: var(--muted);
+}
+
 .list {
   margin: 0;
   padding: 1rem;
