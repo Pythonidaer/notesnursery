@@ -364,7 +364,9 @@ function MenuBar({ editor }) {
  *   onEditorReady?: (editor: import('@tiptap/core').Editor | null) => void,
  *   placeholder?: string,
  *   className?: string,
+ *   surfaceClassName?: string,
  *   'aria-label'?: string,
+ *   'aria-labelledby'?: string,
  * }} props
  */
 export default function NoteRichTextEditor({
@@ -373,7 +375,9 @@ export default function NoteRichTextEditor({
   onEditorReady,
   placeholder = 'Write…',
   className,
+  surfaceClassName,
   'aria-label': ariaLabel = 'Note body',
+  'aria-labelledby': ariaLabelledBy,
 }) {
   /** One snapshot per mount so parent `draftHtml` updates do not reset the editor. */
   const [initialSnapshot] = useState(() => {
@@ -409,7 +413,9 @@ export default function NoteRichTextEditor({
     editorProps: {
       attributes: {
         class: styles.prose,
-        'aria-label': ariaLabel,
+        ...(ariaLabelledBy
+          ? { 'aria-labelledby': ariaLabelledBy }
+          : { 'aria-label': ariaLabel }),
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -425,7 +431,7 @@ export default function NoteRichTextEditor({
   return (
     <div className={`${styles.root} ${className ?? ''}`}>
       <MenuBar editor={editor} />
-      <div className={styles.surface}>
+      <div className={`${styles.surface} ${surfaceClassName ?? ''}`}>
         <EditorContent editor={editor} />
       </div>
     </div>

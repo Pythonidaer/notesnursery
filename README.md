@@ -9,7 +9,7 @@ A React single-page app for importing Apple Notes–style Markdown, organizing n
 - **Cards** (`/cards`) — same filters in a card layout
 - **Note detail** (`/notes/:id`) — read with sanitized HTML or legacy Markdown; **edit** in a **TipTap** rich-text editor (toolbar, HTML saved to `body_html`); labels; transfer selected text to another note; delete with confirmation
 - **Instructions** (`/instructions`) — in-app guidance
-- **Floating composer** — create new notes (rich editor, HTML storage) from Library or Cards
+- **New note composer** — docked bottom-right panel; **expand** widens the same right-anchored sheet (non-blocking, no backdrop); TipTap rich editor and HTML storage; Library, Cards, and note detail
 - **Labels** — per-note labels; in production, profiles can store a **default label** used when opening Library/Cards
 - **Comedy performance ratings** — half-step stars (0.5–5) on notes with a **Comedy** label, persisted in Supabase when enabled; UI entry is gated to a configured admin email (see `src/utils/comedyRating.js`)
 

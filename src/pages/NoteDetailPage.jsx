@@ -520,9 +520,6 @@ export default function NoteDetailPage() {
               source from here on.
             </p>
           ) : null}
-          <p className={styles.markdownHint}>
-            Edit with the toolbar for bold, lists, headings, links, and quotes. Content is saved as HTML.
-          </p>
         </div>
       ) : (
         <NoteBodyContent
