@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NodeViewWrapper } from '@tiptap/react';
 import { Info, Mic, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -9,6 +10,7 @@ import { insertTranscriptBelowAudioChain } from '../utils/insertNoteAudioTranscr
 import { logTranscribeError, transcribeErrorForModal } from '../utils/transcribeUserError.js';
 import AudioFileInfoModal from './AudioFileInfoModal.jsx';
 import TranscribeAudioModal from './TranscribeAudioModal.jsx';
+import { useNoteEditFloatingAudio } from './NoteEditFloatingAudioContext.jsx';
 import '../styles/noteAudio.css';
 import styles from './NoteAudioNodeView.module.css';
 
@@ -16,6 +18,13 @@ import styles from './NoteAudioNodeView.module.css';
  * @param {import('@tiptap/react').NodeViewProps} props
  */
 export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) {
+  const floatingCtx = useNoteEditFloatingAudio();
+  const setActivePlayback = floatingCtx?.setActivePlayback;
+  const clearActivePlayback = floatingCtx?.clearActivePlayback;
+  const dockUiVisible = floatingCtx?.dockUiVisible ?? false;
+  const dockMountEl = floatingCtx?.dockMountEl ?? null;
+  const audioRef = useRef(/** @type {HTMLAudioElement | null} */ (null));
+  const anchorRef = useRef(/** @type {HTMLElement | null} */ (null));
   const { user } = useAuth();
   const remote = useSupabaseBackend();
   const { storagePath, fileName, sizeBytes, uploadedAt } = node.attrs;
@@ -27,6 +36,12 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
   const [transcribeTitle, setTranscribeTitle] = useState('Transcribe audio');
   const [transcribeMessage, setTranscribeMessage] = useState('');
   const [transcribeDetail, setTranscribeDetail] = useState(/** @type {string | null} */ (null));
+  const [playerSlotEl, setPlayerSlotEl] = useState(/** @type {HTMLDivElement | null} */ (null));
+  const setPlayerSlot = useCallback((/** @type {HTMLDivElement | null} */ el) => {
+    setPlayerSlotEl(el);
+  }, []);
+
+  const audioPortalTarget = dockUiVisible && dockMountEl ? dockMountEl : playerSlotEl;
 
   useEffect(() => {
     if (!storagePath) {
@@ -47,6 +62,39 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
   }, [storagePath]);
 
   const label = typeof fileName === 'string' && fileName.trim() ? fileName.trim() : 'Audio clip';
+
+  useEffect(() => {
+    if (!setActivePlayback || !clearActivePlayback || !src) return;
+
+    const onPlay = () => {
+      const audio = audioRef.current;
+      const anchor = anchorRef.current;
+      if (!audio || !anchor) return;
+      if (import.meta.env.DEV) {
+        console.debug('[floating-audio] register playback', {
+          label,
+          anchorConnected: anchor.isConnected,
+        });
+      }
+      setActivePlayback({ audioEl: audio, anchorEl: anchor, label });
+    };
+    const onEnded = () => {
+      const audio = audioRef.current;
+      if (audio) clearActivePlayback(audio);
+    };
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('ended', onEnded);
+    return () => {
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('ended', onEnded);
+      const a = audioRef.current;
+      if (a) clearActivePlayback(a);
+    };
+  }, [setActivePlayback, clearActivePlayback, src, label]);
 
   const pathStr = typeof storagePath === 'string' ? storagePath.trim() : '';
   const canTranscribe = Boolean(remote && user?.id && pathStr && src && !error);
@@ -100,20 +148,24 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
 
   return (
     <NodeViewWrapper className={styles.wrap} data-drag-handle>
-      <figure className="nn-audio-embed" aria-label={label}>
+      <figure ref={anchorRef} className="nn-audio-embed" aria-label={label}>
         <div className={styles.row}>
-          <div className={styles.playerSlot}>
+          <div ref={setPlayerSlot} className={styles.playerSlot}>
             {error ? <p className={styles.inlineError}>{error}</p> : null}
             {!error && !src ? <span className={styles.loading}>Loading…</span> : null}
-            {src ? (
-              <audio
-                className={styles.audio}
-                controls
-                preload="metadata"
-                src={src}
-                aria-label={label}
-              />
-            ) : null}
+            {src && audioPortalTarget
+              ? createPortal(
+                  <audio
+                    ref={audioRef}
+                    className={styles.audio}
+                    controls
+                    preload="metadata"
+                    src={src}
+                    aria-label={label}
+                  />,
+                  audioPortalTarget
+                )
+              : null}
           </div>
           <div className={styles.actions}>
             <button

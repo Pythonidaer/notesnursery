@@ -9,6 +9,8 @@ import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
 import LabelPicker from '../components/LabelPicker.jsx';
 import NoteInfoModal from '../components/NoteInfoModal.jsx';
 import NoteTransferPanel from '../components/NoteTransferPanel.jsx';
+import { NoteEditFloatingAudioProvider } from '../components/NoteEditFloatingAudioContext.jsx';
+import NoteEditFloatingAudioDock from '../components/NoteEditFloatingAudioDock.jsx';
 import Toast from '../components/Toast.jsx';
 import { requiresAuthForPersistence, useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -502,23 +504,27 @@ export default function NoteDetailPage() {
       />
 
       {isEditing ? (
-        <div className={styles.editWrap}>
-          <NoteRichTextEditor
-            key={`${note.id}-${editSessionKey}`}
-            initialHtml={draftHtml}
-            onChange={setDraftHtml}
-            onEditorReady={handleEditorReady}
-            placeholder="Write your note…"
-            aria-label="Note body"
-            audioStorageScopeId={note.id}
-          />
-          {editStartedFromMarkdown ? (
-            <p className={styles.convertHint}>
-              This note was stored as Markdown. It has been opened in the rich editor; saving stores HTML as the
-              source from here on.
-            </p>
-          ) : null}
-        </div>
+        <NoteEditFloatingAudioProvider>
+          {/* Dock before editor so the portal mount commits before the audio node view reads context */}
+          <NoteEditFloatingAudioDock />
+          <div className={styles.editWrap}>
+            <NoteRichTextEditor
+              key={`${note.id}-${editSessionKey}`}
+              initialHtml={draftHtml}
+              onChange={setDraftHtml}
+              onEditorReady={handleEditorReady}
+              placeholder="Write your note…"
+              aria-label="Note body"
+              audioStorageScopeId={note.id}
+            />
+            {editStartedFromMarkdown ? (
+              <p className={styles.convertHint}>
+                This note was stored as Markdown. It has been opened in the rich editor; saving stores HTML as the
+                source from here on.
+              </p>
+            ) : null}
+          </div>
+        </NoteEditFloatingAudioProvider>
       ) : (
         <NoteBodyContent
           className={styles.body}
