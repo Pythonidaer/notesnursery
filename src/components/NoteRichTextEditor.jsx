@@ -21,6 +21,7 @@ import {
   ListOrdered,
   Minus,
   Palette,
+  Strikethrough,
   TextQuote,
   Underline,
 } from 'lucide-react';
@@ -266,6 +267,16 @@ function MenuBar({ editor, audioStorageScopeId }) {
           title="Underline (⌘U)"
         >
           <Underline className={styles.icon} strokeWidth={2} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className={`${styles.toolBtn} ${active('strike') ? styles.toolBtnActive : ''}`}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          aria-pressed={active('strike')}
+          aria-label="Strikethrough"
+          title="Strikethrough (Shift+⌘+X)"
+        >
+          <Strikethrough className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
         <span className={styles.toolbarSep} aria-hidden />
         <button

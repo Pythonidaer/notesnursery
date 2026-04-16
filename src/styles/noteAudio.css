@@ -98,14 +98,3 @@ figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
   color: var(--muted);
 }
 
-/* Transcript paragraphs inserted below audio (edit + read HTML) */
-.nn-body-html p[data-nn-transcript-for],
-.prose p[data-nn-transcript-for] {
-  margin: 0.35rem 0 0.45rem;
-  padding: 0.45rem 0.65rem;
-  border-left: 3px solid var(--accent-muted, #94a3b8);
-  border-radius: 0 6px 6px 0;
-  background: var(--surface-active, rgba(0, 0, 0, 0.04));
-  font-size: 0.95em;
-  line-height: 1.45;
-}
