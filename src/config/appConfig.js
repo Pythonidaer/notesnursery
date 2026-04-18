@@ -32,3 +32,15 @@ export function useSupabaseBackend() {
 export function requiresAuthForPersistence() {
   return useSupabaseBackend();
 }
+
+/**
+ * Public site origin for auth redirects (email confirmation, etc.).
+ * Prefer `VITE_SITE_URL` in production builds so confirmation links are not tied to localhost.
+ * Falls back to `window.location.origin` in the browser when unset (correct for local dev).
+ */
+export function getSiteOrigin() {
+  const raw = (import.meta.env.VITE_SITE_URL ?? '').trim().replace(/\/$/, '');
+  if (raw) return raw;
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+}

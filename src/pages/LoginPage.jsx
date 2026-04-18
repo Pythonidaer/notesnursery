@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
@@ -6,13 +6,18 @@ import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { signIn, authError, setAuthError } = useAuth();
+  const { signIn, authError, setAuthError, user, authInitializing } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState(/** @type {string | null} */ (null));
 
   const backend = useSupabaseBackend();
+
+  useEffect(() => {
+    if (!backend || authInitializing) return;
+    if (user) navigate('/library', { replace: true });
+  }, [authInitializing, backend, navigate, user]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -35,7 +40,7 @@ export default function LoginPage() {
       <h1 className={styles.title}>Log in</h1>
       <p className={styles.lead}>
         {backend
-          ? 'Use your email and password. New here? Create an account first.'
+          ? 'Use your email and password after you have confirmed your email. New here? Create an account first.'
           : 'Supabase auth is disabled in this build (local mode or missing env vars).'}
       </p>
       <form className={styles.form} onSubmit={onSubmit}>

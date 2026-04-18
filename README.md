@@ -49,6 +49,7 @@ If `VITE_APP_MODE=production` but URL/key are missing, the app falls back to loc
 | `VITE_APP_MODE` | No | `local` (default) or `production` |
 | `VITE_SUPABASE_URL` | Production + Supabase | Project URL (Settings → API) |
 | `VITE_SUPABASE_ANON_KEY` | Production + Supabase | `anon` `public` key |
+| `VITE_SITE_URL` | Recommended in production | Public site origin for email confirmation redirects (e.g. `https://app.example.com`) |
 
 Copy `.env.example` to `.env.local` and adjust.
 
@@ -57,7 +58,8 @@ Copy `.env.example` to `.env.local` and adjust.
 1. Create a project at [supabase.com](https://supabase.com).
 2. In **SQL Editor**, run `supabase/schema.sql` (tables, indexes, RLS).
 3. **Authentication → Providers**: enable Email; for development you may disable “Confirm email” so sign-up logs in immediately.
-4. Copy **Project URL** and **anon public** key into `.env.local` with `VITE_APP_MODE=production`.
+4. **Authentication → URL Configuration**: add your real site URL and redirect allow list entries the app uses after email confirmation, for example `https://YOUR_DOMAIN/auth/email-confirmed` (and `http://localhost:5173/auth/email-confirmed` for local testing). Set **`VITE_SITE_URL`** in production builds to your deployed origin (no trailing slash) so verification emails use that host instead of localhost.
+5. Copy **Project URL** and **anon public** key into `.env.local` with `VITE_APP_MODE=production`.
 
 ### Tables (summary)
 

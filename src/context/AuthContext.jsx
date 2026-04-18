@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useSupabaseBackend } from '../config/appConfig.js';
+import { getSiteOrigin, useSupabaseBackend } from '../config/appConfig.js';
 import * as profileRemote from '../data/profileSupabase.js';
 import { getSupabase } from '../lib/supabaseClient.js';
 
@@ -136,20 +136,27 @@ export function AuthProvider({ children }) {
     if (!useSupabaseBackend()) {
       const msg = 'Sign up requires production mode with Supabase env vars.';
       setLastError(msg);
-      return { error: new Error(msg) };
+      return { error: new Error(msg), sessionCreated: false };
     }
     const supabase = getSupabase();
     if (!supabase) {
       const msg = 'Supabase client is not available.';
       setLastError(msg);
-      return { error: new Error(msg) };
+      return { error: new Error(msg), sessionCreated: false };
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const origin = getSiteOrigin();
+    const emailRedirectTo = origin ? `${origin}/auth/email-confirmed` : undefined;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+    });
     if (error) {
       console.error('[auth] signUp', error);
       setLastError(error.message);
-      return { error };
+      return { error, sessionCreated: false };
     }
 
     const uid = data.user?.id;
@@ -161,11 +168,11 @@ export function AuthProvider({ children }) {
       if (profileError) {
         console.error('[auth] profiles upsert', profileError);
         setLastError(profileError.message);
-        return { error: profileError };
+        return { error: profileError, sessionCreated: false };
       }
     }
 
-    return { error: null };
+    return { error: null, sessionCreated: Boolean(data.session) };
   }, []);
 
   const signOut = useCallback(async () => {

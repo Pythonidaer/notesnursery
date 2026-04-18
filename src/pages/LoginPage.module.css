@@ -122,3 +122,28 @@
 .back:hover {
   color: var(--accent);
 }
+
+.emailEmphasis {
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.stepsList {
+  margin: 0 0 1.25rem;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.stepsList li {
+  margin-bottom: 0.45rem;
+}
+
+.hint {
+  margin: 0 0 1.25rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.45;
+}

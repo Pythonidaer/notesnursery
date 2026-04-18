@@ -28,7 +28,7 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    const { error } = await signUp({
+    const { error, sessionCreated } = await signUp({
       email,
       password,
       username: username.trim(),
@@ -36,7 +36,10 @@ export default function SignupPage() {
     setLoading(false);
     if (error) return;
 
-    navigate('/library', { replace: true });
+    navigate('/signup/check-email', {
+      replace: true,
+      state: { email: email.trim(), sessionCreated },
+    });
   };
 
   return (
