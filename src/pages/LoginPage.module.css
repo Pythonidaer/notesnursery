@@ -1,6 +1,14 @@
 .wrap {
+  width: 100%;
   max-width: 22rem;
   margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .wrap {
+    max-width: min(32rem, 100% - 2rem);
+  }
 }
 
 .title {

@@ -79,7 +79,7 @@ export default function CheckEmailPage() {
       <ul className={styles.stepsList}>
         <li>Open the email and click the confirmation link.</li>
         <li>You must confirm your email before you can log in.</li>
-        <li>After confirming, use the button on the next screen to go to log in, then sign in with your password.</li>
+        <li>After confirming, you get redirected to the website as your logged in user.</li>
       </ul>
       <p className={styles.hint}>Did not get an email? Check spam or promotions, then wait a minute and try again.</p>
       <p className={styles.footer}>
