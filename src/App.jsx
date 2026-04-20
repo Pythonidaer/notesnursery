@@ -4,7 +4,6 @@ import HomePage from './pages/HomePage.jsx';
 import CardsPage from './pages/CardsPage.jsx';
 import InstructionsPage from './pages/InstructionsPage.jsx';
 import LibraryPage from './pages/LibraryPage.jsx';
-import CheckEmailPage from './pages/CheckEmailPage.jsx';
 import EmailConfirmedPage from './pages/EmailConfirmedPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NoteDetailPage from './pages/NoteDetailPage.jsx';
@@ -28,7 +27,6 @@ export default function App() {
           <Route path="/notes/:noteId" element={<NoteDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/signup/check-email" element={<CheckEmailPage />} />
           <Route path="/auth/email-confirmed" element={<EmailConfirmedPage />} />
         </Routes>
       </main>

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { getSiteOrigin, useSupabaseBackend } from '../config/appConfig.js';
+import { useSupabaseBackend } from '../config/appConfig.js';
 import * as profileRemote from '../data/profileSupabase.js';
 import { getSupabase } from '../lib/supabaseClient.js';
 
@@ -145,13 +145,9 @@ export function AuthProvider({ children }) {
       return { error: new Error(msg), sessionCreated: false };
     }
 
-    const origin = getSiteOrigin();
-    const emailRedirectTo = origin ? `${origin}/auth/email-confirmed` : undefined;
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
     });
     if (error) {
       console.error('[auth] signUp', error);

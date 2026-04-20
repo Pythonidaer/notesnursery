@@ -40,7 +40,7 @@ export default function LoginPage() {
       <h1 className={styles.title}>Log in</h1>
       <p className={styles.lead}>
         {backend
-          ? 'Use your email and password after you have confirmed your email. New here? Create an account first.'
+          ? 'Use your email and password to log in. New here? Create an account first.'
           : 'Supabase auth is disabled in this build (local mode or missing env vars).'}
       </p>
       <form className={styles.form} onSubmit={onSubmit}>

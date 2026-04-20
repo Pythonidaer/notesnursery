@@ -35,11 +35,11 @@ export default function SignupPage() {
     });
     setLoading(false);
     if (error) return;
-
-    navigate('/signup/check-email', {
-      replace: true,
-      state: { email: email.trim(), sessionCreated },
-    });
+    if (!sessionCreated) {
+      setFormError('Account was created, but automatic sign-in did not complete. Please log in.');
+      return;
+    }
+    navigate('/library', { replace: true });
   };
 
   return (
@@ -47,7 +47,7 @@ export default function SignupPage() {
       <h1 className={styles.title}>Create account</h1>
       <p className={styles.lead}>
         {backend
-          ? 'Pick a username and sign up with email + password.'
+          ? 'Pick a username and sign up with email + password to start using your account right away.'
           : 'Supabase auth is disabled in this build (local mode or missing env vars).'}
       </p>
       <form className={styles.form} onSubmit={onSubmit}>
