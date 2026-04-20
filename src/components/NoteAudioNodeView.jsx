@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
-import { Grip, Info, Mic, Trash2 } from 'lucide-react';
+import { Grip, Info, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
@@ -230,7 +230,7 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
           <div className={styles.actions}>
             <button
               type="button"
-              className={`${styles.iconBtn} ${!canTranscribe ? styles.iconBtnDisabled : ''}`}
+              className={`${styles.textActionBtn} ${!canTranscribe ? styles.iconBtnDisabled : ''}`}
               onClick={() => void runTranscribe()}
               disabled={!canTranscribe || transcribeBusy}
               aria-label="Transcribe audio"
@@ -240,7 +240,7 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
                   : 'Sign in and load audio to transcribe'
               }
             >
-              <Mic className={styles.actionIcon} strokeWidth={2} aria-hidden />
+              TRANSCRIBE
             </button>
             <button
               type="button"

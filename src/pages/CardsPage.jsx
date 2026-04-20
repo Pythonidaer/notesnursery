@@ -194,7 +194,9 @@ export default function CardsPage() {
     <>
       <div className={styles.wrap}>
         <div className={styles.topBar}>
-          <h1 className={styles.heading}>Cards</h1>
+          <h1 className={styles.heading}>
+            Cards <span className={styles.headingCount}>({filteredNotes.length} notes)</span>
+          </h1>
           <div className={styles.topBarEnd}>
             <div className={styles.segment} role="group" aria-label="Cards view">
               <button

@@ -286,7 +286,7 @@
   line-height: 1;
   color: var(--muted);
   text-transform: none;
-  background: transparent;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;

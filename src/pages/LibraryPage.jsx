@@ -199,7 +199,9 @@ export default function LibraryPage() {
     <>
     <div className={styles.wrap}>
       <div className={styles.topBar}>
-        <h1 className={styles.heading}>Library</h1>
+        <h1 className={styles.heading}>
+          Library <span className={styles.headingCount}>({filteredNotes.length} notes)</span>
+        </h1>
         <div className={styles.topBarEnd}>
           <div className={styles.segment} role="group" aria-label="Library view">
             <button
