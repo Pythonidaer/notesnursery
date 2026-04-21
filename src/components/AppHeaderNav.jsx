@@ -54,7 +54,7 @@ export default function AppHeaderNav() {
   const navLinks = (
     <>
       <li className={styles.menuItem}>
-        <Link to="/" className={styles.menuLink} onClick={close}>
+        <Link to="/import" className={styles.menuLink} onClick={close}>
           Import
         </Link>
       </li>

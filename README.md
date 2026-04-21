@@ -13,6 +13,14 @@ A React single-page app for importing Apple Notes–style Markdown, organizing n
 - **Labels** — per-note labels; in production, profiles can store a **default label** used when opening Library/Cards
 - **Comedy performance ratings** — half-step stars (0.5–5) on notes with a **Comedy** label, persisted in Supabase when enabled; UI entry is gated to a configured admin email (see `src/utils/comedyRating.js`)
 
+## Semantic search (new)
+
+Notes Nursery includes **semantic search** in production: you can find notes by **meaning**, not only exact keywords. The Library has a **Semantic search** box (when signed in). Under the hood this uses **embeddings**, **Postgres + pgvector**, and **Supabase Edge Functions** (`gte-small`). This is **retrieval** (find relevant notes)—not a chat bot or full **RAG** answer generator.
+
+**Example query:** *“notes about boxing and footwork”*
+
+Full setup, concepts, backfill, testing, and security: **[docs/SEMANTIC_SEARCH.md](docs/SEMANTIC_SEARCH.md)**.
+
 ## Tech stack
 
 | Layer | Choice |
@@ -67,8 +75,9 @@ Copy `.env.example` to `.env.local` and adjust.
 - `notes` — `body_html` (primary for edited notes), optional legacy `body_markdown`, `content_type` (`html` \| `markdown`), metadata (including optional `comedy_rating`)
 - `labels` — per-user label names
 - `note_labels` — many-to-many between notes and labels
+- `note_embeddings` — semantic search: one row per note per user (`user_id`, `note_id`, `source_text`, `embedding` as `vector(384)`, `updated_at`); see [docs/SEMANTIC_SEARCH.md](docs/SEMANTIC_SEARCH.md)
 
-Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`) and optional audio display names (`005_note_audio_display_names.sql`).
+Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`), optional audio display names (`005_note_audio_display_names.sql`), and semantic search RLS/RPC (`006_semantic_search_rls_and_rpc.sql`) once `note_embeddings` exists in your project.
 
 ## Scripts
 
@@ -78,6 +87,16 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+Semantic search (production / Supabase):
+
+```bash
+# After migration + function deploys; use a valid user JWT for SUPABASE_ACCESS_TOKEN
+npm run backfill:embeddings
+npm run test:embed
+```
+
+See [docs/SEMANTIC_SEARCH.md](docs/SEMANTIC_SEARCH.md) for env vars and deploy steps.
 
 ## How to test
 
@@ -111,7 +130,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - Auth UI is custom React (no Supabase Auth UI package).
 - Client code uses the **anon** key only; RLS enforces per-user access.
 - SQL lives in `supabase/schema.sql` for a repeatable setup.
-- Higher-level docs live in `/docs` (see `docs/NOTE_EDITING.md` for the rich editor, HTML pipeline, and audio embeds).
+- Higher-level docs live in `docs/` — [Semantic search](docs/SEMANTIC_SEARCH.md); see also `docs/NOTE_EDITING.md` for the rich editor, HTML pipeline, and audio embeds (if present).
 
 ## Future To Dos
 

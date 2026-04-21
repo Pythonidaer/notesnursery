@@ -25,3 +25,17 @@ export function getSupabase() {
   }
   return client;
 }
+
+/**
+ * TEMP (local dev only): expose session token for testing Edge Functions from Node.
+ * Browser console: `await getToken()` then pass to `SUPABASE_ACCESS_TOKEN=... npm run test:embed`.
+ * Remove before shipping if you prefer zero globals; gated off in production builds.
+ */
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.getToken = async () => {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token;
+  };
+}

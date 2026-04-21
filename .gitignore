@@ -9,7 +9,6 @@ lerna-debug.log*
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /docs
-
 # Runtime data
 pids
 *.pid
@@ -70,6 +69,9 @@ web_modules/
 .env
 .env.*
 !.env.example
+
+# Session file for scripts/test-embed.js (Supabase auth storage in Node)
+scripts/.embed-test-session.json
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

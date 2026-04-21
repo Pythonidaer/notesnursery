@@ -25,6 +25,7 @@ import {
   filterNotesByDateBucket,
   groupNotesByDate,
 } from '../utils/groupNotesByDate.js';
+import NoteSemanticSearch from '../components/NoteSemanticSearch.jsx';
 import styles from '../styles/CardsPage.module.css';
 
 export default function CardsPage() {
@@ -39,6 +40,10 @@ export default function CardsPage() {
   const useRemote = useSupabaseBackend();
   const navigate = useNavigate();
   const location = useLocation();
+  const noteDetailLinkState = useMemo(
+    () => ({ from: `${location.pathname}${location.search}` }),
+    [location.pathname, location.search],
+  );
   const [toastMessage, setToastMessage] = useState(/** @type {string | null} */ (null));
   const dismissToast = useCallback(() => setToastMessage(null), []);
   const [groupByDate, setGroupByDate] = useState(false);
@@ -163,7 +168,7 @@ export default function CardsPage() {
       <>
         <div className={styles.wrap}>
           <p className={styles.errorBanner}>{error}</p>
-          <Link to="/" className={styles.primaryLink}>
+          <Link to="/import" className={styles.primaryLink}>
             Back to import
           </Link>
         </div>
@@ -178,13 +183,24 @@ export default function CardsPage() {
         <div className={styles.empty}>
           <h1 className={styles.heading}>Your library is empty</h1>
           <p className={styles.emptyLead}>
-            Import some exported notes to see them here. In local mode nothing is persisted; in
-            production notes load from your account after sign-in.
+            Import exported notes, or add a new note manually. In local mode nothing is persisted;
+            in production notes load from your account after sign-in.
           </p>
-          <Link to="/" className={styles.primaryLink}>
-            Go to import
-          </Link>
+          <div className={styles.emptyActions}>
+            <Link to="/import" className={styles.primaryLink}>
+              Go to import
+            </Link>
+            <span className={styles.emptyOr}>or</span>
+            <button
+              type="button"
+              className={styles.manualNoteBtn}
+              onClick={() => setComposerOpen(true)}
+            >
+              Add a note manually
+            </button>
+          </div>
         </div>
+        <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
         {toastEl}
       </>
     );
@@ -193,6 +209,10 @@ export default function CardsPage() {
   return (
     <>
       <div className={styles.wrap}>
+        {useRemote && user ? (
+          <NoteSemanticSearch noteDetailLinkState={noteDetailLinkState} />
+        ) : null}
+
         <div className={styles.topBar}>
           <h1 className={styles.heading}>
             Cards <span className={styles.headingCount}>({filteredNotes.length} notes)</span>
