@@ -113,9 +113,6 @@ export default function NoteSemanticSearch({ noteDetailLinkState }) {
       <div className={styles.header}>
         <Sparkles className={styles.headerIcon} strokeWidth={2} aria-hidden />
         <h2 className={styles.title}>Semantic Search</h2>
-        <p className={styles.hint} id="semantic-search-hint">
-          Finds notes by meaning.
-        </p>
         {showExitSearch ? (
           <button
             type="button"
@@ -133,14 +130,13 @@ export default function NoteSemanticSearch({ noteDetailLinkState }) {
             type="text"
             className={styles.input}
             enterKeyHint="search"
-            placeholder="Ask in plain language..."
+            placeholder="Ask in plain language…"
             value={queryInput}
             onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={onInputKeyDown}
             autoComplete="off"
             disabled={searchPhase === 'loading'}
-            aria-label="Semantic search query"
-            aria-describedby="semantic-search-hint"
+            aria-label="Semantic search: ask in plain language"
           />
           {showInputClear ? (
             <button

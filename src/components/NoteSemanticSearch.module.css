@@ -72,18 +72,6 @@
   flex-shrink: 0;
 }
 
-/* Helper line sits after the title; Exit stays on the far right. */
-.hint {
-  margin: 0;
-  padding: 0;
-  font-size: 0.625rem;
-  font-weight: 400;
-  line-height: 1.25;
-  color: var(--muted);
-  flex: 1 1 7rem;
-  min-width: 0;
-}
-
 /* Single row: input grows; button is content-sized (no flex stretch). */
 .form {
   display: flex;
@@ -306,10 +294,6 @@
     border-radius: 8px;
     font-size: 0.875rem;
     min-width: 5.25rem;
-  }
-
-  .hint {
-    font-size: 0.6875rem;
   }
 
   .input {
