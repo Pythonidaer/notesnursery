@@ -113,6 +113,9 @@ export default function NoteSemanticSearch({ noteDetailLinkState }) {
       <div className={styles.header}>
         <Sparkles className={styles.headerIcon} strokeWidth={2} aria-hidden />
         <h2 className={styles.title}>Semantic Search</h2>
+        <p className={styles.hint} id="semantic-search-hint">
+          Finds notes by meaning.
+        </p>
         {showExitSearch ? (
           <button
             type="button"
@@ -137,6 +140,7 @@ export default function NoteSemanticSearch({ noteDetailLinkState }) {
             autoComplete="off"
             disabled={searchPhase === 'loading'}
             aria-label="Semantic search query"
+            aria-describedby="semantic-search-hint"
           />
           {showInputClear ? (
             <button
@@ -149,11 +153,16 @@ export default function NoteSemanticSearch({ noteDetailLinkState }) {
             </button>
           ) : null}
         </div>
-        <button type="submit" className={styles.submit} disabled={searchPhase === 'loading'}>
+        <button
+          type="submit"
+          className={styles.submit}
+          disabled={searchPhase === 'loading'}
+          aria-busy={searchPhase === 'loading'}
+          aria-label={searchPhase === 'loading' ? 'Searching' : 'Run semantic search'}
+        >
           {searchPhase === 'loading' ? 'Searching…' : 'Search'}
         </button>
       </form>
-      <p className={styles.hint}>Finds notes by meaning.</p>
       {searchPhase === 'error' && error ? (
         <p className={styles.error} role="alert">
           {error}

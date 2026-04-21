@@ -147,6 +147,7 @@ export default function FloatingNewNoteComposer({ visible, onRequestClose }) {
       setLabels([]);
       setPresentation('docked');
       setMinimized(false);
+      onRequestClose?.();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Could not create note');
     } finally {

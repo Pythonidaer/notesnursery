@@ -1,36 +1,36 @@
 .panel {
-  margin-bottom: 0.75rem;
-  padding: 0.55rem 0.75rem 0.58rem;
+  margin-bottom: 0.65rem;
+  padding: 0.42rem 0.62rem 0.45rem;
   border-radius: 10px;
   box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid transparent;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
     linear-gradient(
-        125deg,
-        rgba(147, 197, 253, 0.55),
-        rgba(167, 139, 250, 0.62),
-        rgba(244, 114, 182, 0.42)
+        118deg,
+        rgba(147, 197, 253, 0.5),
+        rgba(167, 139, 250, 0.55),
+        rgba(244, 114, 182, 0.38)
       )
       border-box;
   background-clip: padding-box, border-box;
-  box-shadow:
-    0 0 0 1px rgba(147, 197, 253, 0.1),
-    0 3px 16px rgba(99, 102, 241, 0.06);
+  box-shadow: 0 1px 0 rgba(147, 197, 253, 0.12);
 }
 
 .header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.32rem;
-  margin-bottom: 0.45rem;
-  row-gap: 0.25rem;
+  align-items: baseline;
+  gap: 0.28rem;
+  margin-bottom: 0.28rem;
+  row-gap: 0.15rem;
 }
 
 .exitSearch {
   margin-left: auto;
-  padding: 0.12rem 0.38rem;
+  padding: 0.1rem 0.32rem;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -57,35 +57,50 @@
 }
 
 .headerIcon {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 0.9rem;
+  height: 0.9rem;
   color: #7c3aed;
   flex-shrink: 0;
 }
 
 .title {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   margin: 0;
   color: var(--text);
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
+/* Helper line sits after the title; Exit stays on the far right. */
+.hint {
+  margin: 0;
+  padding: 0;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--muted);
+  flex: 1 1 7rem;
+  min-width: 0;
+}
+
+/* Single row: input grows; button is content-sized (no flex stretch). */
 .form {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.38rem;
-  align-items: stretch;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  align-items: center;
+  min-width: 0;
 }
 
 .inputWrap {
-  flex: 1;
-  min-width: min(100%, 11rem);
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  min-height: 2.05rem;
-  padding: 0.12rem 0.42rem;
+  gap: 0.2rem;
+  padding: 0.06rem 0.3rem 0.06rem 0.34rem;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--bg);
@@ -93,8 +108,8 @@
 }
 
 .inputWrap:focus-within {
-  border-color: rgba(124, 58, 237, 0.4);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+  border-color: rgba(124, 58, 237, 0.42);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.12);
 }
 
 .inputClear {
@@ -102,8 +117,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1.35rem;
+  height: 1.35rem;
   padding: 0;
   border: none;
   border-radius: 5px;
@@ -127,20 +142,24 @@
 }
 
 .inputClearIcon {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 0.85rem;
+  height: 0.85rem;
 }
 
+/*
+ * Slightly below 16px: matches heading scale and keeps the control slim.
+ * iOS Safari may zoom on focus; if that’s an issue, raise toward 16px.
+ */
 .input {
   flex: 1;
   min-width: 0;
-  padding: 0.28rem 0.15rem;
+  padding: 0.2rem 0.08rem;
   border: none;
   border-radius: 0;
   background: transparent;
   color: var(--text);
-  font-size: 0.875rem;
-  line-height: 1.35;
+  font-size: 0.8125rem;
+  line-height: 1.22;
 }
 
 .input:focus {
@@ -153,27 +172,35 @@
 }
 
 .submit {
-  padding: 0.32rem 0.95rem;
-  min-height: 2.05rem;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  padding: 0.38rem 0.7rem;
   border: none;
   border-radius: 7px;
-  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 52%, #4f46e5 100%);
+  background: linear-gradient(90deg, #3b82f6 0%, #6366f1 42%, #7c3aed 100%);
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
-  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.22);
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
 .submit:hover:not(:disabled) {
-  filter: brightness(1.07);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.32);
+  filter: brightness(1.06);
 }
 
 .submit:active:not(:disabled) {
   transform: scale(0.98);
+}
+
+.submit:focus {
+  outline: none;
+}
+
+.submit:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
 }
 
 .submit:disabled {
@@ -182,35 +209,34 @@
 }
 
 .error {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
   font-size: 0.84rem;
   line-height: 1.4;
   color: var(--danger, #c0392b);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .noMatches {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
   font-size: 0.84rem;
   color: var(--muted);
   line-height: 1.4;
-}
-
-.hint {
-  margin: 0.32rem 0 0;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: var(--muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .results {
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: 0.45rem 0 0;
   padding: 0;
+  min-width: 0;
 }
 
 .resultRow {
   border-top: 1px solid var(--border);
   padding: 0.5rem 0;
+  min-width: 0;
 }
 
 .resultRow:first-of-type {
@@ -219,10 +245,14 @@
 }
 
 .resultLink {
+  display: inline-block;
+  max-width: 100%;
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--text);
   text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .resultLink:hover {
@@ -232,9 +262,12 @@
 
 .snippet {
   margin: 0.2rem 0 0;
+  max-width: 100%;
   font-size: 0.82rem;
   color: var(--muted);
   line-height: 1.38;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .score {
@@ -243,24 +276,63 @@
   margin-top: 0.15rem;
 }
 
-@media (max-width: 520px) {
+/* Slightly roomier on larger screens; still one row. */
+@media (min-width: 640px) {
   .panel {
-    padding: 0.5rem 0.65rem 0.52rem;
-    margin-bottom: 0.65rem;
+    padding: 0.48rem 0.75rem 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .header {
+    margin-bottom: 0.38rem;
   }
 
   .form {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .submit {
-    width: 100%;
-    min-height: 2.15rem;
+    gap: 0.55rem;
   }
 
   .inputWrap {
+    padding: 0.1rem 0.38rem 0.1rem 0.42rem;
+    border-radius: 8px;
+  }
+
+  .input {
+    padding: 0.28rem 0.12rem;
+    line-height: 1.28;
+  }
+
+  .submit {
+    padding: 0.44rem 0.95rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    min-width: 5.25rem;
+  }
+
+  .hint {
+    font-size: 0.6875rem;
+  }
+
+  .input {
+    font-size: 0.875rem;
+  }
+}
+
+/* Only on very narrow viewports: stack so nothing clips unreadably. */
+@media (max-width: 320px) {
+  .form {
+    flex-wrap: wrap;
+  }
+
+  .inputWrap {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .submit {
+    flex: 1 1 auto;
+    flex-shrink: 1;
     min-width: 0;
-    min-height: 2.15rem;
+    width: 100%;
+    padding: 0.42rem 0.75rem;
   }
 }
