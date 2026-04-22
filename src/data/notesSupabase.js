@@ -1,4 +1,5 @@
 import { getSupabase } from '../lib/supabaseClient.js';
+import { syncNoteEmbeddingForUserNote } from '../lib/noteEmbeddingSync.js';
 import { parseComedyRating } from '../utils/comedyRating.js';
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_MARKDOWN, normalizeContentType } from '../utils/noteContentModel.js';
 import { normalizeLabel } from '../utils/noteLabels.js';
@@ -322,6 +323,7 @@ export async function insertNote(userId, note) {
     comedyRating: parseComedyRating(data.comedy_rating),
     labels,
   };
+  await syncNoteEmbeddingForUserNote(userId, mapped);
   return mapped;
 }
 
@@ -364,6 +366,13 @@ export async function updateNoteRemote(userId, noteId, updates) {
 
   if ('labels' in updates && updates.labels !== undefined) {
     await syncNoteLabels(noteId, userId, /** @type {string[]} */ (updates.labels));
+  }
+
+  try {
+    const full = await fetchNoteById(userId, noteId);
+    await syncNoteEmbeddingForUserNote(userId, full);
+  } catch (e) {
+    console.error('[db] post-update embedding sync', e);
   }
 }
 

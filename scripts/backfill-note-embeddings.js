@@ -89,13 +89,40 @@ async function main() {
   const notes = (rows ?? []).map(mapRowToNote);
   console.log(`[backfill] notes to index: ${notes.length}`);
 
-  let ok = 0;
+  const { data: embRows, error: embErr } = await supabase
+    .from('note_embeddings')
+    .select('note_id, source_text')
+    .eq('user_id', user.id);
+
+  if (embErr) {
+    throw embErr;
+  }
+
+  const previousSourceByNoteId = new Map(
+    (embRows ?? []).map((r) => [r.note_id, r.source_text ?? '']),
+  );
+
+  let embedded = 0;
+  let reEmbedded = 0;
+  let skippedUnchanged = 0;
   let failed = 0;
 
   for (let i = 0; i < notes.length; i++) {
     const note = notes[i];
     const text = buildNoteEmbeddingSourceText(note);
     const label = `[backfill] ${i + 1}/${notes.length} ${note.id.slice(0, 8)}…`;
+    const prev = previousSourceByNoteId.get(note.id);
+
+    if (prev === text) {
+      console.log(`${label} unchanged → skipped`);
+      skippedUnchanged++;
+      continue;
+    }
+    if (prev === undefined) {
+      console.log(`${label} missing → embedding`);
+    } else {
+      console.log(`${label} changed source_text → re-embedding`);
+    }
 
     try {
       const res = await fetch(embedUrl, {
@@ -141,15 +168,22 @@ async function main() {
         continue;
       }
 
-      ok++;
-      console.log(`${label} ok`);
+      if (prev === undefined) {
+        embedded++;
+        console.log(`${label} embedded`);
+      } else {
+        reEmbedded++;
+        console.log(`${label} re-embedded`);
+      }
     } catch (e) {
       console.error(label, e);
       failed++;
     }
   }
 
-  console.log(`[backfill] done: ${ok} ok, ${failed} failed`);
+  console.log(
+    `[backfill] done: ${embedded} new, ${reEmbedded} re-embedded, ${skippedUnchanged} skipped (unchanged), ${failed} failed`,
+  );
   if (failed > 0) {
     process.exitCode = 1;
   }
