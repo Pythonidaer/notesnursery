@@ -204,8 +204,17 @@ export default function AnalysisPage() {
   const [uploadError, setUploadError] = useState(/** @type {string | null} */ (null));
   const [compareMenuOpen, setCompareMenuOpen] = useState(false);
   const compareBelowRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  /** Last path we successfully requested a signed URL for (avoids clearing URL on spurious effect re-runs, e.g. tab focus). */
+  const signedUrlPathRef = useRef(/** @type {string} */ (''));
+  const signedUrlRef = useRef(/** @type {string | null} */ (null));
+  const signedUrlPathBRef = useRef(/** @type {string} */ (''));
+  const signedUrlBRef = useRef(/** @type {string | null} */ (null));
 
   const ready = remote && !authInitializing && user;
+  const userId = user?.id ?? null;
+
+  signedUrlRef.current = signedUrl;
+  signedUrlBRef.current = signedUrlB;
 
   useEffect(() => {
     if (!ready || !user) return;
@@ -231,15 +240,24 @@ export default function AnalysisPage() {
   }, [ready, user]);
 
   useEffect(() => {
-    if (!ready || !selectedPath) {
+    if (!remote || !userId || !selectedPath) {
+      signedUrlPathRef.current = '';
       setSignedUrl(null);
       setUrlError(null);
       setUrlLoading(false);
       return;
     }
+    const pathChanged = signedUrlPathRef.current !== selectedPath;
+    if (pathChanged) {
+      signedUrlPathRef.current = selectedPath;
+      setSignedUrl(null);
+      setUrlError(null);
+    } else if (signedUrlRef.current) {
+      setUrlLoading(false);
+      return;
+    }
+
     let cancelled = false;
-    setSignedUrl(null);
-    setUrlError(null);
     setUrlLoading(true);
     void createNoteAudioSignedUrl(selectedPath).then((r) => {
       if (cancelled) return;
@@ -254,7 +272,7 @@ export default function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [ready, selectedPath]);
+  }, [remote, userId, selectedPath]);
 
   useEffect(() => {
     if (!selectedPath) {
@@ -269,15 +287,24 @@ export default function AnalysisPage() {
   }, [selectedPath, selectedPathB]);
 
   useEffect(() => {
-    if (!ready || !selectedPathB) {
+    if (!remote || !userId || !selectedPathB) {
+      signedUrlPathBRef.current = '';
       setSignedUrlB(null);
       setUrlErrorB(null);
       setUrlLoadingB(false);
       return;
     }
+    const pathChanged = signedUrlPathBRef.current !== selectedPathB;
+    if (pathChanged) {
+      signedUrlPathBRef.current = selectedPathB;
+      setSignedUrlB(null);
+      setUrlErrorB(null);
+    } else if (signedUrlBRef.current) {
+      setUrlLoadingB(false);
+      return;
+    }
+
     let cancelled = false;
-    setSignedUrlB(null);
-    setUrlErrorB(null);
     setUrlLoadingB(true);
     void createNoteAudioSignedUrl(selectedPathB).then((r) => {
       if (cancelled) return;
@@ -292,7 +319,7 @@ export default function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [ready, selectedPathB]);
+  }, [remote, userId, selectedPathB]);
 
   useEffect(() => {
     if (!compareMenuOpen) return;
@@ -326,8 +353,13 @@ export default function AnalysisPage() {
 
   const onDismissPrimaryWaveform = useCallback(() => {
     setCompareMenuOpen(false);
+    if (selectedPathB) {
+      setSelectedPath(selectedPathB);
+      setSelectedPathB('');
+      return;
+    }
     setSelectedPath('');
-  }, []);
+  }, [selectedPathB]);
 
   const onDismissCompareWaveform = useCallback(() => {
     setCompareMenuOpen(false);
@@ -455,8 +487,9 @@ export default function AnalysisPage() {
               <div className={styles.waveformFrame} aria-label="Primary audio: waveform and player">
                 <div className={styles.waveformBleed}>
                   <AnalysisWaveform
-                    key={signedUrl || (selectedPath ? `resolving-${selectedPath}` : 'none')}
+                    key={selectedPath ? `wave-${selectedPath}` : 'none'}
                     audioUrl={signedUrl}
+                    storagePath={selectedPath || null}
                     fileLabel={displayLabel || 'Selected track'}
                     sizeBytes={selectedRow?.sizeBytes ?? null}
                     resolving={Boolean(selectedPath) && urlLoading && !signedUrl}
@@ -466,7 +499,11 @@ export default function AnalysisPage() {
                     onHeaderFileChange={setSelectedPath}
                     headerFileSelectId={waveformHeaderSelectId}
                     onHeaderDismiss={onDismissPrimaryWaveform}
-                    headerDismissAriaLabel="Close waveform and return to the default view"
+                    headerDismissAriaLabel={
+                      selectedPathB
+                        ? 'Close this track and make the compare track the main waveform'
+                        : 'Close waveform and return to the default view'
+                    }
                     emptyStateContent={
                       <div
                         className={styles.waveformEmptySourceCard}
@@ -566,8 +603,9 @@ export default function AnalysisPage() {
                 <div className={styles.waveformFrame}>
                   <div className={styles.waveformBleed}>
                     <AnalysisWaveform
-                      key={signedUrlB || (selectedPathB ? `resolving-b-${selectedPathB}` : 'none-b')}
+                      key={selectedPathB ? `wave-b-${selectedPathB}` : 'none-b'}
                       audioUrl={signedUrlB}
+                      storagePath={selectedPathB || null}
                       fileLabel={displayLabelB || 'Compare track'}
                       sizeBytes={selectedRowB?.sizeBytes ?? null}
                       resolving={Boolean(selectedPathB) && urlLoadingB && !signedUrlB}

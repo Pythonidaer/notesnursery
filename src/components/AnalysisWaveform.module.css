@@ -47,6 +47,132 @@
   align-self: center;
 }
 
+.headerLeftRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+}
+
+.wpmCluster {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.35rem;
+  flex-shrink: 0;
+}
+
+.wpmBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.45rem;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  box-sizing: border-box;
+  min-height: 1.45rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.wpmBtn:hover:not(:disabled) {
+  background: var(--surface-active);
+}
+
+.wpmBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.wpmBtn:focus {
+  outline: none;
+}
+
+.wpmBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.wpmValue {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+
+.wpmInfoWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.wpmInfoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.wpmInfoBtn:hover {
+  background: var(--surface-active);
+  color: var(--text);
+}
+
+.wpmInfoBtn:focus {
+  outline: none;
+}
+
+.wpmInfoBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.wpmInfoPopover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(16rem, 70vw);
+  padding: 0.5rem 0.6rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+}
+
+.wpmInlineMsg {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--muted);
+  max-width: 12rem;
+}
+
 .fileTitleSelectShell {
   display: block;
   width: fit-content;

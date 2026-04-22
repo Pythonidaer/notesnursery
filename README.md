@@ -9,11 +9,12 @@ A React single-page app for importing Apple Notes–style Markdown, organizing n
 - **Cards** (`/cards`) — same filters in a card layout
 - **Note detail** (`/notes/:id`) — read with sanitized HTML or legacy Markdown; **edit** in a **TipTap** rich-text editor (toolbar, HTML saved to `body_html`); optional **audio clips** (`.wav` / `.mp3`) uploaded to private Supabase Storage and embedded in the note body; labels; transfer selected text to another note; delete with confirmation
 - **Instructions** (`/instructions`) — in-app guidance
+- **Analysis** (`/analysis`, beta) — full-width **MP3 waveforms** for files in the user’s private note-audio library (Supabase Storage); optional **A/B compare** of a second track; **desktop-sized viewports** only (~900px+). Requires production mode + sign-in. See [Audio analysis (waveforms)](#audio-analysis-waveforms) below.
 - **New note composer** — docked bottom-right panel; **expand** widens the same right-anchored sheet (non-blocking, no backdrop); TipTap rich editor and HTML storage; Library, Cards, and note detail
 - **Labels** — per-note labels; in production, profiles can store a **default label** used when opening Library/Cards
 - **Comedy performance ratings** — half-step stars (0.5–5) on notes with a **Comedy** label, persisted in Supabase when enabled; UI entry is gated to a configured admin email (see `src/utils/comedyRating.js`)
 
-## Semantic search (new)
+## Semantic search
 
 Notes Nursery includes **semantic search** in production: you can find notes by **meaning**, not only exact keywords. The Library has a **Semantic search** box (when signed in). Under the hood this uses **embeddings**, **Postgres + pgvector**, and **Supabase Edge Functions** (`gte-small`). This is **retrieval** (find relevant notes)—not a chat bot or full **RAG** answer generator.
 
@@ -21,7 +22,18 @@ Notes Nursery includes **semantic search** in production: you can find notes by 
 
 Full setup, concepts, backfill, testing, and security: **[docs/SEMANTIC_SEARCH.md](docs/SEMANTIC_SEARCH.md)**.
 
-## Image to text (OCR) — production
+## Audio analysis (waveforms)
+
+The **Analysis** page (`/analysis`) is an experimental (**Beta**) tool to **inspect and play** full-length recordings as **waveforms**—not a transcript or laugh detector, but a visual + transport surface for the same private **MP3** assets used in notes (Supabase Storage bucket for note audio).
+
+- **When it works:** `VITE_APP_MODE=production` with Supabase configured, user **signed in**. Local-only mode without Supabase shows a short “use cloud / editor” message instead of the full UI.
+- **Sources:** The app lists **.mp3** files already in your **note audio** library (uploaded from a note or from Analysis). You can **upload** additional MP3s (validated, size-capped) into that library; display names are stored like other note-audio files.
+- **Player:** The waveform uses **WaveSurfer.js** (with a time **Timeline** plugin), a hidden `audio` element, and custom controls: play/pause, volume/mute, file metadata (e.g. size), and a header **file picker** / dismiss to close the current waveform. Signed URLs are created client-side for playback.
+- **Compare:** You can add a **second** MP3 to view **stacked** waveforms and compare two tracks (primary track, then an optional “compare” track with its own row).
+- **Layout:** Copy and key controls use the same **`PageContentWrap`** max width as **Library** / **Cards**; the **waveform area** is **full-bleed** in the main column for a wide read. **Narrow / mobile** viewports are intentionally blocked with a “desktop only” message (this screen is designed for a large monitor).
+- **Nav:** **Analysis** appears in the app header; route **`/analysis`**.
+
+## Image to text (OCR)
 
 The note **editor** can import text from a photo via the **scan** control on the toolbar. That uses the Edge Function **`ocr-image-to-text`**, which calls [OCR.space](https://ocr.space) on the **server** (your OCR API key must never go in `VITE_*` env vars or client code).
 

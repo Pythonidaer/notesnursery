@@ -1,0 +1,178 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  max-height: 100dvh;
+  overflow-y: auto;
+  background: rgba(26, 25, 23, 0.35);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 24rem;
+  max-height: min(90dvh, 100%);
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.header {
+  padding: 0.85rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.body {
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.loadingState,
+.emptyState {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.listLabel {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+}
+
+.radioList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: min(40vh, 14rem);
+  overflow-y: auto;
+}
+
+.radioItem {
+  margin: 0;
+}
+
+.radioLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.radioLabel:hover {
+  background: var(--surface-active);
+}
+
+.radioLabel:focus-within {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.radioRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.radioInput {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.radioTitle {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.radioMeta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding-left: 1.35rem;
+}
+
+.modalError {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--danger, #b42318);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0 1rem 1rem;
+}
+
+.btnCancel,
+.btnConfirm {
+  min-height: 2.25rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btnCancel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btnCancel:hover:not(:disabled) {
+  background: var(--surface-active);
+}
+
+.btnConfirm {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+}
+
+.btnConfirm:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.btnCancel:disabled,
+.btnConfirm:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

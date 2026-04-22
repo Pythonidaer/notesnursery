@@ -1,9 +1,21 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js';
-import { MoreVertical, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
+import { Info, MoreVertical, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
+import { useNotes } from '../context/NotesContext.jsx';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import {
+  ANALYSIS_WPM_MIN_WORDS,
+  computeWpmFromWordCountAndDuration,
+  countWordsInPlainText,
+  noteHtmlReferencesAudioStoragePath,
+  plainTranscriptTextForWpm,
+} from '../utils/analysisWpmFromNoteHtml.js';
+import AnalysisWpmModal from './AnalysisWpmModal.jsx';
 import styles from './AnalysisWaveform.module.css';
+
+const WPM_INFO_TOOLTIP =
+  'Estimated from the selected note’s text and the full audio duration. Approximate only—the transcript may not match the recording exactly, or the note may include other text.';
 
 const WAVE = '#95c4a8';
 const PROGRESS = '#2d6a4f';
@@ -210,6 +222,7 @@ function WaveformTransport({ ws, durationSec, fileLabel, sizeBytes, formatLabel 
  *
  * @param {{
  *   audioUrl: string | null,
+ *   storagePath?: string | null,
  *   fileLabel?: string,
  *   sizeBytes?: number | null,
  *   onReadyInfo?: (info: { durationSec: number }) => void,
@@ -226,6 +239,7 @@ function WaveformTransport({ ws, durationSec, fileLabel, sizeBytes, formatLabel 
  */
 export default function AnalysisWaveform({
   audioUrl,
+  storagePath = null,
   fileLabel = 'Recording',
   sizeBytes = null,
   onReadyInfo,
@@ -240,7 +254,74 @@ export default function AnalysisWaveform({
   headerDismissAriaLabel = 'Close waveform',
 }) {
   const rootId = useId();
+  const wpmRadioGroupName = useId().replace(/:/g, '_');
   const isWideDesktop = useMediaQuery('(min-width: 900px)');
+  const { notes, noteListReady } = useNotes();
+
+  const [wpmModalOpen, setWpmModalOpen] = useState(false);
+  const [wpmSelectedNoteId, setWpmSelectedNoteId] = useState('');
+  const [wpmModalError, setWpmModalError] = useState(/** @type {string | null} */ (null));
+  const [wpmDisplay, setWpmDisplay] = useState(/** @type {number | null} */ (null));
+  const [wpmInlineError, setWpmInlineError] = useState(/** @type {string | null} */ (null));
+  const [wpmInfoOpen, setWpmInfoOpen] = useState(false);
+  const wpmInfoRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+
+  const matchingNotes = useMemo(() => {
+    if (!storagePath || !notes.length) return [];
+    const hits = notes.filter((n) => noteHtmlReferencesAudioStoragePath(n.bodyHtml, storagePath));
+    return [...hits].sort((a, b) => {
+      const ma = a.modifiedAtSource || '';
+      const mb = b.modifiedAtSource || '';
+      if (ma !== mb) return mb.localeCompare(ma);
+      return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
+    });
+  }, [notes, storagePath]);
+
+  const matchingNoteIdsKey = useMemo(() => matchingNotes.map((n) => n.id).join(','), [matchingNotes]);
+
+  useEffect(() => {
+    setWpmModalOpen(false);
+    setWpmSelectedNoteId('');
+    setWpmModalError(null);
+    setWpmDisplay(null);
+    setWpmInlineError(null);
+    setWpmInfoOpen(false);
+  }, [storagePath, audioUrl]);
+
+  useEffect(() => {
+    if (!wpmModalOpen) return;
+    setWpmModalError(null);
+    if (matchingNotes.length === 1) {
+      setWpmSelectedNoteId(matchingNotes[0].id);
+    } else {
+      setWpmSelectedNoteId('');
+    }
+  }, [wpmModalOpen, matchingNoteIdsKey]);
+
+  useEffect(() => {
+    if (!wpmInfoOpen) return;
+    const onDoc = (e) => {
+      if (wpmInfoRef.current && !wpmInfoRef.current.contains(/** @type {Node} */ (e.target))) {
+        setWpmInfoOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setWpmInfoOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [wpmInfoOpen]);
+
+  const openWpmModal = useCallback(() => {
+    setWpmModalError(null);
+    setWpmInlineError(null);
+    setWpmModalOpen(true);
+  }, []);
+
   /** Height for WaveSurfer only; do not depend on viewport — avoids destroying/recreating the player on matchMedia/resize. */
   const chartHeight = variant === 'wide' ? 280 : 156;
   const containerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
@@ -250,6 +331,41 @@ export default function AnalysisWaveform({
   const [errorMessage, setErrorMessage] = useState(/** @type {string | null} */ (null));
   const [durationSec, setDurationSec] = useState(/** @type {number | null} */ (null));
   const [activeWs, setActiveWs] = useState(/** @type {import('wavesurfer.js').default | null} */ (null));
+
+  const handleWpmConfirm = useCallback(() => {
+    setWpmModalError(null);
+    if (!storagePath) return;
+    const note = matchingNotes.find((n) => n.id === wpmSelectedNoteId);
+    if (!note) {
+      setWpmModalError('Select a note to continue.');
+      return;
+    }
+    const dur = durationSec;
+    if (!Number.isFinite(dur) || dur == null || dur <= 0) {
+      setWpmModalOpen(false);
+      setWpmDisplay(null);
+      setWpmInlineError('Audio duration is not available yet. Wait for the waveform to finish loading.');
+      return;
+    }
+    const plain = plainTranscriptTextForWpm(note.bodyHtml, storagePath);
+    const wc = countWordsInPlainText(plain);
+    if (wc < ANALYSIS_WPM_MIN_WORDS) {
+      setWpmModalOpen(false);
+      setWpmDisplay(null);
+      setWpmInlineError('This note does not contain enough transcript text to estimate WPM.');
+      return;
+    }
+    const wpm = computeWpmFromWordCountAndDuration(wc, dur);
+    if (wpm == null) {
+      setWpmModalOpen(false);
+      setWpmDisplay(null);
+      setWpmInlineError('Could not compute WPM from this note.');
+      return;
+    }
+    setWpmDisplay(wpm);
+    setWpmInlineError(null);
+    setWpmModalOpen(false);
+  }, [durationSec, matchingNotes, storagePath, wpmSelectedNoteId]);
 
   const titleText = (fileLabel || 'Selected track').trim() || 'Selected track';
   const hasHeaderFilePicker = Boolean(
@@ -352,7 +468,15 @@ export default function AnalysisWaveform({
     });
     ro.observe(container);
 
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const cur = wsRef.current;
+      if (cur) requestAnimationFrame(() => fitZoom(cur));
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
       ro.disconnect();
       ws.un('ready', onReady);
       ws.un('error', onError);
@@ -420,25 +544,76 @@ export default function AnalysisWaveform({
                 : styles.cardHeaderText
             }
           >
-            {hasHeaderFilePicker && headerFileOptions && headerFileSelectId ? (
-              <div className={styles.fileTitleSelectShell}>
-                <select
-                  id={headerFileSelectId}
-                  className={styles.fileTitleSelect}
-                  value={headerFileValue ?? ''}
-                  onChange={(e) => onHeaderFileChange?.(e.target.value)}
-                  aria-label="Choose which MP3 to show in the waveform"
-                >
-                  {headerFileOptions.map((o) => (
-                    <option key={o.path} value={o.path}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <h3 className={styles.fileTitle}>{titleText}</h3>
-            )}
+            <div className={styles.headerLeftRow}>
+              {hasHeaderFilePicker && headerFileOptions && headerFileSelectId ? (
+                <div className={styles.fileTitleSelectShell}>
+                  <select
+                    id={headerFileSelectId}
+                    className={styles.fileTitleSelect}
+                    value={headerFileValue ?? ''}
+                    onChange={(e) => onHeaderFileChange?.(e.target.value)}
+                    aria-label="Choose which MP3 to show in the waveform"
+                  >
+                    {headerFileOptions.map((o) => (
+                      <option key={o.path} value={o.path}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <h3 className={styles.fileTitle}>{titleText}</h3>
+              )}
+              {storagePath ? (
+                <div className={styles.wpmCluster}>
+                  <button
+                    type="button"
+                    className={styles.wpmBtn}
+                    onClick={openWpmModal}
+                    aria-label="Estimate words per minute from a note transcript"
+                    title="Estimate WPM from note text"
+                  >
+                    WPM
+                  </button>
+                  {wpmDisplay != null && !wpmInlineError ? (
+                    <>
+                      <span
+                        className={styles.wpmValue}
+                        aria-label={`Approximately ${wpmDisplay} words per minute`}
+                      >
+                        ~{wpmDisplay}
+                      </span>
+                      <div className={styles.wpmInfoWrap} ref={wpmInfoRef}>
+                        <button
+                          type="button"
+                          className={styles.wpmInfoBtn}
+                          onClick={() => setWpmInfoOpen((o) => !o)}
+                          aria-expanded={wpmInfoOpen}
+                          aria-controls={wpmInfoOpen ? `${rootId}-wpm-info` : undefined}
+                          aria-label="About this WPM estimate"
+                        >
+                          <Info size={12} strokeWidth={2} aria-hidden />
+                        </button>
+                        {wpmInfoOpen ? (
+                          <div
+                            className={styles.wpmInfoPopover}
+                            id={`${rootId}-wpm-info`}
+                            role="note"
+                          >
+                            {WPM_INFO_TOOLTIP}
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
+                  {wpmInlineError ? (
+                    <span className={styles.wpmInlineMsg} role="status">
+                      {wpmInlineError}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
           <div className={styles.headerTransportSlot}>
             <div className={styles.headerRightControls}>
@@ -486,6 +661,21 @@ export default function AnalysisWaveform({
           </p>
         ) : null}
       </div>
+      <AnalysisWpmModal
+        open={wpmModalOpen}
+        radioGroupName={wpmRadioGroupName}
+        loadingNotes={!noteListReady}
+        matchingNotes={matchingNotes.map((n) => ({
+          id: n.id,
+          title: n.title,
+          modifiedAtSource: n.modifiedAtSource,
+        }))}
+        selectedNoteId={wpmSelectedNoteId}
+        onSelectedNoteIdChange={setWpmSelectedNoteId}
+        onCancel={() => setWpmModalOpen(false)}
+        onConfirm={handleWpmConfirm}
+        errorMessage={wpmModalError}
+      />
     </div>
   );
 }
