@@ -21,6 +21,23 @@ Notes Nursery includes **semantic search** in production: you can find notes by 
 
 Full setup, concepts, backfill, testing, and security: **[docs/SEMANTIC_SEARCH.md](docs/SEMANTIC_SEARCH.md)**.
 
+## Image to text (OCR) — production
+
+The note **editor** can import text from a photo via the **scan** control on the toolbar. That uses the Edge Function **`ocr-image-to-text`**, which calls [OCR.space](https://ocr.space) on the **server** (your OCR API key must never go in `VITE_*` env vars or client code).
+
+If the UI says **OCR could not be reached** or **Failed to send a request to the Edge Function**, the browser is not getting a valid response from that function. Fix it on the **same Supabase project** as `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`:
+
+1. Install and log in to the [Supabase CLI](https://supabase.com/docs/guides/cli): `npx supabase login`
+2. From the repo root, link the project: `npx supabase link --project-ref <your-project-ref>`
+3. Set the [OCR.space](https://ocr.space) API key as a function secret:  
+   `npx supabase secrets set OCR_SPACE_API_KEY=<your-ocr-key>`
+4. Deploy the function:  
+   `npx supabase functions deploy ocr-image-to-text`
+
+In the **Supabase Dashboard → Edge Functions**, you should see **`ocr-image-to-text`** after a successful deploy. A key only in your laptop `.env` file does **not** configure Edge Functions—you must set secrets in Supabase (CLI or Dashboard).
+
+**Who sees the OCR button:** Same **admin email** as comedy star ratings — see **`COMEDY_RATING_ADMIN_EMAIL`** in **`src/utils/comedyRating.js`**. The OCR gate reuses `isAdminComedyRatingUser` in **`src/utils/ocrImageToTextGate.js`** (UI-only).
+
 ## Tech stack
 
 | Layer | Choice |
@@ -131,6 +148,32 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - Client code uses the **anon** key only; RLS enforces per-user access.
 - SQL lives in `supabase/schema.sql` for a repeatable setup.
 - Higher-level docs live in `docs/` — [Semantic search](docs/SEMANTIC_SEARCH.md); see also `docs/NOTE_EDITING.md` for the rich editor, HTML pipeline, and audio embeds (if present).
+
+## Future Enhancements
+
+### Hybrid Search (Planned)
+
+Today, **semantic search** finds notes by **meaning**—ideas and paraphrases—using vector similarity. That works well for concepts, but it is not always ideal for **exact names or very short, specific phrases**.
+
+For example, searching for **“Bell in Hand”** might not rank the right note as highly if the note is long: the model compresses the whole note into one embedding, and an exact phrase can be a small part of the signal, so it may look less “similar” to the query than you expect.
+
+**Hybrid search** (a planned improvement) would combine two kinds of retrieval:
+
+- **Semantic similarity** — same idea as today: “what is this note *about*?”
+- **Keyword / text matching** — “does this note *contain* the exact words (or a close string match)?”
+
+Together, you get:
+
+- **Exact** matches (names, titles, specific phrases) that should not be buried
+- **Semantic** matches (related ideas, different wording) that semantic search already handles well
+
+**Example** — query: *“bell in hand”*
+
+- A **keyword** pass finds notes that actually contain that phrase in the text or title.
+- A **semantic** pass can still surface related notes (e.g. a note about a Boston tavern or historic bar, even with different words).
+- **Merging** both signals should improve overall ranking and reduce misses.
+
+This is a planned improvement and not yet implemented. A more technical design outline for contributors lives in [docs/HYBRID_SEARCH.md](docs/HYBRID_SEARCH.md).
 
 ## Future To Dos
 

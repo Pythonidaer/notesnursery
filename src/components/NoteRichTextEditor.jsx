@@ -9,8 +9,10 @@ import { StarterKit } from '@tiptap/starter-kit';
 import {
   AudioLines,
   Bold,
+  Camera,
   Code,
   FileCode,
+  FileUp,
   Heading1,
   Heading2,
   Heading3,
@@ -19,14 +21,20 @@ import {
   List,
   ListChecks,
   ListOrdered,
+  Loader2,
   Minus,
   Palette,
+  ScanText,
   Strikethrough,
   TextQuote,
   Underline,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { isOcrImageToTextUser } from '../utils/ocrImageToTextGate.js';
+import { ocrImageFileToText } from '../lib/ocrImageToText.js';
+import { getSupabase } from '../lib/supabaseClient.js';
+import { appendOcrPlainTextToTipTap } from '../utils/appendOcrPlainTextToTipTap.js';
 import { NOTE_AUDIO_MAX_UPLOAD_BYTES } from '../constants/noteAudio.js';
 import { noteAudioExtension } from '../tiptap/noteAudioExtension.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
@@ -144,7 +152,13 @@ function useToolbarRerender(editor) {
  */
 function MenuBar({ editor, audioStorageScopeId }) {
   const [colorOpen, setColorOpen] = useState(false);
+  const [ocrOpen, setOcrOpen] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState(/** @type {string | null} */ (null));
   const colorWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const ocrWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const ocrCameraInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
+  const ocrFileInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkInitialUrl, setLinkInitialUrl] = useState('');
   const [linkCanRemove, setLinkCanRemove] = useState(false);
@@ -158,6 +172,7 @@ function MenuBar({ editor, audioStorageScopeId }) {
   const { user } = useAuth();
   const remote = useSupabaseBackend();
   const canUploadAudio = Boolean(remote && user?.id);
+  const canOcr = Boolean(remote && user?.id && isOcrImageToTextUser(user));
 
   useToolbarRerender(editor);
 
@@ -170,6 +185,45 @@ function MenuBar({ editor, audioStorageScopeId }) {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [colorOpen]);
+
+  useEffect(() => {
+    if (!ocrOpen) return;
+    const onDown = (/** @type {MouseEvent} */ e) => {
+      const el = ocrWrapRef.current;
+      if (el && e.target instanceof Node && !el.contains(e.target)) setOcrOpen(false);
+    };
+    const onKey = (/** @type {KeyboardEvent} */ e) => {
+      if (e.key === 'Escape') setOcrOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [ocrOpen]);
+
+  const runOcrOnFile = async (/** @type {File | undefined} */ file) => {
+    if (!file || !editor) return;
+    if (!isOcrImageToTextUser(user)) return;
+    const supabase = getSupabase();
+    if (!supabase) {
+      setOcrError('Sign in to import text from images');
+      return;
+    }
+    setOcrError(null);
+    setOcrLoading(true);
+    setOcrOpen(false);
+    try {
+      const text = await ocrImageFileToText(supabase, file);
+      appendOcrPlainTextToTipTap(editor, text);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not read text from image';
+      setOcrError(msg);
+    } finally {
+      setOcrLoading(false);
+    }
+  };
 
   if (!editor) return null;
 
@@ -436,6 +490,101 @@ function MenuBar({ editor, audioStorageScopeId }) {
         >
           <AudioLines className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
+        {canOcr ? (
+          <>
+            <span className={styles.toolbarSep} aria-hidden />
+            <div className={styles.ocrWrap} ref={ocrWrapRef}>
+              <input
+                ref={ocrCameraInputRef}
+                type="file"
+                className={styles.hiddenFileInput}
+                accept="image/*"
+                capture="environment"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (f) void runOcrOnFile(f);
+                }}
+              />
+              <input
+                ref={ocrFileInputRef}
+                type="file"
+                className={styles.hiddenFileInput}
+                accept="image/*"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (f) void runOcrOnFile(f);
+                }}
+              />
+              <button
+                type="button"
+                className={`${styles.toolBtn} ${ocrLoading ? styles.toolBtnDisabled : ''} ${ocrOpen ? styles.toolBtnActive : ''}`}
+                disabled={ocrLoading}
+                onClick={() => {
+                  if (ocrLoading) return;
+                  setOcrError(null);
+                  setOcrOpen((o) => !o);
+                }}
+                aria-label="Add text from image"
+                title="Add text from image (scan or upload)"
+                aria-expanded={ocrOpen}
+                aria-haspopup="menu"
+                aria-controls="note-ocr-image-menu"
+              >
+                {ocrLoading ? (
+                  <Loader2 className={`${styles.icon} ${styles.iconSpin}`} strokeWidth={2} aria-hidden />
+                ) : (
+                  <ScanText className={styles.icon} strokeWidth={2} aria-hidden />
+                )}
+              </button>
+              {ocrOpen && !ocrLoading ? (
+                <div
+                  id="note-ocr-image-menu"
+                  className={styles.ocrPopover}
+                  role="menu"
+                  aria-label="Image to text"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.ocrMenuItem}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setOcrOpen(false);
+                      ocrCameraInputRef.current?.click();
+                    }}
+                  >
+                    <Camera className={styles.ocrMenuIcon} strokeWidth={2} aria-hidden />
+                    <span>Take image</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.ocrMenuItem}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setOcrOpen(false);
+                      ocrFileInputRef.current?.click();
+                    }}
+                  >
+                    <FileUp className={styles.ocrMenuIcon} strokeWidth={2} aria-hidden />
+                    <span>Upload image</span>
+                  </button>
+                </div>
+              ) : null}
+              {ocrError ? (
+                <p className={styles.ocrError} role="status" aria-live="polite">
+                  {ocrError}
+                </p>
+              ) : null}
+            </div>
+          </>
+        ) : null}
         <button
           type="button"
           className={styles.toolBtn}

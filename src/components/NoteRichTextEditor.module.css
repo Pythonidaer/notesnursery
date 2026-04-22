@@ -1,18 +1,23 @@
+/* overflow visible so OCR dropdown/error (right-aligned) are not clipped at the card edge */
 .root {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .toolbar {
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
   border-bottom: 1px solid var(--border);
   background: var(--surface-active);
   padding: 0.45rem 0.5rem;
+  overflow: visible;
 }
 
 .toolbarInner {
@@ -21,6 +26,8 @@
   align-items: center;
   gap: 0.28rem;
   max-width: 100%;
+  min-width: 0;
+  overflow: visible;
 }
 
 .icon {
@@ -164,6 +171,104 @@
   border: 0;
 }
 
+.ocrWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Align to the right edge of the control so menus extend left and stay inside the editor */
+.ocrPopover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 9.5rem;
+  max-width: min(12rem, calc(100vw - 1.5rem));
+  padding: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.ocrMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.38rem 0.45rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ocrMenuItem:hover {
+  background: var(--surface-active);
+}
+
+.ocrMenuItem:focus {
+  outline: none;
+}
+
+.ocrMenuItem:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.ocrMenuIcon {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ocrError {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
+  width: min(16rem, calc(100vw - 1.5rem));
+  max-width: min(16rem, calc(100vw - 1.5rem));
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--danger);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.iconSpin {
+  animation: ocrIconSpin 0.75s linear infinite;
+}
+
+@keyframes ocrIconSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .toolbarSep {
   width: 1px;
   height: 1.25rem;
@@ -180,6 +285,9 @@
 .surface {
   min-height: 14rem;
   padding: 0.85rem 1rem 1.15rem;
+  border-radius: 0 0 9px 9px;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .surface :global(.tiptap) {

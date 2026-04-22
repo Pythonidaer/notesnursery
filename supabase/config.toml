@@ -430,3 +430,10 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/search-notes-semantic/deno.json"
 entrypoint = "./functions/search-notes-semantic/index.ts"
+
+# OCR: forwards images to OCR.space; requires secret OCR_SPACE_API_KEY (set in project Edge Function secrets).
+[functions.ocr-image-to-text]
+enabled = true
+verify_jwt = false
+import_map = "./functions/ocr-image-to-text/deno.json"
+entrypoint = "./functions/ocr-image-to-text/index.ts"
