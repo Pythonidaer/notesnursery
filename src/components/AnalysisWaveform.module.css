@@ -1,0 +1,493 @@
+.wrap {
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.2rem;
+}
+
+.wrapWide .waveMount {
+  min-height: 14rem;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  /* Must stay visible so the volume popover (above the header) is not clipped */
+  overflow: visible;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem 0.5rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.65rem;
+  box-sizing: border-box;
+  background: var(--surface);
+  border-radius: 9px 9px 0 0;
+  position: relative;
+  z-index: 2;
+}
+
+.cardHeaderText {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+/* Picker on the left; leave room for bordered transport cluster + optional dismiss (right) */
+.cardHeaderTextCapped {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 7.75rem);
+  align-self: center;
+}
+
+.fileTitleSelectShell {
+  display: block;
+  width: fit-content;
+  max-width: min(20rem, 100%);
+  min-width: 0;
+}
+
+.fileTitle {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tight to selected label; thin border; arrow stays beside text (field-sizing) */
+.fileTitleSelect {
+  display: block;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.22rem 0.4rem 0.24rem 0.4rem;
+  box-shadow: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  -webkit-appearance: auto;
+  appearance: auto;
+  outline: none;
+  field-sizing: content;
+}
+
+@supports not (field-sizing: content) {
+  .fileTitleSelect {
+    width: max-content;
+  }
+}
+
+/* Same 1.5rem circle as play / volume transport buttons */
+.headerDismissBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.headerDismissBtn:hover {
+  background: var(--surface-active);
+  border-color: var(--accent-muted);
+  color: var(--text);
+}
+
+.headerDismissBtn:focus {
+  outline: none;
+}
+
+.headerDismissBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
+.fileTitleSelect:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.fileTitleSelect option {
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.headerTransportSlot {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Play / volume / more grouped (matches .fileTitleSelect border); X sits outside to the right */
+.headerRightControls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.headerTransportBunch {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  padding: 0.1rem 0.35rem 0.1rem 0.32rem;
+  min-height: 1.6rem;
+  min-width: 0;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.transport {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.12rem 0.28rem;
+}
+
+.transportPlaceholder {
+  min-height: 1.4rem;
+  min-width: 4.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.transportPlaceholderText {
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+  user-select: none;
+}
+
+.playBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: filter 0.15s ease;
+}
+
+.playBtn:hover {
+  filter: brightness(0.95);
+}
+
+.playBtn:focus {
+  outline: none;
+}
+
+.playBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
+.playIcon {
+  position: relative;
+  left: 0.5px;
+}
+
+.volumeWrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  z-index: 3;
+}
+
+/* Same diameter and round shape as .playBtn; secondary (outline) style */
+.volumeIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.volumeIconBtn:hover {
+  background: var(--surface-active);
+  border-color: var(--accent-muted);
+  color: var(--text);
+}
+
+.volumeIconBtn[aria-expanded='true'] {
+  background: var(--surface-active);
+  border-color: var(--accent-muted);
+}
+
+.volumeIconBtn:focus {
+  outline: none;
+}
+
+.volumeIconBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
+.volumePopover {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.15rem;
+  z-index: 30;
+  padding: 0.4rem 0.32rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.volumePopoverInner {
+  width: 1.5rem;
+  height: 4.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Horizontal range rotated — in most engines, -90° maps max (right) ≈ top of popover */
+.volumeRangeVertical {
+  width: 4.75rem;
+  height: 1.25rem;
+  margin: 0;
+  padding: 0;
+  transform: rotate(-90deg);
+  transform-origin: center center;
+  accent-color: var(--accent);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.iconGhostBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.iconGhostBtn:hover {
+  color: var(--text);
+  background: var(--surface-active);
+}
+
+.iconGhostBtn:focus {
+  outline: none;
+}
+
+.iconGhostBtn:focus-visible {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
+/* Tighter hit area: vertical-ellipsis is narrow; tucks the control cluster to the right */
+.moreMenuBtn {
+  width: 1.2rem;
+  min-width: 1.2rem;
+  height: 1.5rem;
+  padding: 0;
+  margin: 0 -0.04rem 0 0;
+  align-self: center;
+  justify-content: center;
+}
+
+.moreWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.morePanel {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.2rem;
+  z-index: 5;
+  min-width: 12rem;
+  max-width: min(18rem, calc(100vw - 1.5rem));
+  padding: 0.55rem 0.65rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.moreList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.moreRow {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  align-items: start;
+}
+
+.moreRow dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.moreRow dd {
+  margin: 0;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.waveMount {
+  width: 100%;
+  min-height: 10rem;
+  border: none;
+  border-radius: 0 0 9px 9px;
+  background: var(--surface);
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
+}
+
+/* WaveSurfer injects a scroll region; keep touch scrolling usable on long sets */
+.waveMount :global([data-scroll]) {
+  -webkit-overflow-scrolling: touch;
+}
+
+.building {
+  margin: 0;
+  padding: 0.35rem 0.75rem 0.5rem;
+  font-size: 0.86rem;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border-radius: 0 0 9px 9px;
+}
+
+.panel {
+  min-height: 8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--surface);
+}
+
+.panel[data-empty] {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  max-width: 22rem;
+  line-height: 1.45;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 28rem;
+  line-height: 1.45;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Invisible but in-document so playback stays reliable across engines */
+.audioSink {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  pointer-events: none;
+  opacity: 0.02;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}

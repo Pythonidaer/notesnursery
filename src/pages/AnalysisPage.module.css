@@ -1,0 +1,537 @@
+/* Full-bleed analysis shell. */
+.page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-width: 0;
+}
+
+/* Title + lead; audio source is only in the waveform area. */
+.heroBlock {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 1.5rem;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.heroBlock .lead {
+  margin-top: 0.2rem;
+}
+
+.sourceEmptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.sourceEmptyState .emptyInline {
+  width: 100%;
+  flex: none;
+}
+
+.sourceStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.sourceStackRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.sourceCompareCol {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.12rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.sourceCompareFieldLabel {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: left;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.sourceSelectStacked {
+  display: block;
+  width: 100%;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.38rem;
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.sourceSelectStacked:focus {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.sourceSelectStacked:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Sibling to PageContentWrap: uses full .appMain width (same as pre–Cards-wrap waveforms). */
+.waveformSection {
+  width: 100%;
+  min-width: 0;
+  margin: 0.5rem 0 1.25rem;
+  box-sizing: border-box;
+}
+
+/* Full width of the main area so primary + compare waveforms span edge-to-edge with app padding. */
+.playbackColumn {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.errorPlay {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--danger);
+  text-align: center;
+}
+
+.waveformFrame {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Compare load error: filename only (waveform+controls live in AnalysisWaveform) */
+.waveformCompareErrorName {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.waveformBlockError {
+  margin: 0;
+  padding: 0.5rem 0.25rem 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--danger);
+  text-align: center;
+}
+
+.waveformBleed {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+/* Primary waveform empty: compact card — width follows the select + Upload row, not the dashed panel */
+.waveformEmptySourceCard {
+  width: fit-content;
+  max-width: min(40rem, 100%);
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.waveformEmptySourceCard .sourceCard {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.waveformEmptySourceCard .sourceStack {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.waveformEmptySourceCard .sourceStackRow {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.waveformEmptySourceCard .sourceSelect {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  field-sizing: content;
+}
+
+@supports not (field-sizing: content) {
+  .waveformEmptySourceCard .sourceSelect {
+    width: max-content;
+    max-width: min(36rem, 100%);
+  }
+}
+
+.waveformEmptySourceCard .sourceEmptyState {
+  width: auto;
+  max-width: 100%;
+  align-items: flex-start;
+}
+
+/* Below the primary waveform: Compare uses .fileBtn (same as Upload) + popover for second track */
+.compareBelowRow {
+  width: 100%;
+  min-width: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.compareBelowInner {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.compareBelowPopover {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.2rem;
+  z-index: 20;
+  min-width: 12.5rem;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  padding: 0.5rem 0.6rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.compareBelowLabel {
+  display: block;
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: left;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compareBelowSelect {
+  display: block;
+  width: 100%;
+  min-height: 1.9rem;
+  box-sizing: border-box;
+  margin: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.25rem 0.4rem;
+  cursor: pointer;
+}
+
+.compareBelowSelect:focus {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.compareWaveWrap {
+  margin-top: 1.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.lead {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--muted);
+  box-sizing: border-box;
+  text-wrap: pretty;
+}
+
+/* Viewport < 900px: show desktop-only copy instead of the full analysis UI (see AnalysisPage.jsx). */
+.mobileOnly {
+  width: 100%;
+  min-width: 0;
+  max-width: 28rem;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 0.5rem 0 1rem;
+}
+
+.mobileOnlyMessage {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: var(--text);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.headerRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.35rem;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.subtitle {
+  width: 100%;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--muted);
+  margin: 0.15rem 0 0;
+}
+
+.sourceSection {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Single compact row: select + Upload */
+.sourceCard {
+  padding: 0.32rem 0.5rem 0.38rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mutedCompareInline {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.sourceRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  min-width: 0;
+}
+
+.sourceRowEnd {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.sourceSelect {
+  flex: 1 1 6rem;
+  min-width: 0;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.4rem;
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.sourceSelect:focus {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 1px;
+}
+
+.sourceSelect:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Where supported, downsize option list text to match the closed control. */
+.sourceSelect option,
+.sourceSelectStacked option {
+  font-size: 0.72rem;
+}
+
+.emptyInline {
+  margin: 0;
+  flex: 1 1 9rem;
+  min-width: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: left;
+}
+
+.mutedInline {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.errorInline {
+  margin: 0 0 0.35rem;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--danger);
+}
+
+.errorInline:last-child {
+  margin-bottom: 0;
+}
+
+.fileBtn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.95rem;
+  padding: 0.2rem 0.65rem;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fileBtn:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.fileBtn:focus {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
+.fileBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.gate {
+  max-width: 32rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.gate a {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.gate a:focus {
+  outline: 2px solid var(--accent-muted);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .headerRow {
+    margin-bottom: 0.5rem;
+  }
+
+  .title {
+    font-size: 1.45rem;
+  }
+
+  .sourceCard {
+    padding: 0.35rem 0.45rem 0.4rem;
+  }
+
+  .fileBtn {
+    min-height: 2.2rem;
+  }
+}

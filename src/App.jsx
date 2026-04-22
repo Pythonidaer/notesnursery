@@ -8,6 +8,7 @@ import LibraryPage from './pages/LibraryPage.jsx';
 import EmailConfirmedPage from './pages/EmailConfirmedPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NoteDetailPage from './pages/NoteDetailPage.jsx';
+import AnalysisPage from './pages/AnalysisPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/cards" element={<CardsPage />} />
           <Route path="/instructions" element={<InstructionsPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
           <Route path="/notes/:noteId" element={<NoteDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
