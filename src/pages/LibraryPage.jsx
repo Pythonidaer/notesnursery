@@ -24,9 +24,12 @@ import {
   filterNotesByDateBucket,
   groupNotesByDate,
 } from '../utils/groupNotesByDate.js';
+import { noteHasEmbeddedAudio } from '../utils/noteHasEmbeddedAudio.js';
+import NoteAudioListIcon from '../components/NoteAudioListIcon.jsx';
 import NoteFiltersToolbar from '../components/NoteFiltersToolbar.jsx';
 import NoteSemanticSearch from '../components/NoteSemanticSearch.jsx';
 import NoteRowLabelChips from '../components/NoteRowLabelChips.jsx';
+import PageContentWrap from '../components/PageContentWrap.jsx';
 import styles from './LibraryPage.module.css';
 
 export default function LibraryPage() {
@@ -145,9 +148,9 @@ export default function LibraryPage() {
   if (loading && notes.length === 0) {
     return (
       <>
-        <div className={styles.wrap}>
+        <PageContentWrap>
           <p className={styles.loading}>Loading notes…</p>
-        </div>
+        </PageContentWrap>
         {toastEl}
       </>
     );
@@ -156,9 +159,9 @@ export default function LibraryPage() {
   if (waitingForPrefs) {
     return (
       <>
-        <div className={styles.wrap}>
+        <PageContentWrap>
           <p className={styles.loading}>Loading preferences…</p>
-        </div>
+        </PageContentWrap>
         {toastEl}
       </>
     );
@@ -167,12 +170,12 @@ export default function LibraryPage() {
   if (error && notes.length === 0) {
     return (
       <>
-        <div className={styles.wrap}>
+        <PageContentWrap>
           <p className={styles.errorBanner}>{error}</p>
           <Link to="/import" className={styles.primaryLink}>
             Back to import
           </Link>
-        </div>
+        </PageContentWrap>
         {toastEl}
       </>
     );
@@ -181,26 +184,28 @@ export default function LibraryPage() {
   if (notes.length === 0) {
     return (
       <>
-        <div className={styles.empty}>
-          <h1 className={styles.heading}>Your library is empty</h1>
-          <p className={styles.emptyLead}>
-            Import exported notes, or add a new note manually. In local mode nothing is persisted;
-            in production notes load from your account after sign-in.
-          </p>
-          <div className={styles.emptyActions}>
-            <Link to="/import" className={styles.primaryLink}>
-              Go to import
-            </Link>
-            <span className={styles.emptyOr}>or</span>
-            <button
-              type="button"
-              className={styles.manualNoteBtn}
-              onClick={() => setComposerOpen(true)}
-            >
-              Add a note manually
-            </button>
+        <PageContentWrap>
+          <div className={styles.empty}>
+            <h1 className={styles.heading}>Your library is empty</h1>
+            <p className={styles.emptyLead}>
+              Import exported notes, or add a new note manually. In local mode nothing is persisted;
+              in production notes load from your account after sign-in.
+            </p>
+            <div className={styles.emptyActions}>
+              <Link to="/import" className={styles.primaryLink}>
+                Go to import
+              </Link>
+              <span className={styles.emptyOr}>or</span>
+              <button
+                type="button"
+                className={styles.manualNoteBtn}
+                onClick={() => setComposerOpen(true)}
+              >
+                Add a note manually
+              </button>
+            </div>
           </div>
-        </div>
+        </PageContentWrap>
         <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
         {toastEl}
       </>
@@ -209,7 +214,7 @@ export default function LibraryPage() {
 
   return (
     <>
-    <div className={styles.wrap}>
+    <PageContentWrap>
       {useRemote && user ? (
         <NoteSemanticSearch noteDetailLinkState={noteDetailLinkState} />
       ) : null}
@@ -283,9 +288,21 @@ export default function LibraryPage() {
             <li key={note.id}>
               <div className={styles.row}>
                 <span className={styles.rowLeft}>
-                  <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
-                    <span className={styles.titleOnly}>{note.title}</span>
-                  </Link>
+                  <span className={styles.titleWithAudio}>
+                    <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
+                      <span className={styles.titleOnly}>{note.title}</span>
+                    </Link>
+                    {noteHasEmbeddedAudio(note) ? (
+                      <span
+                        className={styles.titleAudioIcon}
+                        title="This note has audio"
+                        aria-label="This note has audio"
+                        role="img"
+                      >
+                        <NoteAudioListIcon />
+                      </span>
+                    ) : null}
+                  </span>
                   <ComedyRatingTrigger note={note} variant="library" />
                 </span>
                 <NoteRowLabelChips labels={note.labels} />
@@ -303,9 +320,21 @@ export default function LibraryPage() {
                   <li key={note.id}>
                     <div className={styles.row}>
                       <span className={styles.rowLeft}>
-                        <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
-                          <span className={styles.titleOnly}>{note.title}</span>
-                        </Link>
+                        <span className={styles.titleWithAudio}>
+                          <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
+                            <span className={styles.titleOnly}>{note.title}</span>
+                          </Link>
+                          {noteHasEmbeddedAudio(note) ? (
+                            <span
+                              className={styles.titleAudioIcon}
+                              title="This note has audio"
+                              aria-label="This note has audio"
+                              role="img"
+                            >
+                              <NoteAudioListIcon />
+                            </span>
+                          ) : null}
+                        </span>
                         <ComedyRatingTrigger note={note} variant="library" />
                       </span>
                       <NoteRowLabelChips labels={note.labels} />
@@ -317,7 +346,7 @@ export default function LibraryPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContentWrap>
     <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
     {toastEl}
     </>

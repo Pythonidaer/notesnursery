@@ -36,14 +36,6 @@
   outline-offset: 2px;
 }
 
-.wrap {
-  max-width: 48rem;
-  width: 100%;
-  margin: 0 auto;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
 .topBar {
   display: flex;
   flex-wrap: wrap;
@@ -203,8 +195,20 @@
   min-width: 0;
 }
 
-.titleLink {
+/* Title + optional audio icon as one left cluster; middle space then stars/labels. */
+.titleWithAudio {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
   flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* flex: 0 1 auto — do not grow: otherwise the link’s flex box fills the row and the icon
+   sits on the right edge of the title area (beside the stars) instead of beside the text. */
+.titleLink {
+  flex: 0 1 auto;
   min-width: 0;
   text-decoration: none;
   color: inherit;
@@ -222,6 +226,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.titleAudioIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: center;
+  color: var(--muted);
 }
 
 .grouped {
