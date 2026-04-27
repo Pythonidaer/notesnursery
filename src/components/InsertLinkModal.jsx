@@ -8,19 +8,30 @@ import linkStyles from './InsertLinkModal.module.css';
  *   open: boolean,
  *   onClose: () => void,
  *   initialUrl: string,
+ *   initialDisplayName?: string,
  *   canRemoveLink: boolean,
- *   onApply: (url: string) => void,
+ *   onApply: (url: string, displayName?: string) => void,
  *   onRemoveLink: () => void,
  * }} props
  */
-export default function InsertLinkModal({ open, onClose, initialUrl, canRemoveLink, onApply, onRemoveLink }) {
+export default function InsertLinkModal({
+  open,
+  onClose,
+  initialUrl,
+  initialDisplayName = '',
+  canRemoveLink,
+  onApply,
+  onRemoveLink,
+}) {
   const [draft, setDraft] = useState('');
+  const [draftName, setDraftName] = useState('');
   const inputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
 
   useEffect(() => {
     if (!open) return;
     setDraft(initialUrl);
-  }, [open, initialUrl]);
+    setDraftName(initialDisplayName);
+  }, [open, initialUrl, initialDisplayName]);
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +51,8 @@ export default function InsertLinkModal({ open, onClose, initialUrl, canRemoveLi
   if (!open) return null;
 
   const submit = () => {
-    onApply(draft);
+    const name = draftName.trim();
+    onApply(draft, name || undefined);
     onClose();
   };
 
@@ -91,6 +103,24 @@ export default function InsertLinkModal({ open, onClose, initialUrl, canRemoveLi
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="https://…"
+            autoComplete="off"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+          <label className={linkStyles.label} htmlFor="insert-link-name">
+            Name (optional)
+          </label>
+          <input
+            id="insert-link-name"
+            type="text"
+            className={linkStyles.input}
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            placeholder="e.g. AI resource"
             autoComplete="off"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {

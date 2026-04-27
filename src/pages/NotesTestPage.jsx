@@ -2,17 +2,16 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
+  AudioLines,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   FileText,
-  Highlighter,
   ListChecks,
   Moon,
   MoreHorizontal,
   Paperclip,
-  PenLine,
   ScanLine,
   SquarePen,
   Sun,
@@ -121,10 +120,12 @@ function NotesTestDetail() {
   const posUsedAbbreviationsRef = useRef(/** @type {string[]} */ ([]));
   const posToolbarClusterRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tiptapRef = useRef(/** @type {import('@tiptap/core').Editor | null} */ (null));
-  const pendingEditorActionRef = useRef(/** @type {null | 'task' | 'focus'} */ (null));
+  const pendingEditorActionRef = useRef(/** @type {null | 'task'} */ (null));
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [moreMenuLabelsOpen, setMoreMenuLabelsOpen] = useState(false);
   const [labelsSheetQuery, setLabelsSheetQuery] = useState('');
+  const [bottomAttachOpen, setBottomAttachOpen] = useState(false);
+  const [attachAudioOpenRequest, setAttachAudioOpenRequest] = useState(0);
   const [useDarkBg, setUseDarkBg] = useState(() => {
     try {
       return typeof localStorage !== 'undefined' && localStorage.getItem(NOTES_TEST_DARK_BG_KEY) === '1';
@@ -132,13 +133,9 @@ function NotesTestDetail() {
       return false;
     }
   });
-  const shellRef = useRef(/** @type {HTMLDivElement | null} */ (null));
-  const topBarRef = useRef(/** @type {HTMLElement | null} */ (null));
   const scrollRef = useRef(/** @type {HTMLDivElement | null} */ (null));
-  const scrollInnerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const metaRevealRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const readSurfaceRef = useRef(/** @type {HTMLDivElement | null} */ (null));
-  const editBlockRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tapRef = useRef(/** @type {{ x: number, y: number } | null} */ (null));
 
   const labelSuggestions = useMemo(() => collectAllLabels(notes), [notes]);
@@ -155,7 +152,6 @@ function NotesTestDetail() {
     if (!p) return;
     queueMicrotask(() => {
       if (p === 'task') ed.chain().focus().toggleTaskList().run();
-      if (p === 'focus') ed.chain().focus().run();
       pendingEditorActionRef.current = null;
     });
   }, []);
@@ -187,6 +183,8 @@ function NotesTestDetail() {
     setMoreMenuOpen(false);
     setMoreMenuLabelsOpen(false);
     setLabelsSheetQuery('');
+    setBottomAttachOpen(false);
+    setAttachAudioOpenRequest(0);
     posUsedAbbreviationsRef.current = [];
     originalBodyRef.current = '';
     originalMarkdownRef.current = '';
@@ -195,7 +193,6 @@ function NotesTestDetail() {
     originalCreatedRef.current = '';
     originalModifiedRef.current = '';
     pendingEditorActionRef.current = null;
-    scrollInnerRef.current?.style.removeProperty('min-height');
   }, [noteId]);
 
   const dismissToast = useCallback(() => setToastMessage(null), []);
@@ -264,135 +261,27 @@ function NotesTestDetail() {
     if (!moreMenuLabelsOpen) setLabelsSheetQuery('');
   }, [moreMenuLabelsOpen]);
 
+  useEffect(() => {
+    if (!bottomAttachOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setBottomAttachOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [bottomAttachOpen]);
+
   /**
-   * Navbar height H → --notesTestTopBarOverlap on shell (measured, subpixel e.g. 56.2px).
-   * scrollMain: margin-top -H; scrollInner: padding-top H so meta sits in the bar band when scrollTop is 0.
-   * Snap: scrollTop=0 then scrollTop = anchor.top - scrollport.top (layout-accurate; avoids offsetTop/padding drift).
+   * Single initial scroll: skip the metadata band so the title/body sit below the sticky header.
+   * No ResizeObserver/RAF/fonts — if meta height changes after load (e.g. async chips), user can nudge scroll.
    */
   useLayoutEffect(() => {
-    if (!note) return;
-    const shellEl = shellRef.current;
-    const barEl = topBarRef.current;
-    const scrollEl = scrollRef.current;
-    const metaEl = metaRevealRef.current;
-    const innerEl = scrollInnerRef.current;
-    if (!shellEl || !barEl || !scrollEl || !metaEl || !innerEl) return;
-
-    let cancelled = false;
-    let ensureRaf = 0;
-    let barSnapRaf = 0;
-
-    const syncTopBarMetrics = () => {
-      const h = Math.max(1, barEl.getBoundingClientRect().height);
-      shellEl.style.setProperty('--notesTestTopBarOverlap', `${h}px`);
-    };
-
-    const overlapPadPx = () => {
-      void innerEl.offsetHeight;
-      const fromCss = Math.round(parseFloat(getComputedStyle(innerEl).paddingTop) || 0);
-      if (fromCss > 0) return fromCss;
-      return Math.max(1, barEl.getBoundingClientRect().height);
-    };
-
-    const ensureInnerMinHeight = () => {
-      if (cancelled) return;
-      const padTop = overlapPadPx();
-      const metaH = metaEl.offsetHeight;
-      const ch = scrollEl.clientHeight;
-      const prevMin = innerEl.style.minHeight;
-      innerEl.style.minHeight = '';
-      const natural = innerEl.scrollHeight;
-      innerEl.style.minHeight = prevMin;
-      const minNeeded = ch + padTop + metaH + 2;
-      innerEl.style.minHeight = `${Math.max(natural, minNeeded)}px`;
-    };
-
-    const scheduleEnsure = () => {
-      if (cancelled) return;
-      if (ensureRaf) cancelAnimationFrame(ensureRaf);
-      ensureRaf = requestAnimationFrame(() => {
-        ensureRaf = 0;
-        if (cancelled) return;
-        ensureInnerMinHeight();
-      });
-    };
-
-    const snapBelowMeta = () => {
-      if (cancelled) return;
-      syncTopBarMetrics();
-      ensureInnerMinHeight();
-      const anchor = readSurfaceRef.current ?? editBlockRef.current;
-      scrollEl.scrollTop = 0;
-      void scrollEl.offsetHeight;
-      void innerEl.offsetHeight;
-      if (!anchor) {
-        scrollEl.scrollTop = Math.max(0, Math.round(overlapPadPx() + metaEl.offsetHeight));
-        return;
-      }
-      const scrollRect = scrollEl.getBoundingClientRect();
-      const anchorRect = anchor.getBoundingClientRect();
-      const y = anchorRect.top - scrollRect.top;
-      scrollEl.scrollTop = Math.max(0, Math.round(y));
-    };
-
-    const scheduleBarSnap = () => {
-      if (cancelled) return;
-      if (barSnapRaf) cancelAnimationFrame(barSnapRaf);
-      barSnapRaf = requestAnimationFrame(() => {
-        barSnapRaf = 0;
-        if (cancelled) return;
-        snapBelowMeta();
-      });
-    };
-
-    snapBelowMeta();
-    let nestedSnapRaf = 0;
-    const outerSnapRaf = requestAnimationFrame(() => {
-      if (cancelled) return;
-      snapBelowMeta();
-      nestedSnapRaf = requestAnimationFrame(() => {
-        if (cancelled) return;
-        snapBelowMeta();
-      });
-    });
-    const t = window.setTimeout(() => {
-      if (!cancelled) snapBelowMeta();
-    }, 120);
-
-    const roMeta = new ResizeObserver(scheduleBarSnap);
-    roMeta.observe(metaEl);
-    const roScroll = new ResizeObserver(scheduleEnsure);
-    roScroll.observe(scrollEl);
-    const roBar = new ResizeObserver(scheduleBarSnap);
-    roBar.observe(barEl);
-    const anchorEl = readSurfaceRef.current ?? editBlockRef.current;
-    const roAnchor = anchorEl ? new ResizeObserver(scheduleBarSnap) : null;
-    if (roAnchor && anchorEl) roAnchor.observe(anchorEl);
-    const onWinResize = () => scheduleBarSnap();
-    window.addEventListener('resize', onWinResize);
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(outerSnapRaf);
-      if (nestedSnapRaf) cancelAnimationFrame(nestedSnapRaf);
-      if (ensureRaf) cancelAnimationFrame(ensureRaf);
-      if (barSnapRaf) cancelAnimationFrame(barSnapRaf);
-      window.clearTimeout(t);
-      roMeta.disconnect();
-      roScroll.disconnect();
-      roBar.disconnect();
-      roAnchor?.disconnect();
-      window.removeEventListener('resize', onWinResize);
-    };
-  }, [
-    noteId,
-    isEditing,
-    editSessionKey,
-    note?.id,
-    note?.labels?.join('\n'),
-    lastModifiedLine,
-    note?.comedyRating,
-  ]);
+    const sc = scrollRef.current;
+    const meta = metaRevealRef.current;
+    if (!sc || !meta || !note) return;
+    const errEl = sc.querySelector('[data-notes-test-scroll-error]');
+    const errH = errEl instanceof HTMLElement ? errEl.offsetHeight : 0;
+    sc.scrollTop = errH + meta.offsetHeight;
+  }, [noteId, isEditing, editSessionKey, note?.id, actionError]);
 
   if (remote && !authInitializing && !user) {
     return <Navigate to="/login" replace />;
@@ -596,13 +485,14 @@ function NotesTestDetail() {
     tiptapRef.current?.chain().focus().toggleTaskList().run();
   };
 
-  const focusEditorFromBottom = () => {
-    if (!isEditing) {
-      pendingEditorActionRef.current = 'focus';
-      startEdit();
+  const confirmAttachAudioFromSheet = () => {
+    setBottomAttachOpen(false);
+    if (requiresAuthForPersistence() && !user) {
+      navigate('/login');
       return;
     }
-    tiptapRef.current?.chain().focus().run();
+    if (!isEditing) startEdit();
+    setAttachAudioOpenRequest((n) => n + 1);
   };
 
   const currentLabels = note.labels ?? [];
@@ -661,29 +551,22 @@ function NotesTestDetail() {
               <ScanLine className={styles.sheetQuickIcon} strokeWidth={2} aria-hidden />
               Scan
             </button>
-            <button type="button" className={styles.sheetQuickBtn} disabled>
-              <PenLine className={styles.sheetQuickIcon} strokeWidth={2} aria-hidden />
-              Pin
-            </button>
-            <button type="button" className={styles.sheetQuickBtn} disabled>
-              <span className={styles.sheetQuickIcon} aria-hidden>
-                🔒
+            <button
+              type="button"
+              className={`${styles.sheetQuickBtn} ${styles.sheetQuickBtnInteractive}`}
+              onClick={() => {
+                setMoreMenuOpen(false);
+                setMoreMenuLabelsOpen(false);
+                setInfoOpen(true);
+              }}
+            >
+              <span className={styles.sheetQuickIconWrap} aria-hidden>
+                <NoteInfoCircleIcon />
               </span>
-              Lock
+              Info
             </button>
+            <div className={styles.sheetQuickReserved} aria-hidden />
           </div>
-          <button
-            type="button"
-            className={`${styles.sheetMenuBtn} ${styles.sheetMenuBtnInfo}`}
-            onClick={() => {
-              setMoreMenuOpen(false);
-              setMoreMenuLabelsOpen(false);
-              setInfoOpen(true);
-            }}
-          >
-            <NoteInfoCircleIcon />
-            Note info
-          </button>
           <button
             type="button"
             className={`${styles.sheetMenuBtn} ${styles.sheetMenuBtnDisclosure}`}
@@ -805,42 +688,45 @@ function NotesTestDetail() {
 
   return (
     <div
-      ref={shellRef}
       className={`${styles.shell}${useDarkBg ? ` ${styles.shellDark}` : ''}`}
       data-notes-canvas={useDarkBg ? 'dark' : 'light'}
     >
-      <header ref={topBarRef} className={styles.topBar}>
-        <BackChevronButton aria-label="Go back" onClick={handleBack} />
-        <div className={styles.topBarNavSlot}>
-          {!isEditing ? <AppHeaderNav /> : null}
-          {isEditing ? (
+      <div className={styles.scrollMain} ref={scrollRef}>
+        <header className={styles.topBar}>
+          <BackChevronButton aria-label="Go back" onClick={handleBack} />
+          <div className={styles.topBarNavSlot}>
+            {!isEditing ? <AppHeaderNav /> : null}
+            {isEditing ? (
+              <button
+                type="button"
+                className={`${styles.iconCircleBtn} ${styles.iconCircleBtnAccent}`}
+                aria-label="Save note"
+                title="Save"
+                disabled={saving}
+                onClick={() => void handleSave()}
+              >
+                <Check className={styles.backIcon} strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : null}
             <button
               type="button"
-              className={`${styles.iconCircleBtn} ${styles.iconCircleBtnAccent}`}
-              aria-label="Save note"
-              title="Save"
-              disabled={saving}
-              onClick={() => void handleSave()}
+              className={styles.iconCircleBtn}
+              aria-label="More actions"
+              aria-expanded={moreMenuOpen}
+              onClick={() => setMoreMenuOpen((o) => !o)}
             >
-              <Check className={styles.backIcon} strokeWidth={2.5} aria-hidden />
+              <MoreHorizontal className={styles.backIcon} strokeWidth={2} aria-hidden />
             </button>
-          ) : null}
-          <button
-            type="button"
-            className={styles.iconCircleBtn}
-            aria-label="More actions"
-            aria-expanded={moreMenuOpen}
-            onClick={() => setMoreMenuOpen((o) => !o)}
-          >
-            <MoreHorizontal className={styles.backIcon} strokeWidth={2} aria-hidden />
-          </button>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {actionError ? <p className={styles.actionError}>{actionError}</p> : null}
+        {actionError ? (
+          <p className={styles.actionErrorBanner} data-notes-test-scroll-error>
+            {actionError}
+          </p>
+        ) : null}
 
-      <div className={styles.scrollMain} ref={scrollRef}>
-        <div ref={scrollInnerRef} className={styles.scrollInner}>
+        <div className={styles.scrollInner}>
           <div ref={metaRevealRef} className={styles.metaReveal}>
             <p className={styles.dateOnly}>{lastModifiedLine}</p>
             <div className={styles.metaCenterRow}>
@@ -866,7 +752,7 @@ function NotesTestDetail() {
           {isEditing ? (
           <NoteEditFloatingAudioProvider>
             <NoteEditFloatingAudioDock />
-            <div ref={editBlockRef} className={styles.editBlock}>
+            <div className={styles.editBlock}>
               <input
                 className={styles.titleField}
                 value={draftTitle}
@@ -885,6 +771,8 @@ function NotesTestDetail() {
                 aria-label="Note body"
                 audioStorageScopeId={note.id}
                 toolbarVariant="mobileNotes"
+                attachAudioOpenRequest={attachAudioOpenRequest}
+                onRequestAttachSheet={() => setBottomAttachOpen(true)}
                 onAddToExistingNote={() => openTransferWithEditorSelection()}
               />
               {editStartedFromMarkdown ? (
@@ -972,12 +860,10 @@ function NotesTestDetail() {
             className={styles.bottomTool}
             aria-label="Attachments"
             title="Attach"
-            onClick={focusEditorFromBottom}
+            aria-expanded={bottomAttachOpen}
+            onClick={() => setBottomAttachOpen(true)}
           >
             <Paperclip className={styles.bottomIcon} strokeWidth={2} aria-hidden />
-          </button>
-          <button type="button" className={styles.bottomTool} disabled aria-label="Highlighter (soon)">
-            <Highlighter className={styles.bottomIcon} strokeWidth={2} aria-hidden />
           </button>
         </div>
         {!isEditing ? (
@@ -1025,6 +911,30 @@ function NotesTestDetail() {
 
       <Toast message={toastMessage} onDismiss={dismissToast} />
       {moreMenu}
+      {bottomAttachOpen
+        ? createPortal(
+            <>
+              <div
+                className={styles.sheetBackdrop}
+                role="presentation"
+                onClick={() => setBottomAttachOpen(false)}
+              />
+              <div
+                className={styles.attachSheetPanel}
+                data-theme={useDarkBg ? 'dark' : 'light'}
+                role="dialog"
+                aria-label="Attach to note"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button type="button" className={styles.attachSheetBtn} onClick={confirmAttachAudioFromSheet}>
+                  <AudioLines className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
+                  Attach audio
+                </button>
+              </div>
+            </>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

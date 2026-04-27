@@ -102,12 +102,14 @@ export default function NoteFormatBottomSheet({ editor, open, onClose }) {
     setColorOpen(false);
   };
 
+  const listItemKind = () => (editor.isActive('taskItem') ? 'taskItem' : 'listItem');
+
   const sink = () => {
-    editor.chain().focus().sinkListItem('listItem').run();
+    editor.chain().focus().sinkListItem(listItemKind()).run();
   };
 
   const lift = () => {
-    editor.chain().focus().liftListItem('listItem').run();
+    editor.chain().focus().liftListItem(listItemKind()).run();
   };
 
   return createPortal(

@@ -462,6 +462,78 @@
   margin-top: 0.2em;
 }
 
+.toolbarMobileFixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 920;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding: 0 0.5rem max(0.25rem, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.toolbarMobilePill {
+  pointer-events: auto;
+  max-width: min(calc(100vw - 1rem), 40rem);
+  border-radius: 999px;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.toolbarInnerMobile {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  gap: 0.1rem;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: 1px;
+  scrollbar-width: none;
+}
+
+.toolbarInnerMobile::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbarInnerMobile .toolBtn {
+  min-width: 2.45rem;
+  height: 2.45rem;
+  padding: 0 0.32rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.toolbarInnerMobile .toolBtn:hover {
+  background: var(--surface-active);
+}
+
+.toolbarInnerMobile .toolBtnActive {
+  background: color-mix(in srgb, var(--surface-active) 85%, transparent);
+  color: var(--accent);
+}
+
+.toolbarInnerMobile .icon {
+  width: 1.28rem;
+  height: 1.28rem;
+}
+
+.toolbarInnerMobile .toolbarSep {
+  display: none;
+}
+
+.surfaceMobileNotes {
+  scroll-margin-bottom: 5.5rem;
+}
+
 @media (max-width: 639px) {
   .toolbar {
     padding: 0.35rem 0.4rem;

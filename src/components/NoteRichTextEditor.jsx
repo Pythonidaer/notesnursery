@@ -1,4 +1,5 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskItem from '@tiptap/extension-task-item';
@@ -149,6 +150,31 @@ function useToolbarRerender(editor) {
   }, [editor]);
 }
 
+/** Space from layout viewport bottom to visual viewport bottom (keyboard / accessory). */
+function useVisualViewportKeyboardInset() {
+  const [bottom, setBottom] = useState(0);
+  useLayoutEffect(() => {
+    const vv = window.visualViewport;
+    const update = () => {
+      if (!vv) {
+        setBottom(0);
+        return;
+      }
+      setBottom(Math.max(0, window.innerHeight - (vv.offsetTop + vv.height)));
+    };
+    update();
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+  return bottom;
+}
+
 /**
  * @param {{
  *   editor: import('@tiptap/core').Editor | null,
@@ -156,6 +182,8 @@ function useToolbarRerender(editor) {
  *   toolbarVariant?: 'default' | 'mobileNotes',
  *   onOpenFormatSheet?: () => void,
  *   onAddToExistingNote?: () => void,
+ *   attachAudioOpenRequest?: number,
+ *   onRequestAttachSheet?: () => void,
  * }} props
  */
 function MenuBar({
@@ -164,6 +192,8 @@ function MenuBar({
   toolbarVariant = 'default',
   onOpenFormatSheet,
   onAddToExistingNote,
+  attachAudioOpenRequest = 0,
+  onRequestAttachSheet,
 }) {
   const [colorOpen, setColorOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
@@ -177,7 +207,13 @@ function MenuBar({
   const ocrFileInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkInitialUrl, setLinkInitialUrl] = useState('');
+  const [linkInitialDisplay, setLinkInitialDisplay] = useState('');
   const [linkCanRemove, setLinkCanRemove] = useState(false);
+  const colorBtnRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
+  const colorPopoverRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const [colorPopoverStyle, setColorPopoverStyle] = useState(
+    /** @type {import('react').CSSProperties | null} */ (null)
+  );
   const [insertAudioOpen, setInsertAudioOpen] = useState(false);
   const [audioInsertBlockedOpen, setAudioInsertBlockedOpen] = useState(false);
   const [uploadErr, setUploadErr] = useState(
@@ -191,15 +227,68 @@ function MenuBar({
   const canOcr = Boolean(remote && user?.id && isOcrImageToTextUser(user));
 
   useToolbarRerender(editor);
+  const vvInset = useVisualViewportKeyboardInset();
+  const lastAttachAudioReqRef = useRef(0);
+
+  useEffect(() => {
+    if (attachAudioOpenRequest <= 0) {
+      lastAttachAudioReqRef.current = 0;
+      return;
+    }
+    if (!editor) return;
+    if (attachAudioOpenRequest === lastAttachAudioReqRef.current) return;
+    lastAttachAudioReqRef.current = attachAudioOpenRequest;
+    if (!canUploadAudio) return;
+    editor.chain().focus().run();
+    queueMicrotask(() => {
+      if (isSelectionInsideListItem(editor)) {
+        setAudioInsertBlockedOpen(true);
+        return;
+      }
+      setInsertAudioOpen(true);
+    });
+  }, [attachAudioOpenRequest, editor, canUploadAudio]);
+
+  useLayoutEffect(() => {
+    if (!colorOpen || toolbarVariant !== 'mobileNotes' || !colorBtnRef.current) {
+      setColorPopoverStyle(null);
+      return;
+    }
+    const update = () => {
+      const el = colorBtnRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const popoverMax = 12 * 16;
+      setColorPopoverStyle({
+        position: 'fixed',
+        top: r.bottom + 6,
+        left: Math.max(8, Math.min(r.left, window.innerWidth - 8 - popoverMax)),
+        zIndex: 950,
+      });
+    };
+    update();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [colorOpen, toolbarVariant]);
 
   useEffect(() => {
     if (!colorOpen) return;
-    const onDown = (/** @type {MouseEvent} */ e) => {
-      const el = colorWrapRef.current;
-      if (el && e.target instanceof Node && !el.contains(e.target)) setColorOpen(false);
+    const onDown = (/** @type {PointerEvent} */ e) => {
+      const t = e.target;
+      if (!(t instanceof Node)) return;
+      if (colorWrapRef.current?.contains(t)) return;
+      if (colorPopoverRef.current?.contains(t)) return;
+      setColorOpen(false);
     };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
   }, [colorOpen]);
 
   useEffect(() => {
@@ -263,8 +352,10 @@ function MenuBar({
 
   const isMobile = toolbarVariant === 'mobileNotes';
   const toolbarInnerClass = isMobile
-    ? `${styles.toolbarInner} ${styles.toolbarInnerScroll}`
+    ? `${styles.toolbarInner} ${styles.toolbarInnerScroll} ${styles.toolbarInnerMobile}`
     : styles.toolbarInner;
+
+  const listItemKind = () => (editor.isActive('taskItem') ? 'taskItem' : 'listItem');
 
   const focused = Boolean(editor.isFocused);
   const active = (/** @type {string} */ name, /** @type {Record<string, unknown>} */ attrs) =>
@@ -277,22 +368,34 @@ function MenuBar({
   const openLinkModal = () => {
     editor.chain().focus();
     const inLink = editor.isActive('link');
+    if (inLink) {
+      editor.chain().extendMarkRange('link').run();
+    }
     const href = editor.getAttributes('link').href;
     setLinkInitialUrl(typeof href === 'string' ? href : '');
+    const { from, to } = editor.state.selection;
+    setLinkInitialDisplay(editor.state.doc.textBetween(from, to, ''));
     setLinkCanRemove(inLink);
     setLinkModalOpen(true);
   };
 
-  const applyLinkFromModal = (urlRaw) => {
+  const applyLinkFromModal = (urlRaw, displayNameRaw) => {
     const trimmed = urlRaw.trim();
     if (trimmed === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
+    const label = (displayNameRaw ?? '').trim();
     const { empty } = editor.state.selection;
     if (empty) {
+      const text = label || trimmed;
       const h = escapeHtmlAttr(trimmed);
-      editor.chain().focus().insertContent(`<a href="${h}">${h}</a>`).run();
+      const t = escapeHtmlAttr(text);
+      editor.chain().focus().insertContent(`<a href="${h}">${t}</a>`).run();
+    } else if (label) {
+      const h = escapeHtmlAttr(trimmed);
+      const t = escapeHtmlAttr(label);
+      editor.chain().focus().insertContent(`<a href="${h}">${t}</a>`).run();
     } else {
       editor.chain().focus().extendMarkRange('link').setLink({ href: trimmed }).run();
     }
@@ -328,7 +431,22 @@ function MenuBar({
   };
 
   const attachMenuEl =
-    isMobile && (canOcr || canUploadAudio || onAddToExistingNote) ? (
+    isMobile && onRequestAttachSheet ? (
+      <button
+        type="button"
+        className={styles.toolBtn}
+        onClick={() => {
+          setColorOpen(false);
+          setOcrOpen(false);
+          setAttachOpen(false);
+          onRequestAttachSheet();
+        }}
+        aria-label="Attachments"
+        title="Attach"
+      >
+        <Paperclip className={styles.icon} strokeWidth={2} aria-hidden />
+      </button>
+    ) : isMobile && (canOcr || canUploadAudio || onAddToExistingNote) ? (
       <div className={styles.attachWrap} ref={attachWrapRef}>
         {canOcr ? (
           <>
@@ -443,9 +561,7 @@ function MenuBar({
       </div>
     ) : null;
 
-  return (
-    <>
-    <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
+  const toolbarInner = (
       <div className={toolbarInnerClass}>
         {isMobile && onOpenFormatSheet ? (
           <button
@@ -616,6 +732,7 @@ function MenuBar({
         <span className={styles.toolbarSep} aria-hidden />
         <div className={styles.colorWrap} ref={colorWrapRef}>
           <button
+            ref={colorBtnRef}
             type="button"
             className={`${styles.toolBtn} ${colorControlActive ? styles.toolBtnActive : ''}`}
             onClick={() => setColorOpen((o) => !o)}
@@ -627,33 +744,79 @@ function MenuBar({
             <Palette className={styles.icon} strokeWidth={2} aria-hidden />
           </button>
           {colorOpen ? (
-            <div className={styles.colorPopover} role="listbox" aria-label="Text color">
-              {TEXT_COLOR_SWATCHES.map((sw) => (
-                <button
-                  key={sw.label}
-                  type="button"
-                  role="option"
-                  className={styles.colorSwatchBtn}
-                  title={sw.label}
-                  aria-label={sw.label}
-                  aria-selected={
-                    sw.value == null
-                      ? !currentColor
-                      : currentColor != null &&
-                        currentColor.replace(/\s/g, '').toLowerCase() ===
-                          sw.value.replace(/\s/g, '').toLowerCase()
+            isMobile ? (
+              createPortal(
+                <div
+                  ref={colorPopoverRef}
+                  className={styles.colorPopover}
+                  style={
+                    colorPopoverStyle ?? {
+                      position: 'fixed',
+                      left: 8,
+                      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
+                      zIndex: 950,
+                    }
                   }
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyColor(sw.value)}
+                  role="listbox"
+                  aria-label="Text color"
                 >
-                  {sw.value == null ? (
-                    <span className={styles.colorSwatchDefault}>A</span>
-                  ) : (
-                    <span className={styles.colorSwatch} style={{ backgroundColor: sw.value }} />
-                  )}
-                </button>
-              ))}
-            </div>
+                  {TEXT_COLOR_SWATCHES.map((sw) => (
+                    <button
+                      key={sw.label}
+                      type="button"
+                      role="option"
+                      className={styles.colorSwatchBtn}
+                      title={sw.label}
+                      aria-label={sw.label}
+                      aria-selected={
+                        sw.value == null
+                          ? !currentColor
+                          : currentColor != null &&
+                            currentColor.replace(/\s/g, '').toLowerCase() ===
+                              sw.value.replace(/\s/g, '').toLowerCase()
+                      }
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={() => applyColor(sw.value)}
+                    >
+                      {sw.value == null ? (
+                        <span className={styles.colorSwatchDefault}>A</span>
+                      ) : (
+                        <span className={styles.colorSwatch} style={{ backgroundColor: sw.value }} />
+                      )}
+                    </button>
+                  ))}
+                </div>,
+                document.body
+              )
+            ) : (
+              <div ref={colorPopoverRef} className={styles.colorPopover} role="listbox" aria-label="Text color">
+                {TEXT_COLOR_SWATCHES.map((sw) => (
+                  <button
+                    key={sw.label}
+                    type="button"
+                    role="option"
+                    className={styles.colorSwatchBtn}
+                    title={sw.label}
+                    aria-label={sw.label}
+                    aria-selected={
+                      sw.value == null
+                        ? !currentColor
+                        : currentColor != null &&
+                          currentColor.replace(/\s/g, '').toLowerCase() ===
+                            sw.value.replace(/\s/g, '').toLowerCase()
+                    }
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => applyColor(sw.value)}
+                  >
+                    {sw.value == null ? (
+                      <span className={styles.colorSwatchDefault}>A</span>
+                    ) : (
+                      <span className={styles.colorSwatch} style={{ backgroundColor: sw.value }} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )
           ) : null}
         </div>
         <button
@@ -672,7 +835,7 @@ function MenuBar({
             <button
               type="button"
               className={styles.toolBtn}
-              onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+              onClick={() => editor.chain().focus().liftListItem(listItemKind()).run()}
               aria-label="Outdent list"
               title="Outdent"
             >
@@ -681,7 +844,7 @@ function MenuBar({
             <button
               type="button"
               className={styles.toolBtn}
-              onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+              onClick={() => editor.chain().focus().sinkListItem(listItemKind()).run()}
               aria-label="Indent list"
               title="Indent"
             >
@@ -807,7 +970,24 @@ function MenuBar({
           <Minus className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
       </div>
-    </div>
+  );
+
+  return (
+    <>
+      {isMobile
+        ? createPortal(
+            <div className={styles.toolbarMobileFixed} style={{ bottom: vvInset }}>
+              <div className={styles.toolbarMobilePill} role="toolbar" aria-label="Formatting">
+                {toolbarInner}
+              </div>
+            </div>,
+            document.body
+          )
+        : (
+            <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
+              {toolbarInner}
+            </div>
+          )}
       {canUploadAudio && user?.id ? (
         <InsertAudioModal
           open={insertAudioOpen}
@@ -839,8 +1019,9 @@ function MenuBar({
         open={linkModalOpen}
         onClose={() => setLinkModalOpen(false)}
         initialUrl={linkInitialUrl}
+        initialDisplayName={linkInitialDisplay}
         canRemoveLink={linkCanRemove}
-        onApply={(url) => applyLinkFromModal(url)}
+        onApply={(url, displayName) => applyLinkFromModal(url, displayName)}
         onRemoveLink={removeLinkFromModal}
       />
     </>
@@ -860,6 +1041,8 @@ function MenuBar({
  *   audioStorageScopeId?: string,
  *   toolbarVariant?: 'default' | 'mobileNotes',
  *   onAddToExistingNote?: () => void,
+ *   attachAudioOpenRequest?: number,
+ *   onRequestAttachSheet?: () => void,
  * }} props
  */
 export default function NoteRichTextEditor({
@@ -874,6 +1057,8 @@ export default function NoteRichTextEditor({
   audioStorageScopeId: audioStorageScopeIdProp,
   toolbarVariant = 'default',
   onAddToExistingNote,
+  attachAudioOpenRequest = 0,
+  onRequestAttachSheet,
 }) {
   const audioScopeFallbackRef = useRef(
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -941,6 +1126,8 @@ export default function NoteRichTextEditor({
         toolbarVariant={toolbarVariant}
         onOpenFormatSheet={toolbarVariant === 'mobileNotes' ? () => setFormatSheetOpen(true) : undefined}
         onAddToExistingNote={onAddToExistingNote}
+        attachAudioOpenRequest={attachAudioOpenRequest}
+        onRequestAttachSheet={onRequestAttachSheet}
       />
       {toolbarVariant === 'mobileNotes' ? (
         <NoteFormatBottomSheet
@@ -949,7 +1136,11 @@ export default function NoteRichTextEditor({
           onClose={() => setFormatSheetOpen(false)}
         />
       ) : null}
-      <div className={`${styles.surface} ${surfaceClassName ?? ''}`}>
+      <div
+        className={`${styles.surface} ${surfaceClassName ?? ''}${
+          toolbarVariant === 'mobileNotes' ? ` ${styles.surfaceMobileNotes}` : ''
+        }`.trim()}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>

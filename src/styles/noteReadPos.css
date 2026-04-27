@@ -1,0 +1,106 @@
+/**
+ * Read-only POS (grammar) overlay layout for NoteBodyContent.
+ * Scoped by data-nn-read-body-root + optional data-nn-pos-study (dense “study” line heights).
+ * Imported from NoteBodyContent.jsx so /notes-test and note detail share behavior.
+ */
+
+[data-nn-read-body-root] .nn-pos-text-body {
+  line-height: 2.45;
+}
+
+[data-nn-read-body-root][data-nn-pos-study='true'] .nn-pos-text-body {
+  line-height: 2.65;
+}
+
+[data-nn-read-body-root][data-nn-pos-study='true'] .nn-pos-text-body .nn-pos-unit {
+  margin: 0 0.2em;
+  padding: 0 0.04em;
+}
+
+[data-nn-read-body-root][data-nn-pos-study='true'] .nn-pos-text-body .nn-pos-punct--lead {
+  padding: 0 0.018em 0 0;
+}
+
+[data-nn-read-body-root][data-nn-pos-study='true'] .nn-pos-text-body .nn-pos-punct--trail {
+  padding: 0 0 0 0.02em;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-unit {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  max-width: 100%;
+  vertical-align: baseline;
+  margin: 0 0.12em;
+  padding: 0 0.02em;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-line {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0;
+  max-width: 100%;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-punct {
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-punct--lead {
+  margin: 0;
+  padding: 0 0.015em 0 0;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-punct--trail {
+  margin: 0;
+  padding: 0 0 0 0.015em;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-token {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  line-height: 1.12;
+  max-width: 100%;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-word {
+  display: block;
+  font: inherit;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body .nn-pos-tag {
+  display: block;
+  margin-top: 0.05em;
+  font-size: 0.5em;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+[data-nn-read-body-root][data-nn-pos-study='true'] .nn-pos-text-body .nn-pos-tag {
+  font-size: 0.54em;
+  font-weight: 500;
+  letter-spacing: 0.045em;
+  opacity: 0.94;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body strong .nn-pos-tag,
+[data-nn-read-body-root] .nn-pos-text-body b .nn-pos-tag {
+  font-weight: 400;
+}
+
+[data-nn-read-body-root] .nn-pos-text-body strong .nn-pos-unit,
+[data-nn-read-body-root] .nn-pos-text-body b .nn-pos-unit,
+[data-nn-read-body-root] .nn-pos-text-body strong .nn-pos-word,
+[data-nn-read-body-root] .nn-pos-text-body b .nn-pos-word {
+  font-weight: inherit;
+}

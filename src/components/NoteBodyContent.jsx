@@ -14,6 +14,7 @@ import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
 import AudioFileInfoModal from './AudioFileInfoModal.jsx';
 import NoteAudioReadBlock from './NoteAudioReadBlock.jsx';
 import '../styles/noteAudio.css';
+import '../styles/noteReadPos.css';
 
 /**
  * GFM markdown with limited inline HTML (sanitized). `rehype-raw` runs before
@@ -153,10 +154,22 @@ export default function NoteBodyContent({
   if (mode === CONTENT_TYPE_MARKDOWN) {
     const md = bodyMarkdown ?? '';
     if (!md.trim()) {
-      return <div ref={readBodyRef} className={className} data-nn-read-body-root />;
+      return (
+        <div
+          ref={readBodyRef}
+          className={className}
+          data-nn-read-body-root
+          data-nn-pos-study={posAnalysisEnabled ? 'true' : undefined}
+        />
+      );
     }
     return (
-      <div ref={readBodyRef} className={className} data-nn-read-body-root>
+      <div
+        ref={readBodyRef}
+        className={className}
+        data-nn-read-body-root
+        data-nn-pos-study={posAnalysisEnabled ? 'true' : undefined}
+      >
         <div
           className={posAnalysisEnabled ? 'nn-read-md-body nn-pos-text-body' : 'nn-read-md-body'}
         >
@@ -180,12 +193,24 @@ export default function NoteBodyContent({
   }
 
   if (!safeHtml) {
-    return <div ref={readBodyRef} className={className} data-nn-read-body-root />;
+    return (
+      <div
+        ref={readBodyRef}
+        className={className}
+        data-nn-read-body-root
+        data-nn-pos-study={posAnalysisEnabled ? 'true' : undefined}
+      />
+    );
   }
 
   return (
     <>
-      <div ref={readBodyRef} className={className} data-nn-read-body-root>
+      <div
+        ref={readBodyRef}
+        className={className}
+        data-nn-read-body-root
+        data-nn-pos-study={posAnalysisEnabled ? 'true' : undefined}
+      >
         {readSegmentsWithDisplayNames
           ? readSegmentsWithDisplayNames.map((seg, i) =>
               seg.type === 'html' ? (
