@@ -89,15 +89,58 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.5rem 0.65rem 0.45rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-bottom: none;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .topBarNavSlot {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   margin-left: auto;
+}
+
+.topBarActionsPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.06rem;
+  padding: 0.1rem 0.22rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+}
+
+.topBarMenuTriggerInPill {
+  width: 2.35rem;
+  height: 2.35rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.topBarMenuTriggerInPill:hover {
+  background: var(--surface-active);
+}
+
+.topBarMoreInPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.topBarMoreInPill:hover {
+  background: var(--surface-active);
 }
 
 .iconCircleBtn {
@@ -253,6 +296,10 @@
   border: none;
   border-radius: 0;
   background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 /* .surface inside NoteRichTextEditor adds its own horizontal padding; .editBlock already

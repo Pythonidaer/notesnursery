@@ -4,7 +4,10 @@ import { useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AppHeaderNav.module.css';
 
-export default function AppHeaderNav() {
+/**
+ * @param {{ menuTriggerClassName?: string }} [props]
+ */
+export default function AppHeaderNav({ menuTriggerClassName } = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -90,7 +93,7 @@ export default function AppHeaderNav() {
     <div className={styles.root} ref={containerRef}>
       <button
         type="button"
-        className={styles.menuTrigger}
+        className={[styles.menuTrigger, menuTriggerClassName].filter(Boolean).join(' ')}
         aria-expanded={open}
         aria-controls={menuId}
         aria-haspopup="true"

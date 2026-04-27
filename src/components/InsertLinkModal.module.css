@@ -19,7 +19,8 @@
   margin: 0;
   padding: 0.45rem 0.55rem;
   font: inherit;
-  font-size: 0.9rem;
+  /* 16px+ prevents iOS Safari from zooming the page when focusing inputs */
+  font-size: 1rem;
   color: var(--text);
   background: var(--surface-active);
   border: 1px solid var(--border);

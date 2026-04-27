@@ -104,13 +104,21 @@ export default function NoteFormatBottomSheet({ editor, open, onClose }) {
 
   const listItemKind = () => (editor.isActive('taskItem') ? 'taskItem' : 'listItem');
 
-  const sink = () => {
-    editor.chain().focus().sinkListItem(listItemKind()).run();
+  const sinkOrLift = (/** @type {'sink' | 'lift'} */ mode) => {
+    const k = listItemKind();
+    const alt = k === 'taskItem' ? 'listItem' : 'taskItem';
+    const chain = editor.chain().focus();
+    if (mode === 'sink') {
+      if (chain.sinkListItem(k).run()) return;
+      editor.chain().focus().sinkListItem(alt).run();
+    } else {
+      if (chain.liftListItem(k).run()) return;
+      editor.chain().focus().liftListItem(alt).run();
+    }
   };
 
-  const lift = () => {
-    editor.chain().focus().liftListItem(listItemKind()).run();
-  };
+  const sink = () => sinkOrLift('sink');
+  const lift = () => sinkOrLift('lift');
 
   return createPortal(
     <div

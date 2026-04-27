@@ -45,6 +45,7 @@ import {
 import { getNoteHtmlForRichEditor } from '../utils/noteEditorHtml.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
+import { isOcrImageToTextUser } from '../utils/ocrImageToTextGate.js';
 import labelPickerStyles from '../components/LabelPicker.module.css';
 import styles from './NotesTestPage.module.css';
 
@@ -126,6 +127,8 @@ function NotesTestDetail() {
   const [labelsSheetQuery, setLabelsSheetQuery] = useState('');
   const [bottomAttachOpen, setBottomAttachOpen] = useState(false);
   const [attachAudioOpenRequest, setAttachAudioOpenRequest] = useState(0);
+  const [ocrPickerOpenRequest, setOcrPickerOpenRequest] = useState(0);
+  const pendingOcrAfterEditRef = useRef(false);
   const [useDarkBg, setUseDarkBg] = useState(() => {
     try {
       return typeof localStorage !== 'undefined' && localStorage.getItem(NOTES_TEST_DARK_BG_KEY) === '1';
@@ -137,6 +140,11 @@ function NotesTestDetail() {
   const metaRevealRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const readSurfaceRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tapRef = useRef(/** @type {{ x: number, y: number } | null} */ (null));
+
+  const canOcrScan = useMemo(
+    () => Boolean(remote && user && isOcrImageToTextUser(user)),
+    [remote, user]
+  );
 
   const labelSuggestions = useMemo(() => collectAllLabels(notes), [notes]);
 
@@ -185,6 +193,8 @@ function NotesTestDetail() {
     setLabelsSheetQuery('');
     setBottomAttachOpen(false);
     setAttachAudioOpenRequest(0);
+    setOcrPickerOpenRequest(0);
+    pendingOcrAfterEditRef.current = false;
     posUsedAbbreviationsRef.current = [];
     originalBodyRef.current = '';
     originalMarkdownRef.current = '';
@@ -283,6 +293,13 @@ function NotesTestDetail() {
     sc.scrollTop = errH + meta.offsetHeight;
   }, [noteId, isEditing, editSessionKey, note?.id, actionError]);
 
+  useEffect(() => {
+    if (!isEditing || !pendingOcrAfterEditRef.current) return;
+    pendingOcrAfterEditRef.current = false;
+    const id = requestAnimationFrame(() => setOcrPickerOpenRequest((n) => n + 1));
+    return () => cancelAnimationFrame(id);
+  }, [isEditing]);
+
   if (remote && !authInitializing && !user) {
     return <Navigate to="/login" replace />;
   }
@@ -361,6 +378,21 @@ function NotesTestDetail() {
     setEditSessionKey((k) => k + 1);
     setDraftTitle(note.title);
     setIsEditing(true);
+  };
+
+  const triggerImageToTextPicker = () => {
+    setMoreMenuOpen(false);
+    setBottomAttachOpen(false);
+    if (!canOcrScan) {
+      setToastMessage('Image scan needs a signed-in account with access enabled.');
+      return;
+    }
+    if (!isEditing) {
+      pendingOcrAfterEditRef.current = true;
+      startEdit();
+      return;
+    }
+    setOcrPickerOpenRequest((n) => n + 1);
   };
 
   const exitEditMode = async () => {
@@ -547,7 +579,18 @@ function NotesTestDetail() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className={styles.sheetQuickRow}>
-            <button type="button" className={styles.sheetQuickBtn} disabled>
+            <button
+              type="button"
+              className={`${styles.sheetQuickBtn} ${canOcrScan ? styles.sheetQuickBtnInteractive : ''}`}
+              disabled={!canOcrScan}
+              title={canOcrScan ? 'Import text from a photo' : 'Sign in with scan access to use image import'}
+              onClick={() => {
+                if (!canOcrScan) return;
+                setMoreMenuOpen(false);
+                setMoreMenuLabelsOpen(false);
+                triggerImageToTextPicker();
+              }}
+            >
               <ScanLine className={styles.sheetQuickIcon} strokeWidth={2} aria-hidden />
               Scan
             </button>
@@ -695,7 +738,18 @@ function NotesTestDetail() {
         <header className={styles.topBar}>
           <BackChevronButton aria-label="Go back" onClick={handleBack} />
           <div className={styles.topBarNavSlot}>
-            {!isEditing ? <AppHeaderNav /> : null}
+            <div className={styles.topBarActionsPill}>
+              <AppHeaderNav menuTriggerClassName={styles.topBarMenuTriggerInPill} />
+              <button
+                type="button"
+                className={styles.topBarMoreInPill}
+                aria-label="More actions"
+                aria-expanded={moreMenuOpen}
+                onClick={() => setMoreMenuOpen((o) => !o)}
+              >
+                <MoreHorizontal className={styles.backIcon} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
             {isEditing ? (
               <button
                 type="button"
@@ -708,15 +762,6 @@ function NotesTestDetail() {
                 <Check className={styles.backIcon} strokeWidth={2.5} aria-hidden />
               </button>
             ) : null}
-            <button
-              type="button"
-              className={styles.iconCircleBtn}
-              aria-label="More actions"
-              aria-expanded={moreMenuOpen}
-              onClick={() => setMoreMenuOpen((o) => !o)}
-            >
-              <MoreHorizontal className={styles.backIcon} strokeWidth={2} aria-hidden />
-            </button>
           </div>
         </header>
 
@@ -753,13 +798,6 @@ function NotesTestDetail() {
           <NoteEditFloatingAudioProvider>
             <NoteEditFloatingAudioDock />
             <div className={styles.editBlock}>
-              <input
-                className={styles.titleField}
-                value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
-                aria-label="Note title"
-                placeholder="Title"
-              />
               <NoteRichTextEditor
                 key={`${note.id}-${editSessionKey}`}
                 className={styles.editorRoot}
@@ -771,9 +809,20 @@ function NotesTestDetail() {
                 aria-label="Note body"
                 audioStorageScopeId={note.id}
                 toolbarVariant="mobileNotes"
+                embedMobileToolbar
+                ocrPickerOpenRequest={ocrPickerOpenRequest}
                 attachAudioOpenRequest={attachAudioOpenRequest}
                 onRequestAttachSheet={() => setBottomAttachOpen(true)}
                 onAddToExistingNote={() => openTransferWithEditorSelection()}
+                editorHeader={
+                  <input
+                    className={styles.titleField}
+                    value={draftTitle}
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    aria-label="Note title"
+                    placeholder="Title"
+                  />
+                }
               />
               {editStartedFromMarkdown ? (
                 <p className={styles.actionError}>
@@ -926,6 +975,12 @@ function NotesTestDetail() {
                 aria-label="Attach to note"
                 onClick={(e) => e.stopPropagation()}
               >
+                {canOcrScan ? (
+                  <button type="button" className={styles.attachSheetBtn} onClick={triggerImageToTextPicker}>
+                    <ScanLine className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
+                    Image to text
+                  </button>
+                ) : null}
                 <button type="button" className={styles.attachSheetBtn} onClick={confirmAttachAudioFromSheet}>
                   <AudioLines className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
                   Attach audio

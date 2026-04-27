@@ -184,6 +184,8 @@ function useVisualViewportKeyboardInset() {
  *   onAddToExistingNote?: () => void,
  *   attachAudioOpenRequest?: number,
  *   onRequestAttachSheet?: () => void,
+ *   embedMobileToolbar?: boolean,
+ *   ocrPickerOpenRequest?: number,
  * }} props
  */
 function MenuBar({
@@ -194,6 +196,8 @@ function MenuBar({
   onAddToExistingNote,
   attachAudioOpenRequest = 0,
   onRequestAttachSheet,
+  embedMobileToolbar = false,
+  ocrPickerOpenRequest = 0,
 }) {
   const [colorOpen, setColorOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
@@ -229,6 +233,18 @@ function MenuBar({
   useToolbarRerender(editor);
   const vvInset = useVisualViewportKeyboardInset();
   const lastAttachAudioReqRef = useRef(0);
+  const lastOcrPickerReqRef = useRef(0);
+
+  useEffect(() => {
+    if (ocrPickerOpenRequest <= 0 || !canOcr) return;
+    if (!editor) return;
+    if (ocrPickerOpenRequest === lastOcrPickerReqRef.current) return;
+    lastOcrPickerReqRef.current = ocrPickerOpenRequest;
+    setAttachOpen(false);
+    setOcrError(null);
+    setOcrOpen(true);
+    editor.chain().focus().run();
+  }, [ocrPickerOpenRequest, editor, canOcr]);
 
   useEffect(() => {
     if (attachAudioOpenRequest <= 0) {
@@ -259,9 +275,13 @@ function MenuBar({
       if (!el) return;
       const r = el.getBoundingClientRect();
       const popoverMax = 12 * 16;
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const popoverApproxH = 9 * rem;
+      let top = r.top - popoverApproxH - 8;
+      top = Math.max(8, Math.min(top, window.innerHeight - popoverApproxH - 8));
       setColorPopoverStyle({
         position: 'fixed',
-        top: r.bottom + 6,
+        top,
         left: Math.max(8, Math.min(r.left, window.innerWidth - 8 - popoverMax)),
         zIndex: 950,
       });
@@ -432,20 +452,114 @@ function MenuBar({
 
   const attachMenuEl =
     isMobile && onRequestAttachSheet ? (
-      <button
-        type="button"
-        className={styles.toolBtn}
-        onClick={() => {
-          setColorOpen(false);
-          setOcrOpen(false);
-          setAttachOpen(false);
-          onRequestAttachSheet();
-        }}
-        aria-label="Attachments"
-        title="Attach"
-      >
-        <Paperclip className={styles.icon} strokeWidth={2} aria-hidden />
-      </button>
+      <>
+        {canOcr ? (
+          <div className={styles.ocrWrap} ref={ocrWrapRef}>
+            <input
+              ref={ocrCameraInputRef}
+              type="file"
+              className={styles.hiddenFileInput}
+              accept="image/*"
+              capture="environment"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) void runOcrOnFile(f);
+              }}
+            />
+            <input
+              ref={ocrFileInputRef}
+              type="file"
+              className={styles.hiddenFileInput}
+              accept="image/*"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) void runOcrOnFile(f);
+              }}
+            />
+            <button
+              type="button"
+              className={`${styles.toolBtn} ${ocrLoading ? styles.toolBtnDisabled : ''} ${ocrOpen ? styles.toolBtnActive : ''}`}
+              disabled={ocrLoading}
+              onClick={() => {
+                if (ocrLoading) return;
+                setOcrError(null);
+                setOcrOpen((o) => !o);
+              }}
+              aria-label="Add text from image"
+              title="Scan or upload image"
+              aria-expanded={ocrOpen}
+              aria-haspopup="menu"
+              aria-controls="note-ocr-image-menu-mobile"
+            >
+              {ocrLoading ? (
+                <Loader2 className={`${styles.icon} ${styles.iconSpin}`} strokeWidth={2} aria-hidden />
+              ) : (
+                <ScanText className={styles.icon} strokeWidth={2} aria-hidden />
+              )}
+            </button>
+            {ocrOpen && !ocrLoading ? (
+              <div
+                id="note-ocr-image-menu-mobile"
+                className={styles.ocrPopover}
+                role="menu"
+                aria-label="Image to text"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.ocrMenuItem}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setOcrOpen(false);
+                    ocrCameraInputRef.current?.click();
+                  }}
+                >
+                  <Camera className={styles.ocrMenuIcon} strokeWidth={2} aria-hidden />
+                  <span>Take photo</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.ocrMenuItem}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setOcrOpen(false);
+                    ocrFileInputRef.current?.click();
+                  }}
+                >
+                  <FileUp className={styles.ocrMenuIcon} strokeWidth={2} aria-hidden />
+                  <span>Choose photo</span>
+                </button>
+              </div>
+            ) : null}
+            {ocrError ? (
+              <p className={styles.ocrError} role="status" aria-live="polite">
+                {ocrError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className={styles.toolBtn}
+          onClick={() => {
+            setColorOpen(false);
+            setOcrOpen(false);
+            setAttachOpen(false);
+            onRequestAttachSheet();
+          }}
+          aria-label="Attachments"
+          title="Attach"
+        >
+          <Paperclip className={styles.icon} strokeWidth={2} aria-hidden />
+        </button>
+      </>
     ) : isMobile && (canOcr || canUploadAudio || onAddToExistingNote) ? (
       <div className={styles.attachWrap} ref={attachWrapRef}>
         {canOcr ? (
@@ -561,8 +675,31 @@ function MenuBar({
       </div>
     ) : null;
 
+  const sinkOrLift = (/** @type {'sink' | 'lift'} */ mode) => {
+    const k = listItemKind();
+    const alt = k === 'taskItem' ? 'listItem' : 'taskItem';
+    const chain = editor.chain().focus();
+    if (mode === 'sink') {
+      if (chain.sinkListItem(k).run()) return;
+      editor.chain().focus().sinkListItem(alt).run();
+    } else {
+      if (chain.liftListItem(k).run()) return;
+      editor.chain().focus().liftListItem(alt).run();
+    }
+  };
+
   const toolbarInner = (
-      <div className={toolbarInnerClass}>
+      <div
+        className={toolbarInnerClass}
+        onPointerDown={
+          isMobile
+            ? (e) => {
+                const t = e.target;
+                if (t instanceof Element && t.closest('button')) e.preventDefault();
+              }
+            : undefined
+        }
+      >
         {isMobile && onOpenFormatSheet ? (
           <button
             type="button"
@@ -753,7 +890,7 @@ function MenuBar({
                     colorPopoverStyle ?? {
                       position: 'fixed',
                       left: 8,
-                      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
+                      top: 8,
                       zIndex: 950,
                     }
                   }
@@ -835,7 +972,7 @@ function MenuBar({
             <button
               type="button"
               className={styles.toolBtn}
-              onClick={() => editor.chain().focus().liftListItem(listItemKind()).run()}
+              onClick={() => sinkOrLift('lift')}
               aria-label="Outdent list"
               title="Outdent"
             >
@@ -844,7 +981,7 @@ function MenuBar({
             <button
               type="button"
               className={styles.toolBtn}
-              onClick={() => editor.chain().focus().sinkListItem(listItemKind()).run()}
+              onClick={() => sinkOrLift('sink')}
               aria-label="Indent list"
               title="Indent"
             >
@@ -972,22 +1109,28 @@ function MenuBar({
       </div>
   );
 
+  const mobileToolbarPill = (
+    <div className={styles.toolbarMobilePill} role="toolbar" aria-label="Formatting">
+      {toolbarInner}
+    </div>
+  );
+
   return (
     <>
-      {isMobile
-        ? createPortal(
-            <div className={styles.toolbarMobileFixed} style={{ bottom: vvInset }}>
-              <div className={styles.toolbarMobilePill} role="toolbar" aria-label="Formatting">
-                {toolbarInner}
-              </div>
-            </div>,
-            document.body
-          )
-        : (
-            <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
-              {toolbarInner}
-            </div>
-          )}
+      {isMobile && embedMobileToolbar ? (
+        <div className={styles.toolbarMobileEmbedded}>{mobileToolbarPill}</div>
+      ) : isMobile ? (
+        createPortal(
+          <div className={styles.toolbarMobileFixed} style={{ bottom: vvInset }}>
+            {mobileToolbarPill}
+          </div>,
+          document.body
+        )
+      ) : (
+        <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
+          {toolbarInner}
+        </div>
+      )}
       {canUploadAudio && user?.id ? (
         <InsertAudioModal
           open={insertAudioOpen}
@@ -1043,6 +1186,9 @@ function MenuBar({
  *   onAddToExistingNote?: () => void,
  *   attachAudioOpenRequest?: number,
  *   onRequestAttachSheet?: () => void,
+ *   embedMobileToolbar?: boolean,
+ *   ocrPickerOpenRequest?: number,
+ *   editorHeader?: import('react').ReactNode,
  * }} props
  */
 export default function NoteRichTextEditor({
@@ -1059,6 +1205,9 @@ export default function NoteRichTextEditor({
   onAddToExistingNote,
   attachAudioOpenRequest = 0,
   onRequestAttachSheet,
+  embedMobileToolbar = false,
+  ocrPickerOpenRequest = 0,
+  editorHeader = null,
 }) {
   const audioScopeFallbackRef = useRef(
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -1128,7 +1277,10 @@ export default function NoteRichTextEditor({
         onAddToExistingNote={onAddToExistingNote}
         attachAudioOpenRequest={attachAudioOpenRequest}
         onRequestAttachSheet={onRequestAttachSheet}
+        embedMobileToolbar={embedMobileToolbar}
+        ocrPickerOpenRequest={ocrPickerOpenRequest}
       />
+      {editorHeader}
       {toolbarVariant === 'mobileNotes' ? (
         <NoteFormatBottomSheet
           editor={editor}
@@ -1138,7 +1290,9 @@ export default function NoteRichTextEditor({
       ) : null}
       <div
         className={`${styles.surface} ${surfaceClassName ?? ''}${
-          toolbarVariant === 'mobileNotes' ? ` ${styles.surfaceMobileNotes}` : ''
+          toolbarVariant === 'mobileNotes'
+            ? ` ${embedMobileToolbar ? styles.surfaceMobileNotesEmbedded : styles.surfaceMobileNotes}`
+            : ''
         }`.trim()}
       >
         <EditorContent editor={editor} />
