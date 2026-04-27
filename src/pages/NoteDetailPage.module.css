@@ -1,325 +1,1058 @@
-.article {
-  max-width: 42rem;
-  margin: 0 auto;
-}
-
-.topBar {
+.shell {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
-  width: 100%;
-  min-width: 0;
-  overflow: visible;
+  flex-direction: column;
+  background: var(--bg);
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  /* Sticky error band stacks under sticky header (approx bar height; avoids layout JS). */
+  --noteDetailTopBarApprox: 3.35rem;
+  /* Read (h1) vs edit (title input → body): same gap so mode switches don’t jump. */
+  --notes-title-body-gap: 0.5rem;
+  /* --notes-content-max / --notes-bottom-fab-size: global :root (portaled Grammar reads from html). */
 }
 
-.actionError {
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
-  color: var(--danger);
+/* Note detail: read/edit remaps when global appearance is dark (tokens from html[data-theme='dark']). */
+.shellDark {
+  color: var(--text);
 }
 
-/* Title + note info: content-sized row — avoid 1fr / width:100% patterns that park the icon at the row edge. */
-.titleInfoPair {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
-  width: fit-content;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
+/* Dark canvas: HTML / Markdown read bodies follow shell tokens (see `data-nn-read-body-root` in NoteBodyContent). */
+.shellDark [data-nn-read-body-root] {
+  color: var(--text);
 }
 
-.titleInfoPair .titleInput {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
+.shellDark :global([data-nn-read-body-root] .nn-body-html),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body) {
+  color: inherit;
 }
 
-.titleInfoPair .title {
-  margin: 0;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  display: block;
+.shellDark :global([data-nn-read-body-root] .nn-body-html p),
+.shellDark :global([data-nn-read-body-root] .nn-body-html li),
+.shellDark :global([data-nn-read-body-root] .nn-body-html h1),
+.shellDark :global([data-nn-read-body-root] .nn-body-html h2),
+.shellDark :global([data-nn-read-body-root] .nn-body-html h3),
+.shellDark :global([data-nn-read-body-root] .nn-body-html h4),
+.shellDark :global([data-nn-read-body-root] .nn-body-html blockquote),
+.shellDark :global([data-nn-read-body-root] .nn-body-html td),
+.shellDark :global([data-nn-read-body-root] .nn-body-html th),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body p),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body li),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body h1),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body h2),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body h3),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body h4),
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body blockquote) {
+  color: inherit;
 }
 
-.topActions {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex: 0 0 auto;
-  width: fit-content;
-  max-width: 100%;
-  margin-left: auto;
-  overflow: visible;
-}
-
-.back {
-  display: inline-block;
-  margin: 0;
-  padding: 0;
-  font: inherit;
-  font-size: 0.9rem;
-  color: var(--muted);
-  text-decoration: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-}
-
-.back:hover {
+.shellDark :global([data-nn-read-body-root] a) {
   color: var(--accent);
 }
 
-.header {
-  margin-bottom: 1.25rem;
-  min-height: 2.25rem;
+.shellDark :global([data-nn-read-body-root] .nn-read-md-body a) {
+  color: var(--accent);
 }
 
-/* Title + info sit inline; combo stays on the right (see LabelPicker noteHeader). */
-.titleInfoRow {
+/* Inline colors matching default light “ink” / black from editors or imports — remap on dark canvas only. */
+.shellDark :global(.nn-body-html span[style*='#000']),
+.shellDark :global(.nn-body-html span[style*='#000000']),
+.shellDark :global(.nn-body-html span[style*='#1a1917']),
+.shellDark :global(.nn-body-html span[style*='rgb(0, 0, 0)']),
+.shellDark :global(.nn-body-html span[style*='rgb(0,0,0)']),
+.shellDark :global(.nn-body-html span[style*='rgb(26, 25, 23)']),
+.shellDark :global(.nn-body-html span[style*='rgb(26,25,23)']),
+.shellDark :global(.nn-body-html font[color='#000000']),
+.shellDark :global(.nn-body-html font[color='#000']),
+.shellDark :global(.nn-body-html font[color='black']) {
+  color: var(--text) !important;
+}
+
+.shellDark :global([data-nn-read-body-root] .nn-body-html div) {
+  color: inherit;
+}
+
+/* TipTap edit surface on dark canvas: same contrast as read mode (inline imported colors included). */
+.shellDark .editBlock :global(.tiptap) {
+  color: var(--text);
+}
+
+.shellDark .editBlock :global(.tiptap p),
+.shellDark .editBlock :global(.tiptap li),
+.shellDark .editBlock :global(.tiptap h1),
+.shellDark .editBlock :global(.tiptap h2),
+.shellDark .editBlock :global(.tiptap h3),
+.shellDark .editBlock :global(.tiptap blockquote) {
+  color: inherit;
+}
+
+.shellDark .editBlock :global(.tiptap span[style*='#000']),
+.shellDark .editBlock :global(.tiptap span[style*='#000000']),
+.shellDark .editBlock :global(.tiptap span[style*='#1a1917']),
+.shellDark .editBlock :global(.tiptap span[style*='rgb(0, 0, 0)']),
+.shellDark .editBlock :global(.tiptap span[style*='rgb(0,0,0)']),
+.shellDark .editBlock :global(.tiptap span[style*='rgb(26, 25, 23)']),
+.shellDark .editBlock :global(.tiptap span[style*='rgb(26,25,23)']),
+.shellDark .editBlock :global(.tiptap font[color='#000000']),
+.shellDark .editBlock :global(.tiptap font[color='#000']),
+.shellDark .editBlock :global(.tiptap font[color='black']) {
+  color: var(--text) !important;
+}
+
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.65rem 0.45rem;
+  border-bottom: none;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.topBarNavSlot {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+}
+
+.topBarActionsPill {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  min-width: 0;
-  max-width: 100%;
+  gap: 0.06rem;
+  padding: 0.1rem 0.22rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
 }
 
-.title {
-  margin: 0;
-  font-size: 1.65rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  min-width: 0;
-  display: inline;
+.topBarMenuTriggerInPill {
+  width: 2.35rem;
+  height: 2.35rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
 }
 
-.titleInput {
-  margin: 0;
-  flex: 1 1 12rem;
-  min-width: 0;
-  font-size: 1.65rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  font-family: inherit;
-  padding: 0.1rem 0.15rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.titleInput:focus {
-  outline: 2px solid var(--accent-muted);
-  outline-offset: 1px;
-}
-
-.metaEdit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.metaEditField {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.metaEditLabel {
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.25;
-  color: var(--muted);
-}
-
-.metaEditControlRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  min-width: 0;
-}
-
-.addToExistingNoteBtn {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0.4rem 0.55rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  font-family: inherit;
-  line-height: 1.3;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.addToExistingNoteBtn:hover {
-  color: var(--text);
-  border-color: var(--muted);
+.topBarMenuTriggerInPill:hover {
   background: var(--surface-active);
 }
 
-.addToExistingNoteBtn:focus-visible {
-  outline: 2px solid var(--border);
-  outline-offset: 2px;
-}
-
-.metaEditInput {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.metaEditInput:focus {
-  outline: 2px solid var(--accent-muted);
-  outline-offset: 1px;
-}
-
-.infoBtn {
-  flex-shrink: 0;
+.topBarMoreInPill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.topBarMoreInPill:hover {
+  background: var(--surface-active);
+}
+
+.iconCircleBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.iconCircleBtn:hover {
+  background: var(--surface-active);
+}
+
+.iconCircleBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.iconCircleBtnAccent {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Beat plain `.iconCircleBtn:hover` (surface-active) and avoid `filter` washing out the icon. */
+.iconCircleBtn.iconCircleBtnAccent:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--accent) 78%, #0f0f0f);
+  border-color: color-mix(in srgb, var(--accent) 65%, #0f0f0f);
+  color: #ffffff;
+}
+
+.shellDark .iconCircleBtn.iconCircleBtnAccent:hover {
+  background: color-mix(in srgb, var(--accent) 88%, #ffffff);
+  border-color: var(--accent-muted);
+  color: #ffffff;
+}
+
+/*
+ * Pin the new-note control to the trailing edge. When the grammar cluster is portaled
+ * (wide viewports), the footer only contains this button — space-between would leave it
+ * on the left without margin-left: auto.
+ */
+.bottomBarEnd {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.bottomBarFab {
+  position: relative;
+  z-index: 1;
+  width: var(--notes-bottom-fab-size);
+  height: var(--notes-bottom-fab-size);
+  min-width: var(--notes-bottom-fab-size);
+  min-height: var(--notes-bottom-fab-size);
+  box-sizing: border-box;
+}
+
+.bottomBarFabIcon {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.bottomBarEditSpacer {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: var(--notes-bottom-fab-size);
+  min-width: var(--notes-bottom-fab-size);
+  height: var(--notes-bottom-fab-size);
+}
+
+.iconCircleBtnDanger {
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.backIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.scrollMain {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  /* Fixed footer (.bottomBar) no longer consumes layout height; keep last lines scrollable above it. */
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.scrollInner {
+  min-width: 0;
+  /* Lets very short notes still scroll enough to pull metadata back into view. */
+  min-height: min(72vh, 28rem);
+}
+
+/* Centered column; --notes-content-max matches bottom bar insets on desktop (see media query). */
+.contentWrap {
+  width: 100%;
+  max-width: var(--notes-content-max);
+  margin: 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Date / labels / stars — scrolls under the sticky header; initial scroll skips this band in JS. */
+.metaReveal {
+  padding: 0.45rem 1rem 0.55rem;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.actionErrorBanner {
+  position: sticky;
+  top: var(--noteDetailTopBarApprox);
+  z-index: 5;
+  margin: 0;
+  padding: 0.35rem 1rem;
+  color: var(--danger);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.shellDark .actionErrorBanner {
+  background: var(--bg);
+  border-bottom-color: var(--border);
+}
+
+.dateOnly {
+  margin: 0 0 0.45rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.metaCenterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.chipsCentered {
+  justify-content: center;
+  max-width: 100%;
+}
+
+.readSurface {
+  padding: 0.35rem 1rem 1.25rem;
+  min-height: 40vh;
+  cursor: text;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 var(--notes-title-body-gap);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Edit: .editorRoot flex gap already separates header from the editor surface; keep title→body one step like read. */
+.editorRoot .titleRow {
+  margin-bottom: 0;
+}
+
+/* Shared by read (h1) and edit (wrapper): same flex sizing so the info button stays in one place. */
+.titleTextSlot {
+  margin: 0;
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: calc(100% - 2.45rem - 0.35rem);
+  min-width: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Edit-only: shrink-wrap the input; measure span is position:absolute inside. */
+.titleTextSlotEditable {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.titleMeasure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  visibility: hidden;
+  white-space: pre;
+  width: max-content;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font: inherit;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.titleTextSlotEditable .titleField {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 0;
+  width: 12rem;
+  max-width: none;
+}
+
+/* Same circular hit target as .nn-audio-gear-btn (see noteAudio.css). */
+.titleInfoInlineBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  line-height: 0;
 }
 
-.infoBtn:hover {
+.titleInfoInlineBtn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.titleInfoInlineBtn:hover {
   background: var(--surface-active);
-  border-color: var(--accent-muted);
-  color: var(--accent);
+  color: var(--text);
 }
 
-.infoBtn:focus {
-  outline: none;
-}
-
-.infoBtn:focus-visible {
+.titleInfoInlineBtn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.infoBtn[aria-expanded='true'] {
-  color: var(--accent);
-  border-color: var(--accent-muted);
-  background: var(--surface-active);
+.editBlock {
+  padding: 0.35rem 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--notes-title-body-gap);
+  min-height: 40vh;
 }
 
-.infoBtn:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
+.titleField {
+  margin: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text);
+  padding: 0;
+}
+
+.titleField:focus {
+  outline: none;
+}
+
+.editorRoot {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--notes-title-body-gap);
+  min-width: 0;
+}
+
+/* .surface inside NoteRichTextEditor adds its own horizontal padding; .editBlock already
+   matches .readSurface (1rem). Scope resets here so edit/read share one gutter. */
+.editBlock .editorSurface {
+  border: none;
+  border-radius: 0;
+  min-height: 12rem;
+  padding: 0;
+}
+
+/*
+ * Read: h1 margin-bottom and the first figure.nn-audio-embed margin-top can collapse (single ~0.5rem step).
+ * Edit: .editorRoot already adds gap after the title; figure margin-top does not collapse with flex gap,
+ * so spacing looked ~0.45rem looser. Clear top margin on the first audio block only.
+ */
+.editBlock
+  .editorSurface
+  :global(.tiptap > .react-renderer.node-noteAudio:first-child figure.nn-audio-embed) {
+  margin-top: 0;
+}
+
+.bottomBar {
+  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Above attach dimmer (1240) so the FAB stays visible; attach panel (1250) can still overlap the pill row. */
+  z-index: 1245;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding-top: 0.65rem;
+  padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0));
+  /* Match content column inset at every zoom width (avoid 1024px breakpoint jump with browser zoom). */
+  padding-left: max(0.65rem, calc((100vw - min(var(--notes-content-max), 100vw)) * 0.5 + 1rem));
+  padding-right: max(0.65rem, env(safe-area-inset-right, 0px));
+  background: transparent;
+  border-top: none;
+  /* Let note text show through; pills and buttons still receive clicks */
   pointer-events: none;
 }
 
-.iconBtn {
+.bottomBar > * {
+  pointer-events: auto;
+}
+
+.bottomCluster {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(
+    min(var(--notes-content-max), 100vw) - var(--notes-bottom-fab-size) - 1.85rem
+  );
+}
+
+/* Matches portaled format toolbar: explicit dark chrome (grammar cluster can render under document.body). */
+.bottomCluster[data-nn-canvas='dark'] {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, #2c2c2e 92%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  color: #f5f5f7;
+}
+
+.bottomCluster[data-nn-canvas='dark'] .bottomTool {
+  color: #f5f5f7;
+}
+
+.bottomCluster[data-nn-canvas='dark'] .bottomTool:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bottomCluster[data-nn-canvas='dark'] .grammarBtn {
+  color: #f5f5f7;
+}
+
+.bottomCluster[data-nn-canvas='dark'] .grammarBtn[aria-pressed='true'] {
+  color: #95c4a8;
+}
+
+.bottomCluster[data-nn-canvas='dark'] .infoBtn {
+  color: #98989d;
+}
+
+/* Wide desktop: portaled Grammar sits in the leading viewport corner (like .topBar), not under the text column. */
+.bottomClusterFixedWrap {
+  position: fixed;
+  left: max(0.65rem, env(safe-area-inset-left, 0px));
+  /* Stay left of the new-note FAB + gutter; pill is narrow — cap is a safety margin only. */
+  max-width: calc(
+    100vw - max(0.65rem, env(safe-area-inset-left, 0px)) - max(0.65rem, env(safe-area-inset-right, 0px)) -
+      var(--notes-bottom-fab-size) - 1.25rem
+  );
+  z-index: 919;
+  pointer-events: auto;
+}
+
+.bottomTool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.bottomTool:hover {
+  background: var(--surface-active);
+}
+
+.bottomTool:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bottomIcon {
+  width: 1.28rem;
+  height: 1.28rem;
+}
+
+/* Paperclip is wide in its viewBox; constrain width so it matches nearby cap height better. */
+.bottomIconPaperclip {
+  width: 0.92rem;
+  height: 1.15rem;
+}
+
+.actionError {
+  margin: 0.35rem 1rem;
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+.notFound {
+  padding: 2rem 1.25rem;
+}
+
+/* More menu (ellipsis) */
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.sheetPanel {
+  position: fixed;
+  z-index: 1110;
+  /* Align with top bar so the card covers the trailing action buttons (Apple-style). */
+  top: calc(env(safe-area-inset-top, 0px) + 0.35rem);
+  right: 0.6rem;
+  left: auto;
+  width: min(18rem, calc(100vw - 1.3rem));
+  max-height: min(72vh, 540px);
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  padding: 0.5rem 0;
+}
+
+.sheetPanel[data-theme='dark'] {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, #2c2c2e 96%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.sheetPanel[data-theme='dark'] .sheetMenuBtn {
+  color: #f5f5f7;
+}
+
+.sheetPanel[data-theme='dark'] .sheetMenuBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sheetPanel[data-theme='dark'] .sheetMenuLeadingIcon,
+.sheetPanel[data-theme='dark'] .sheetMenuChevronTrail {
+  color: rgba(245, 245, 247, 0.92);
+}
+
+.sheetPanel[data-theme='dark'] .sheetMenuBtnInfo svg {
+  color: rgba(245, 245, 247, 0.85);
+}
+
+.sheetPanel[data-theme='dark'] .sheetMenuBtnDanger {
+  color: #ff8a80;
+}
+
+.sheetMenuBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sheetMenuBtn:hover {
+  background: var(--surface-active);
+}
+
+.sheetMenuBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sheetMenuBtn:disabled:hover {
+  background: transparent;
+}
+
+.sheetPanel[data-theme='dark'] .sheetMenuBtn:disabled:hover {
+  background: transparent;
+}
+
+.sheetMenuBtnInfo svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+}
+
+.sheetMenuBtnDisclosure {
+  justify-content: flex-start;
+}
+
+.sheetMenuLeadingIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.sheetMenuBtnLabelGrow {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.sheetMenuChevronTrail {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.sheetMenuBtnDanger {
+  color: var(--danger);
+}
+
+.sheetDeleteIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+}
+
+/* Labels drill-down (ellipsis → Labels), stacked over root sheet */
+.labelsDrillPanel {
+  position: fixed;
+  z-index: 1120;
+  top: calc(env(safe-area-inset-top, 0px) + 0.35rem);
+  right: 0.6rem;
+  left: auto;
+  width: min(18rem, calc(100vw - 1.3rem));
+  max-height: min(72vh, 540px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.labelsDrillPanel[data-theme='dark'] {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #2c2c2e;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  color: #f5f5f7;
+}
+
+.labelsDrillPanel[data-theme='light'] {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  color: var(--text);
+}
+
+.labelsDrillHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillHeader {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillHeader {
+  border-bottom: 1px solid var(--border);
+}
+
+.labelsDrillHeaderIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillHeaderIcon {
+  color: var(--muted);
+}
+
+.labelsDrillHeaderTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.labelsDrillHeaderCollapse {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2.25rem;
   height: 2.25rem;
+  margin: 0;
   padding: 0;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillHeaderCollapse {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f5f7;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillHeaderCollapse:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillHeaderCollapse {
+  background: var(--surface-active);
+  color: var(--text);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillHeaderCollapse:hover {
+  filter: brightness(0.97);
+}
+
+.labelsDrillHeaderCollapse svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.labelsDrillBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem 0.65rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.labelsDrillSearchLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.labelsDrillSearch {
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  /* 16px minimum prevents iOS Safari from zooming the page on focus */
+  font-size: 1rem;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillSearch {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f5f5f7;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillSearch::placeholder {
+  color: rgba(245, 245, 247, 0.45);
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillSearch:focus {
+  outline: none;
+  border-color: rgba(149, 196, 168, 0.65);
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.35);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillSearch {
   border: 1px solid var(--border);
-  border-radius: 6px;
   background: var(--surface);
   color: var(--text);
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.iconBtn:hover:not(:disabled) {
-  background: var(--surface-active);
-  border-color: var(--accent-muted);
+.labelsDrillPanel[data-theme='light'] .labelsDrillSearch::placeholder {
+  color: var(--muted);
 }
 
-.iconBtn:focus {
+.labelsDrillPanel[data-theme='light'] .labelsDrillSearch:focus {
   outline: none;
+  border-color: var(--accent-muted);
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.22);
 }
 
-.iconBtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.labelsDrillAddNew {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
 }
 
-.iconBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.labelsDrillPanel[data-theme='dark'] .labelsDrillAddNew {
+  border: 1px dashed rgba(149, 196, 168, 0.55);
+  background: rgba(45, 106, 79, 0.22);
+  color: #b8e0c8;
 }
 
-.posAnalysisBtn {
+.labelsDrillPanel[data-theme='dark'] .labelsDrillAddNew:hover {
+  background: rgba(45, 106, 79, 0.32);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillAddNew {
+  border: 1px dashed var(--accent-muted);
+  background: var(--surface-active);
+  color: var(--accent);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillAddNew:hover {
+  filter: brightness(0.98);
+}
+
+.labelsDrillAddNewPlus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.25rem;
-  padding: 0 0.55rem;
-  margin: 0;
-  font: inherit;
-  font-size: 0.78rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
   line-height: 1;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillAddNewPlus {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillAddNewPlus {
+  background: var(--code-bg);
+}
+
+.labelsDrillList {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+}
+
+.labelsDrillListItem {
+  margin: 0;
+  padding: 0;
+}
+
+.labelsDrillEmpty {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.35rem;
+  font-size: 0.86rem;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillEmpty {
+  color: rgba(245, 245, 247, 0.45);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillEmpty {
   color: var(--muted);
-  text-transform: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+}
+
+.labelsDrillRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.4rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.92rem;
+  text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.posAnalysisBtn:hover {
-  color: var(--text);
+.labelsDrillPanel[data-theme='dark'] .labelsDrillRow:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillRow:hover {
   background: var(--surface-active);
-  border-color: var(--accent-muted);
 }
 
-.posAnalysisBtn:focus {
-  outline: none;
+.labelsDrillRowIcon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
-.posAnalysisBtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.labelsDrillPanel[data-theme='light'] .labelsDrillRowIcon {
+  color: var(--muted);
 }
 
-.posAnalysisBtn[aria-pressed='true'] {
+.labelsDrillRowLabel {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.labelsDrillRowCheck {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.labelsDrillPanel[data-theme='dark'] .labelsDrillRowCheck {
+  color: #95c4a8;
+}
+
+.labelsDrillPanel[data-theme='light'] .labelsDrillRowCheck {
   color: var(--accent);
-  border-color: var(--accent-muted);
-  background: var(--surface-active);
 }
 
-.posToolbarCluster {
-  position: relative;
-  z-index: 2;
+.labelsDrillRowCheckSpacer {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.posCluster {
   display: inline-flex;
   align-items: center;
-  gap: 0.12rem;
+  gap: 0;
 }
 
 .posLegendAnchor {
@@ -328,24 +1061,17 @@
   align-items: center;
 }
 
-/* Viewport-centered so the legend is not clipped under nearby UI; z-index above toolbars. */
+/* Viewport-centered overlay on all breakpoints so the panel stays above the bottom bar (z-index 1110). */
 .posLegendDropdown {
   position: fixed;
   inset: 0;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: auto;
-  max-width: none;
-  margin: 0;
-  padding: 1rem;
-  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(15, 15, 18, 0.45);
   z-index: 1200;
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 .posLegendDropdown > * {
@@ -353,379 +1079,146 @@
   max-width: min(18rem, calc(100vw - 2rem));
 }
 
-@media (max-width: 639px) {
-  .topBar {
-    margin-bottom: 0.65rem;
-    gap: 0.5rem;
-    min-width: 0;
-  }
-
-  .topActions {
-    gap: 0.12rem;
-    padding: 0.2rem;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface);
-    flex-wrap: nowrap;
-    flex: 0 0 auto;
-    width: fit-content;
-    min-width: 0;
-    max-width: min(100%, calc(100% - 3.25rem));
-    margin-left: auto;
-    justify-content: flex-end;
-    overflow: visible;
-  }
-
-  .iconBtn {
-    width: 2rem;
-    height: 2rem;
-  }
-
-  .posAnalysisBtn {
-    height: 2rem;
-    padding: 0 0.45rem;
-    font-size: 0.74rem;
-  }
-
-  .titleInfoRow {
-    display: block;
-    width: 100%;
-  }
-
-  .header {
-    margin-bottom: 0.85rem;
-  }
-
-  .title {
-    font-size: 1.42rem;
-  }
-
-  .titleInput {
-    font-size: 1.42rem;
-  }
-
-  .back {
-    font-size: 0.86rem;
-  }
-
-  .bodyPosStudy {
-    font-size: 1.04rem;
-  }
+.grammarKeyIcon {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
-.body {
-  font-size: 1rem;
-  line-height: 1.65;
-  color: var(--text);
-}
-
-/* Tags “study mode”: slightly larger type + POS spacing only — same width as normal read mode. */
-.bodyPosStudy {
-  box-sizing: border-box;
-  font-size: 1.07rem;
-  line-height: 1.68;
-}
-
-/* Read-only POS overlay: see src/styles/noteReadPos.css (imported via NoteBodyContent). */
-
-/* Apple Notes–style HTML: nested divs in note content get block spacing */
-.body :global(div) {
-  margin: 0 0 0.75em;
-}
-
-/* Top-level split segments (NoteBodyContent): no wrapper margin — spacing comes from inner p, figure, ul */
-.body :global(div.nn-body-html) {
-  margin: 0;
-}
-
-/* Markdown read body wrapper (POS class may also apply; no extra block gap) */
-.body :global(div.nn-read-md-body) {
-  margin: 0;
-}
-
-/* Audio block uses inner divs (.nn-audio-row, .nn-audio-player-wrap, …) — they are NOT nn-body-html */
-.body :global(figure.nn-audio-embed div) {
-  margin: 0;
-}
-
-.body :global(.notePlainBody) {
-  margin: 0;
-}
-
-.body :global(p) {
-  margin: 0 0 0.85em;
-}
-
-.body :global(ul),
-.body :global(ol) {
-  margin: 0 0 0.85em;
-  padding-left: 1.35em;
-}
-
-.body :global(li) {
-  margin-bottom: 0.35em;
-}
-
-.body :global(a) {
-  color: var(--accent);
-}
-
-.body :global(strong),
-.body :global(b) {
-  font-weight: 600;
-}
-
-.body :global(blockquote) {
-  margin: 0.85em 0;
-  padding-left: 1rem;
-  border-left: 3px solid var(--border);
-  color: var(--muted);
-}
-
-.body :global(code) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.88em;
-  background: var(--code-bg);
-  padding: 0.12em 0.35em;
-  border-radius: 4px;
-}
-
-.body :global(pre) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.88em;
-  background: var(--code-bg);
-  padding: 0.85rem 1rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 0.85em 0;
-}
-
-.body :global(pre code) {
-  padding: 0;
-  background: none;
-}
-
-.body :global(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-}
-
-.body :global(table) {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0.85em 0;
-  font-size: 0.95em;
-}
-
-.body :global(th),
-.body :global(td) {
-  border: 1px solid var(--border);
-  padding: 0.4em 0.6em;
-  text-align: left;
-}
-
-.editWrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-width: 0;
-  overflow: visible;
-}
-
-.textarea {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  font-size: 1rem;
-  line-height: 1.55;
-  font-family: inherit;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--text);
-  resize: vertical;
-  min-height: 12rem;
-}
-
-.textarea:focus {
-  outline: 2px solid var(--accent-muted);
-  outline-offset: 1px;
-}
-
-.markdownEditorSurface {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.markdownEditBar {
-  display: flex;
-  flex-wrap: wrap;
+.grammarBtn {
+  display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  width: 100%;
-}
-
-.toolbarFlex {
-  flex: 1 1 auto;
-  min-width: min(100%, 14rem);
-}
-
-.markdownEditBarPreview {
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.previewToggle {
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface-active);
+  justify-content: center;
+  margin: 0;
+  min-height: 2.45rem;
+  padding: 0 0.55rem 0 0.15rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text);
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  line-height: 1;
 }
 
-.previewToggle:hover {
-  border-color: var(--accent-muted);
+.grammarBtn[aria-pressed='true'] {
   color: var(--accent);
 }
 
-.previewToggle:focus-visible {
-  outline: 2px solid var(--accent-muted);
-  outline-offset: 1px;
+.grammarBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.markdownPreviewPane {
-  border: 1px solid var(--border);
-  border-radius: 0 0 10px 10px;
-  border-top: none;
-  padding: 1rem 1.15rem 1.15rem;
-  min-height: 14rem;
+.infoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
   margin: 0;
-  background: var(--surface);
-}
-
-.convertHint {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--muted);
-  padding: 0.5rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface-active);
-}
-
-@keyframes skeletonPulse {
-  50% {
-    opacity: 0.55;
-  }
-}
-
-.skeletonToolbar {
-  display: flex;
-  gap: 0.45rem;
-  min-width: 8rem;
-  min-height: 2.25rem;
-  border-radius: 6px;
-  background: var(--border);
-  animation: skeletonPulse 1.1s ease-in-out infinite;
-}
-
-.skeletonHeader {
-  margin-bottom: 1.25rem;
-}
-
-.skeletonTitle {
-  max-width: 16rem;
-  height: 1.85rem;
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
-  background: var(--border);
-  animation: skeletonPulse 1.1s ease-in-out infinite;
-}
-
-.skeletonMetaRow {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.skeletonChip {
-  width: 3.25rem;
-  height: 1.15rem;
+  padding: 0;
+  border: none;
   border-radius: 999px;
-  background: var(--border);
-  animation: skeletonPulse 1.1s ease-in-out infinite;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
 }
 
-.skeletonBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.skeletonLine {
-  height: 0.95rem;
-  border-radius: 4px;
-  background: var(--border);
-  animation: skeletonPulse 1.1s ease-in-out infinite;
-}
-
-.skeletonLineLong {
-  width: 100%;
-}
-
-.skeletonLineMed {
-  width: 88%;
-}
-
-.skeletonLineShort {
-  width: 62%;
+.infoBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .loadingHint {
-  margin: 1.25rem 0 0;
-  font-size: 0.9rem;
+  margin: 1rem;
   color: var(--muted);
-  text-align: center;
 }
 
-.notFound {
-  max-width: 28rem;
-  margin: 2rem auto 0;
-  text-align: center;
-}
-
-.notFound .heading {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem;
-}
-
-.lead {
-  color: var(--muted);
-  line-height: 1.55;
-  margin: 0 0 1.5rem;
-}
-
-.backLink {
-  display: inline-block;
-  padding: 0.55rem 1.25rem;
-  font-weight: 500;
-  color: var(--on-accent);
-  background: var(--accent);
-  border: none;
+.skelTop {
+  height: 2.5rem;
+  margin: 0.5rem 1rem;
   border-radius: 8px;
-  text-decoration: none;
-  font: inherit;
+  background: var(--surface-active);
+}
+
+.skelTitle {
+  height: 2rem;
+  margin: 1rem;
+  border-radius: 6px;
+  background: var(--surface-active);
+}
+
+.skelBody {
+  height: 8rem;
+  margin: 1rem;
+  border-radius: 8px;
+  background: var(--surface-active);
+}
+
+/* Dims content below the bottom chrome; bottom bar uses z-index 1245 so the new-note FAB stays visible. */
+.attachSheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1240;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.attachSheetPanel {
+  position: fixed;
+  z-index: 1250;
+  left: max(0.65rem, env(safe-area-inset-left, 0px));
+  right: auto;
+  transform: none;
+  /* Sit on the bottom chrome so the card covers the grammar / paperclip pill (Apple Notes-style). */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
+  width: min(20rem, calc(100vw - 1.3rem));
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  padding: 0.5rem 0;
+}
+
+.attachSheetPanel[data-theme='dark'] {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, #2c2c2e 96%, transparent);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.attachSheetBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  text-align: left;
   cursor: pointer;
 }
 
-.backLink:hover {
-  filter: brightness(1.06);
+.attachSheetPanel[data-theme='dark'] .attachSheetBtn {
+  color: #f5f5f7;
+}
+
+.attachSheetBtn:hover {
+  background: var(--surface-active);
+}
+
+.attachSheetPanel[data-theme='dark'] .attachSheetBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.attachSheetIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+  opacity: 0.88;
 }

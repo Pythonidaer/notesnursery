@@ -26,10 +26,9 @@ function useToolbarRerender(editor) {
  *   editor: import('@tiptap/core').Editor | null,
  *   open: boolean,
  *   onClose: () => void,
- *   canvasDark?: boolean,
  * }} props
  */
-export default function NoteFormatBottomSheet({ editor, open, onClose, canvasDark = false }) {
+export default function NoteFormatBottomSheet({ editor, open, onClose }) {
   const [colorModalOpen, setColorModalOpen] = useState(false);
 
   useToolbarRerender(editor);
@@ -83,7 +82,6 @@ export default function NoteFormatBottomSheet({ editor, open, onClose, canvasDar
       >
         <div
           className={styles.card}
-          data-theme={canvasDark ? 'dark' : 'light'}
           role="dialog"
           aria-modal="true"
           aria-labelledby="nn-format-sheet-title"
@@ -202,7 +200,6 @@ export default function NoteFormatBottomSheet({ editor, open, onClose, canvasDar
         open={colorModalOpen}
         onClose={() => setColorModalOpen(false)}
         initialColor={currentColor}
-        canvasDark={canvasDark}
         onApply={(hexOrNull) => applyColor(hexOrNull)}
       />
     </>,

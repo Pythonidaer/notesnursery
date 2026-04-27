@@ -1,14 +1,14 @@
-# PRD: Mobile-first note detail (“Notes test”)
+# PRD: Mobile-first note detail
 
-**Status:** In development (dogfood / preview)  
-**Primary routes:** `/notes-test` (hub), `/notes-test/:noteId` (detail)  
-**Last updated:** 2026-04-26  
+**Status:** Shipped as default note view  
+**Primary route:** `/notes/:noteId` (legacy `/notes-test` and `/notes-test/:id` redirect to Library or `/notes/:id`)  
+**Last updated:** 2026-04-27  
 
 ---
 
 ## 1. Summary
 
-We are building a **mobile-first note reading and editing experience** that will eventually replace or augment the current note detail flow. The work ships behind the **`/notes-test`** URLs so we can **test on real devices**, iterate on scroll and chrome, and gather feedback before promoting it to the default note view.
+The **mobile-first note reading and editing experience** is the default **note detail** flow. Implementation lives in [`src/pages/NoteDetailPage.jsx`](../src/pages/NoteDetailPage.jsx) and [`NoteDetailPage.module.css`](../src/pages/NoteDetailPage.module.css) (formerly the notes-test page).
 
 The global app chrome behaves differently on note detail: the **main app header is hidden**, and the page uses a **dedicated top bar** (back, optional nav menu, save when editing, more menu) plus a **scrollable note column** tuned for small viewports.
 
@@ -20,14 +20,14 @@ The global app chrome behaves differently on note detail: the **main app header 
 2. **Consistency:** The **overlap height** under the top bar (safe area + bar) must match **measured layout** (including subpixel heights, e.g. ~56.2px on phone) so the first frame does not clip the title or land “a few lines into” the body after refresh or when switching notes.
 3. **Editing:** Tap-to-edit style flow with **mobile toolbar** variant, floating audio in edit mode, save/discard, and parity with core note operations where reasonable.
 4. **Polish:** Optional **dark canvas** for the note surface; labels and actions reachable from **ellipsis** and drill sheets without crowding the main column.
-5. **Safe rollout:** Route remains **reachable by URL** (and optional nav link) for **production dogfooding** until we merge into the primary note route or gate behind a feature flag.
+5. **Legacy URLs:** Old `/notes-test` bookmarks redirect so shared links keep working.
 
 ---
 
 ## 3. Non-goals (for this PRD)
 
 - Replacing the library/cards primary navigation (out of scope until promotion).
-- Perfect SEO or public discoverability of `/notes-test` (preview route).
+- Perfect SEO for note URLs (standard app surface).
 - Feature parity with every desktop-only affordance in one pass.
 
 ---
@@ -36,14 +36,13 @@ The global app chrome behaves differently on note detail: the **main app header 
 
 ### 4.1 Entry points
 
-- **Hub:** `/notes-test` — short explanation and links to Library / Cards.
-- **Detail:** `/notes-test/<noteId>` — full note experience (after user is authenticated when using Supabase).
-- **App menu:** Link to `/notes-test` exists in the header nav menu (`AppHeaderNav`) for convenience during development.
+- **Detail:** `/notes/<noteId>` — full note experience (Library/Cards/search link here; in production with Supabase, unauthenticated users are sent to login when persistence is required).
+- **Legacy:** `/notes-test` → `/library`; `/notes-test/<noteId>` → `/notes/<noteId>`.
 
 ### 4.2 Layout and scroll model
 
-- **Shell:** Fills the viewport (`appShell--notesTestDetail` / `appMain--notesTestDetail` in `App.jsx` + `index.css`) so the **scroll container is the note column**, not the window.
-- **Top bar:** Fixed visual hierarchy (`z-index`), height **H** measured at runtime from the bar’s `getBoundingClientRect().height` and exposed as CSS variable **`--notesTestTopBarOverlap`** on the page shell.
+- **Shell:** Fills the viewport (`appShell--noteDetail` / `appMain--noteDetail` in `App.jsx` + `index.css`) so the **scroll container is the note column**, not the window.
+- **Top bar:** Fixed visual hierarchy (`z-index`), height **H** measured at runtime from the bar’s `getBoundingClientRect().height` and exposed as a CSS variable on the page shell where used for overlap math.
 - **Scroll region (`.scrollMain`):** Negative `margin-top` of **H** pulls content **up under** the top bar; inner wrapper (`.scrollInner`) uses **`padding-top: H`** so that at **`scrollTop === 0`** the **meta band** occupies the region **behind** the bar.
 - **Meta block (`.metaReveal`):** Date, label chips, comedy rating. `min-height` is at least **H** so the reveal band is stable as content grows.
 - **Initial scroll (“snap below meta”):** After layout sync, set `scrollTop = 0`, force layout, then set `scrollTop` from **geometry**: difference between the **read surface** (or edit block) top and the **scrollport** top. This avoids fragile `offsetTop + padding` arithmetic that caused incorrect initial scroll when switching notes or refreshing.
@@ -55,12 +54,12 @@ The global app chrome behaves differently on note detail: the **main app header 
 
 ### 4.4 Dark canvas
 
-- Toggle via ellipsis menu: **“Use Dark Background”** (persisted in `localStorage` under `notesNursery_notesTestUseDarkBg`).
-- Shell tokens override background/surface/text; read HTML/Markdown roots follow **`data-nn-read-body-root`** styling; common inline “black ink” spans/fonts are remapped for readability on dark.
+- **Global appearance** (hamburger menu: Light / Dark) drives the note shell; legacy `localStorage` key `notesNursery_notesTestUseDarkBg` is migrated once to `notesNursery_colorScheme` by the inline boot script in `index.html`.
+- When the app theme is dark, `.shellDark` applies read HTML/Markdown roots via **`data-nn-read-body-root`** styling; common inline “black ink” spans/fonts are remapped for readability on dark.
 
 ### 4.5 Menus and secondary actions
 
-- **More (⋯):** Note info, transfer, POS tools, theme (light/dark canvas), delete, etc.
+- **More (⋯):** Note info, transfer, POS tools, attach/delete, etc. (appearance: hamburger menu.)
 - **Labels:** Drill sheet with search; chip remove on the meta row where applicable.
 - **Errors:** `actionError` may render **between** the top bar and the scroll main (affects perceived “chrome” height; see open issues).
 
@@ -72,22 +71,21 @@ The global app chrome behaves differently on note detail: the **main app header 
 |------|----------|
 | Routes, shell classes | `src/App.jsx` |
 | Viewport / main flush | `src/index.css` |
-| Page logic, scroll sync, menus | `src/pages/NotesTestPage.jsx` |
-| Layout / dark canvas CSS | `src/pages/NotesTestPage.module.css` |
-| Nav link to hub | `src/components/AppHeaderNav.jsx` |
-| Auth gate on detail | `NotesTestPage.jsx` → `Navigate` to `/login` when remote backend and no user |
+| Page logic, scroll sync, menus | `src/pages/NoteDetailPage.jsx` |
+| Layout / dark canvas CSS | `src/pages/NoteDetailPage.module.css` |
+| Auth gate on detail | `NoteDetailPage.jsx` → `Navigate` to `/login` when remote backend and no user |
 
 ---
 
 ## 6. Current progress (completed or largely working)
 
-- [x] `/notes-test` hub and `/notes-test/:noteId` detail routes.
+- [x] Default `/notes/:noteId` detail route; legacy `/notes-test` redirects.
 - [x] Hide global header on detail path; dedicated top bar + pinned viewport shell.
-- [x] Meta band behind measured top bar height; **subpixel-accurate** `--notesTestTopBarOverlap` (no premature `ceil` of bar height).
+- [x] Meta band behind measured top bar height; subpixel-accurate overlap (no premature `ceil` of bar height).
 - [x] **Geometry-based** initial scroll snap (`getBoundingClientRect` delta) plus **ResizeObserver** on meta, scrollport, bar, and anchor; delayed re-snap (~120ms) and resize handler for late layout.
 - [x] **Minimum inner height** so short notes can still scroll enough to reveal meta.
 - [x] Mobile editor toolbar variant, tap-edit flow, save, delete modal, transfer, note info, comedy rating on meta row.
-- [x] Labels drill sheet; dark canvas toggle with read-body token alignment and inline color remapping.
+- [x] Labels drill sheet; global dark/light theme with read-body token alignment and inline color remapping.
 - [x] Auth: unauthenticated users with remote backend redirected to login.
 
 ---

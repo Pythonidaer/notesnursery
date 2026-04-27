@@ -288,10 +288,12 @@ export default function LibraryPage() {
             <li key={note.id}>
               <div className={styles.row}>
                 <span className={styles.rowLeft}>
-                  <span className={styles.titleWithAudio}>
-                    <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
-                      <span className={styles.titleOnly}>{note.title}</span>
-                    </Link>
+                  <Link
+                    to={`/notes/${note.id}`}
+                    state={noteDetailLinkState}
+                    className={styles.titleLink}
+                  >
+                    <span className={styles.titleOnly}>{note.title}</span>
                     {noteHasEmbeddedAudio(note) ? (
                       <span
                         className={styles.titleAudioIcon}
@@ -302,7 +304,7 @@ export default function LibraryPage() {
                         <NoteAudioListIcon />
                       </span>
                     ) : null}
-                  </span>
+                  </Link>
                   <ComedyRatingTrigger note={note} variant="library" />
                 </span>
                 <NoteRowLabelChips labels={note.labels} />
@@ -320,10 +322,12 @@ export default function LibraryPage() {
                   <li key={note.id}>
                     <div className={styles.row}>
                       <span className={styles.rowLeft}>
-                        <span className={styles.titleWithAudio}>
-                          <Link to={`/notes/${note.id}`} state={noteDetailLinkState} className={styles.titleLink}>
-                            <span className={styles.titleOnly}>{note.title}</span>
-                          </Link>
+                        <Link
+                          to={`/notes/${note.id}`}
+                          state={noteDetailLinkState}
+                          className={styles.titleLink}
+                        >
+                          <span className={styles.titleOnly}>{note.title}</span>
                           {noteHasEmbeddedAudio(note) ? (
                             <span
                               className={styles.titleAudioIcon}
@@ -334,7 +338,7 @@ export default function LibraryPage() {
                               <NoteAudioListIcon />
                             </span>
                           ) : null}
-                        </span>
+                        </Link>
                         <ComedyRatingTrigger note={note} variant="library" />
                       </span>
                       <NoteRowLabelChips labels={note.labels} />

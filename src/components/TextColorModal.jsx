@@ -39,7 +39,6 @@ function colorToHex(/** @type {string | null} */ c) {
  *   open: boolean,
  *   onClose: () => void,
  *   initialColor: string | null,
- *   canvasDark?: boolean,
  *   onApply: (hexOrNull: string | null) => void,
  * }} props
  */
@@ -47,7 +46,6 @@ export default function TextColorModal({
   open,
   onClose,
   initialColor,
-  canvasDark = false,
   onApply,
 }) {
   const [hex, setHex] = useState('#2563eb');
@@ -90,7 +88,6 @@ export default function TextColorModal({
     >
       <div
         className={styles.dialog}
-        data-theme={canvasDark ? 'dark' : 'light'}
         role="dialog"
         aria-modal="true"
         aria-labelledby="text-color-title"

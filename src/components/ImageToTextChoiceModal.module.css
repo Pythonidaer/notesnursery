@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1250;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--backdrop-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,16 +17,7 @@
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
-}
-
-.dialog[data-theme='dark'] {
-  --surface: #2c2c2e;
-  --surface-active: #3a3a3c;
-  --text: #f5f5f7;
-  --muted: #98989d;
-  --border: rgba(255, 255, 255, 0.14);
-  --accent: #6b9e82;
+  box-shadow: var(--dialog-shadow);
 }
 
 .header {

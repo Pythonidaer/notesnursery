@@ -492,36 +492,36 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Portaled toolbar is under document.body — use explicit dark chrome (matches notes-test shellDark). */
-.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarMobilePill,
-.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarMobilePill {
+/* Portaled toolbar is under document.body — dark chrome follows global html[data-theme]. */
+:global(html[data-theme='dark']) .toolbarMobileFixed .toolbarMobilePill,
+:global(html[data-theme='dark']) .toolbarMobileEmbedded .toolbarMobilePill {
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: color-mix(in srgb, #2c2c2e 90%, transparent);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
-.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn {
-  color: #f5f5f7;
+:global(html[data-theme='dark']) .toolbarMobileFixed .toolbarInnerMobile .toolBtn {
+  color: var(--text);
 }
 
-.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn:hover,
-.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn:hover {
+:global(html[data-theme='dark']) .toolbarMobileFixed .toolbarInnerMobile .toolBtn:hover,
+:global(html[data-theme='dark']) .toolbarMobileEmbedded .toolbarInnerMobile .toolBtn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtnActive,
-.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtnActive {
+:global(html[data-theme='dark']) .toolbarMobileFixed .toolbarInnerMobile .toolBtnActive,
+:global(html[data-theme='dark']) .toolbarMobileEmbedded .toolbarInnerMobile .toolBtnActive {
   background: rgba(255, 255, 255, 0.14);
-  color: #95c4a8;
+  color: var(--accent-muted);
 }
 
-.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn {
-  color: #f5f5f7;
+:global(html[data-theme='dark']) .toolbarMobileEmbedded .toolbarInnerMobile .toolBtn {
+  color: var(--text);
 }
 
 .toolbarMobileEmbedded {
   position: sticky;
-  top: var(--notesTestTopBarApprox, 3.35rem);
+  top: var(--noteDetailTopBarApprox, 3.35rem);
   z-index: 5;
   flex-shrink: 0;
   display: flex;

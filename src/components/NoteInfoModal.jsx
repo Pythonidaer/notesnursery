@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './NoteInfoModal.module.css';
 
@@ -8,18 +8,9 @@ import styles from './NoteInfoModal.module.css';
  *   onClose: () => void,
  *   sourceFileName: string,
  *   createdAtSource: string,
- *   canvasDark?: boolean,
  * }} props
  */
-export default function NoteInfoModal({
-  open,
-  onClose,
-  sourceFileName,
-  createdAtSource,
-  canvasDark: canvasDarkProp,
-}) {
-  const [canvasDarkDetected, setCanvasDarkDetected] = useState(false);
-
+export default function NoteInfoModal({ open, onClose, sourceFileName, createdAtSource }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -29,22 +20,12 @@ export default function NoteInfoModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const el = document.querySelector('[data-notes-canvas]');
-    setCanvasDarkDetected(el?.getAttribute('data-notes-canvas') === 'dark');
-  }, [open]);
-
   if (!open) return null;
-
-  const canvasDark = canvasDarkProp ?? canvasDarkDetected;
-  const theme = canvasDark ? 'dark' : undefined;
 
   return createPortal(
     <div
       className={styles.backdrop}
       data-nn-dismiss-shield
-      data-theme={theme}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -52,7 +33,6 @@ export default function NoteInfoModal({
     >
       <div
         className={styles.dialog}
-        data-theme={theme}
         role="dialog"
         aria-modal="true"
         aria-labelledby="note-info-title"

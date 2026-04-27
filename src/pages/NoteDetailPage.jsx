@@ -1,24 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import PlusIcon from '../components/PlusIcon.jsx';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  AudioLines,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Key,
+  MoreHorizontal,
+  ScanText,
+  SquarePen,
+  Tag,
+  Trash2,
+} from 'lucide-react';
+import AppHeaderNav from '../components/AppHeaderNav.jsx';
 import ComedyRatingTrigger from '../components/ComedyRatingTrigger.jsx';
 import DeleteNoteModal from '../components/DeleteNoteModal.jsx';
-import NoteBodyContent from '../components/NoteBodyContent.jsx';
-import NoteRichTextEditor from '../components/NoteRichTextEditor.jsx';
 import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
-import LabelPicker from '../components/LabelPicker.jsx';
+import NoteBodyContent from '../components/NoteBodyContent.jsx';
 import NoteInfoCircleIcon from '../components/NoteInfoCircleIcon.jsx';
 import NoteInfoModal from '../components/NoteInfoModal.jsx';
-import PosLegendPopover from '../components/PosLegendPopover.jsx';
+import ImageToTextChoiceModal from '../components/ImageToTextChoiceModal.jsx';
+import NoteRichTextEditor from '../components/NoteRichTextEditor.jsx';
 import NoteTransferPanel from '../components/NoteTransferPanel.jsx';
+import PosLegendPopover from '../components/PosLegendPopover.jsx';
+import Toast from '../components/Toast.jsx';
 import { NoteEditFloatingAudioProvider } from '../components/NoteEditFloatingAudioContext.jsx';
 import NoteEditFloatingAudioDock from '../components/NoteEditFloatingAudioDock.jsx';
-import Toast from '../components/Toast.jsx';
 import { requiresAuthForPersistence, useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
-import { collectAllLabels } from '../utils/noteLabels.js';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { useVisualViewportKeyboardInset } from '../hooks/useVisualViewportKeyboardInset.js';
+import { collectAllLabels, normalizeLabel } from '../utils/noteLabels.js';
 import { normalizeNoteSourceDateInput } from '../utils/parseAppleNoteDate.js';
 import {
   CONTENT_TYPE_HTML,
@@ -28,138 +45,45 @@ import {
 import { getNoteHtmlForRichEditor } from '../utils/noteEditorHtml.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
-import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { ocrImageFileToText } from '../lib/ocrImageToText.js';
+import { getSupabase } from '../lib/supabaseClient.js';
+import { appendOcrPlainTextToTipTap } from '../utils/appendOcrPlainTextToTipTap.js';
+import { isOcrImageToTextUser } from '../utils/ocrImageToTextGate.js';
+import labelPickerStyles from '../components/LabelPicker.module.css';
 import styles from './NoteDetailPage.module.css';
 
-function PencilIcon() {
+/** @param {{ className?: string }} props */
+function BackChevronButton({ className, ...rest }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SaveIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M18 6L6 18M6 6l12 12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M10 11v6M14 11v6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/** Browser back when possible; else `location.state.from` from list links; else `/library`. */
-function BackNav({ className }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleBack = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-    const from = location.state?.from;
-    if (typeof from === 'string' && from.startsWith('/')) {
-      navigate(from);
-      return;
-    }
-    navigate('/library');
-  }, [navigate, location.state]);
-
-  return (
-    <button type="button" className={className ?? styles.back} onClick={handleBack} aria-label="Go back">
-      ← Back
+    <button type="button" className={className ?? styles.iconCircleBtn} {...rest}>
+      <ChevronLeft className={styles.backIcon} strokeWidth={2.25} aria-hidden />
     </button>
   );
 }
 
-function NoteDetailSkeleton() {
-  return (
-    <div className={styles.article} aria-busy="true" aria-live="polite">
-      <div className={styles.topBar}>
-        <BackNav />
-        <div className={styles.skeletonToolbar} aria-hidden />
-      </div>
-      <div className={styles.skeletonHeader}>
-        <div className={styles.skeletonTitle} />
-        <div className={styles.skeletonMetaRow}>
-          <span className={styles.skeletonChip} />
-          <span className={styles.skeletonChip} />
-        </div>
-      </div>
-      <div className={styles.skeletonBody}>
-        <div className={`${styles.skeletonLine} ${styles.skeletonLineLong}`} />
-        <div className={`${styles.skeletonLine} ${styles.skeletonLineLong}`} />
-        <div className={`${styles.skeletonLine} ${styles.skeletonLineMed}`} />
-        <div className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
-      </div>
-      <p className={styles.loadingHint}>Loading note…</p>
-    </div>
-  );
-}
-
-export default function NoteDetailPage() {
+function NoteDetailView() {
   const { noteId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, authInitializing } = useAuth();
+  const { resolvedColorScheme } = useTheme();
   const remote = useSupabaseBackend();
+  const canvasDark = resolvedColorScheme === 'dark';
   const { notes, updateNote, deleteNote, noteListReady } = useNotes();
   const note = notes.find((n) => n.id === noteId);
+  const lastModifiedLine =
+    note?.modifiedAtSource?.trim() || note?.createdAtSource?.trim() || '—';
 
-  const isLoadingNote =
-    remote && (authInitializing || (Boolean(user) && !noteListReady));
+  const isLoadingNote = remote && (authInitializing || (Boolean(user) && !noteListReady));
 
   const [isEditing, setIsEditing] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [draftHtml, setDraftHtml] = useState('');
-  /** Bumps when entering edit so TipTap remounts with fresh HTML. */
   const [editSessionKey, setEditSessionKey] = useState(0);
-  /** True when this edit session started from a markdown-stored note (hint only). */
   const [editStartedFromMarkdown, setEditStartedFromMarkdown] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
-  const [draftCreatedAt, setDraftCreatedAt] = useState('');
   const originalBodyRef = useRef('');
   const originalMarkdownRef = useRef('');
-  /** Snapshot of `content_type` when edit began (for discard). */
   const originalContentTypeRef = useRef(/** @type {string} */ (CONTENT_TYPE_HTML));
   const originalTitleRef = useRef('');
   const originalCreatedRef = useRef('');
@@ -174,16 +98,48 @@ export default function NoteDetailPage() {
   const [transferSnippet, setTransferSnippet] = useState('');
   const [posAnalysisOn, setPosAnalysisOn] = useState(false);
   const [posLegendOpen, setPosLegendOpen] = useState(false);
-  /** Must stay a ref: updating state after POS overlay runs re-renders the body and reapplies innerHTML, wiping tags. */
   const posUsedAbbreviationsRef = useRef(/** @type {string[]} */ ([]));
   const posToolbarClusterRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const posLegendLayerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tiptapRef = useRef(/** @type {import('@tiptap/core').Editor | null} */ (null));
+  const titleEditRowRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const titleTextSlotRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const titleMeasureRef = useRef(/** @type {HTMLSpanElement | null} */ (null));
+  const titleInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [moreMenuLabelsOpen, setMoreMenuLabelsOpen] = useState(false);
+  const [labelsSheetQuery, setLabelsSheetQuery] = useState('');
+  const [bottomAttachOpen, setBottomAttachOpen] = useState(false);
+  const [attachAudioOpenRequest, setAttachAudioOpenRequest] = useState(0);
+  const [ocrChoiceModalOpen, setOcrChoiceModalOpen] = useState(false);
+  const [ocrModalLoading, setOcrModalLoading] = useState(false);
+  const [ocrModalError, setOcrModalError] = useState(/** @type {string | null} */ (null));
+  const pendingOcrAfterEditRef = useRef(false);
+  /**
+   * Sticky-under-header toolbar only on narrow viewports so the pill avoids the bottom Grammar
+   * row / keyboard. From lg (1024px) up, keep the format bar fixed to the bottom via portal —
+   * typical laptop/desktop layout.
+   */
+  const embedToolbarInScroll = useMediaQuery('(max-width: 1023.98px)');
+  const vvInsetBottom = useVisualViewportKeyboardInset();
+  const scrollRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const metaRevealRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const readSurfaceRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const tapRef = useRef(/** @type {{ x: number, y: number } | null} */ (null));
+  /** Pointer that starts on a modal backdrop can end on the note underneath; block tap-to-edit briefly (Apple Notes-style). */
+  const readSurfaceSuppressEditUntilRef = useRef(0);
 
-  /** Switch to explicit mobile read-only header structure (title → chips → selector/stars). */
-  const isWideViewport = useMediaQuery('(min-width: 640px)');
+  const canOcrScan = useMemo(
+    () => Boolean(remote && user && isOcrImageToTextUser(user)),
+    [remote, user]
+  );
 
   const labelSuggestions = useMemo(() => collectAllLabels(notes), [notes]);
+
+  const allLabelsCatalog = useMemo(() => {
+    const set = new Set([...labelSuggestions, ...(note?.labels ?? [])]);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [labelSuggestions, note?.labels]);
 
   const handleEditorReady = useCallback((ed) => {
     tiptapRef.current = ed;
@@ -211,9 +167,17 @@ export default function NoteDetailPage() {
     setDraftHtml('');
     setEditStartedFromMarkdown(false);
     setDraftTitle('');
-    setDraftCreatedAt('');
     setPosAnalysisOn(false);
     setPosLegendOpen(false);
+    setMoreMenuOpen(false);
+    setMoreMenuLabelsOpen(false);
+    setLabelsSheetQuery('');
+    setBottomAttachOpen(false);
+    setAttachAudioOpenRequest(0);
+    setOcrChoiceModalOpen(false);
+    setOcrModalLoading(false);
+    setOcrModalError(null);
+    pendingOcrAfterEditRef.current = false;
     posUsedAbbreviationsRef.current = [];
     originalBodyRef.current = '';
     originalMarkdownRef.current = '';
@@ -225,6 +189,22 @@ export default function NoteDetailPage() {
 
   const dismissToast = useCallback(() => setToastMessage(null), []);
 
+  const READ_SURFACE_EDIT_SUPPRESS_MS = 520;
+  const armReadSurfaceEditSuppress = useCallback(() => {
+    readSurfaceSuppressEditUntilRef.current = performance.now() + READ_SURFACE_EDIT_SUPPRESS_MS;
+  }, []);
+
+  useEffect(() => {
+    const onPointerDownCapture = (e) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (!t.matches('[data-nn-dismiss-shield]')) return;
+      armReadSurfaceEditSuppress();
+    };
+    document.addEventListener('pointerdown', onPointerDownCapture, true);
+    return () => document.removeEventListener('pointerdown', onPointerDownCapture, true);
+  }, [armReadSurfaceEditSuppress]);
+
   const handlePosUsedAbbreviationsChange = useCallback((abbrs) => {
     posUsedAbbreviationsRef.current = Array.isArray(abbrs) ? abbrs : [];
   }, []);
@@ -235,6 +215,12 @@ export default function NoteDetailPage() {
       posUsedAbbreviationsRef.current = [];
     }
   }, [posAnalysisOn]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    setPosAnalysisOn(false);
+    setPosLegendOpen(false);
+  }, [isEditing]);
 
   useEffect(() => {
     if (!posLegendOpen) return;
@@ -258,25 +244,172 @@ export default function NoteDetailPage() {
     };
   }, [posLegendOpen]);
 
+  /** `field-sizing: content` under-measures proportional title fonts; measure in a hidden span instead. */
+  const syncTitleFieldWidth = useCallback(() => {
+    const row = titleEditRowRef.current;
+    const slot = titleTextSlotRef.current;
+    const meas = titleMeasureRef.current;
+    const input = titleInputRef.current;
+    if (!row || !slot || !meas || !input) return;
+
+    const btn = row.querySelector(':scope > button');
+    const btnW = btn instanceof HTMLElement ? btn.getBoundingClientRect().width : 0;
+    const rowCs = getComputedStyle(row);
+    const gapPx = parseFloat(rowCs.columnGap || rowCs.gap) || 0;
+    const maxUsable = Math.max(48, row.getBoundingClientRect().width - btnW - gapPx);
+
+    const inputCs = getComputedStyle(input);
+    const padH = (parseFloat(inputCs.paddingLeft) || 0) + (parseFloat(inputCs.paddingRight) || 0);
+    meas.textContent = draftTitle.length > 0 ? draftTitle : 'Title';
+    const natural = Math.round(meas.scrollWidth + padH);
+
+    if (natural <= maxUsable) {
+      slot.style.flex = '';
+      slot.style.minWidth = '';
+      slot.style.width = '';
+      input.style.flex = '0 0 auto';
+      input.style.width = `${Math.max(natural, draftTitle.length > 0 ? 40 : 64)}px`;
+      input.style.minWidth = '';
+      input.style.maxWidth = '';
+      input.style.overflowX = 'visible';
+    } else {
+      slot.style.flex = '1 1 auto';
+      slot.style.minWidth = '0';
+      slot.style.width = '';
+      input.style.flex = '1 1 auto';
+      input.style.width = 'auto';
+      input.style.minWidth = '0';
+      input.style.maxWidth = 'none';
+      input.style.overflowX = 'auto';
+    }
+  }, [draftTitle]);
+
+  useLayoutEffect(() => {
+    if (!isEditing) return;
+    syncTitleFieldWidth();
+  }, [isEditing, syncTitleFieldWidth]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const onResize = () => syncTitleFieldWidth();
+    window.addEventListener('resize', onResize);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      vv?.removeEventListener('resize', onResize);
+    };
+  }, [isEditing, syncTitleFieldWidth]);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (moreMenuLabelsOpen) {
+        setMoreMenuLabelsOpen(false);
+        return;
+      }
+      setMoreMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [moreMenuOpen, moreMenuLabelsOpen]);
+
+  useEffect(() => {
+    if (!moreMenuOpen) setMoreMenuLabelsOpen(false);
+  }, [moreMenuOpen]);
+
+  useEffect(() => {
+    if (!moreMenuLabelsOpen) setLabelsSheetQuery('');
+  }, [moreMenuLabelsOpen]);
+
+  useEffect(() => {
+    if (!bottomAttachOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setBottomAttachOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [bottomAttachOpen]);
+
+  /**
+   * Single initial scroll: skip the metadata band so the title/body sit below the sticky header.
+   * No ResizeObserver/RAF/fonts — if meta height changes after load (e.g. async chips), user can nudge scroll.
+   */
+  useLayoutEffect(() => {
+    const sc = scrollRef.current;
+    const meta = metaRevealRef.current;
+    if (!sc || !meta || !note) return;
+    const errEl = sc.querySelector('[data-note-detail-scroll-error]');
+    const errH = errEl instanceof HTMLElement ? errEl.offsetHeight : 0;
+    sc.scrollTop = errH + meta.offsetHeight;
+  }, [noteId, isEditing, editSessionKey, note?.id, actionError]);
+
+  useEffect(() => {
+    if (!isEditing || !pendingOcrAfterEditRef.current) return;
+    pendingOcrAfterEditRef.current = false;
+    const id = requestAnimationFrame(() => setOcrChoiceModalOpen(true));
+    return () => cancelAnimationFrame(id);
+  }, [isEditing]);
+
   if (remote && !authInitializing && !user) {
     return <Navigate to="/login" replace />;
   }
 
   if (isLoadingNote) {
-    return <NoteDetailSkeleton />;
+    return (
+      <div
+        className={`${styles.shell}${canvasDark ? ` ${styles.shellDark}` : ''}`}
+        aria-busy="true"
+      >
+        <div className={styles.topBar}>
+          <BackChevronButton aria-label="Go back" disabled />
+        </div>
+        <div className={styles.skelTop} />
+        <div className={styles.skelTitle} />
+        <div className={styles.skelBody} />
+        <p className={styles.loadingHint}>Loading note…</p>
+      </div>
+    );
   }
 
   if (!note) {
     return (
-      <div className={styles.notFound}>
-        <h1 className={styles.heading}>Note not found</h1>
-        <p className={styles.lead}>
-          It may have been cleared when you refreshed, or the link is invalid.
-        </p>
-        <BackNav className={styles.backLink} />
+      <div className={`${styles.shell}${canvasDark ? ` ${styles.shellDark}` : ''}`}>
+        <div className={styles.topBar}>
+          <BackChevronButton
+            aria-label="Go back"
+            onClick={() => {
+              navigate('/library');
+            }}
+          />
+        </div>
+        <div className={styles.notFound}>
+          <h1>Note not found</h1>
+          <p>
+            <Link to="/library">Library</Link>
+          </p>
+        </div>
       </div>
     );
   }
+
+  const handleBack = async () => {
+    if (isEditing && (draftTitle !== originalTitleRef.current || draftHtml !== originalBodyRef.current)) {
+      if (!window.confirm('Discard your edits?')) return;
+      await exitEditMode();
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    const from = location.state?.from;
+    if (typeof from === 'string' && from.startsWith('/')) {
+      navigate(from);
+      return;
+    }
+    navigate('/library');
+  };
 
   const startEdit = () => {
     setActionError(null);
@@ -292,11 +425,47 @@ export default function NoteDetailPage() {
     setDraftHtml(getNoteHtmlForRichEditor(note));
     setEditSessionKey((k) => k + 1);
     setDraftTitle(note.title);
-    setDraftCreatedAt(note.createdAtSource ?? '');
     setIsEditing(true);
   };
 
-  /** Discards in-progress edits (title, dates, body). Label edits stay applied. */
+  const handleOcrFileFromModal = async (/** @type {File} */ file) => {
+    if (!canOcrScan || !file) return;
+    const supabase = getSupabase();
+    if (!supabase) {
+      setOcrModalError('Sign in to import text from images');
+      return;
+    }
+    setOcrModalError(null);
+    setOcrModalLoading(true);
+    try {
+      const text = await ocrImageFileToText(supabase, file);
+      const ed = tiptapRef.current;
+      if (ed) appendOcrPlainTextToTipTap(ed, text);
+      setOcrChoiceModalOpen(false);
+      setToastMessage('Text added from image');
+    } catch (e) {
+      setOcrModalError(e instanceof Error ? e.message : 'Could not read text from image');
+    } finally {
+      setOcrModalLoading(false);
+    }
+  };
+
+  const triggerImageToTextPicker = () => {
+    setMoreMenuOpen(false);
+    setBottomAttachOpen(false);
+    setOcrModalError(null);
+    if (!canOcrScan) {
+      setToastMessage('Image scan needs a signed-in account with access enabled.');
+      return;
+    }
+    if (!isEditing) {
+      pendingOcrAfterEditRef.current = true;
+      startEdit();
+      return;
+    }
+    setOcrChoiceModalOpen(true);
+  };
+
   const exitEditMode = async () => {
     setActionError(null);
     try {
@@ -321,11 +490,10 @@ export default function NoteDetailPage() {
         });
       }
       setDraftTitle(originalTitleRef.current);
-      setDraftCreatedAt(originalCreatedRef.current);
       setEditStartedFromMarkdown(false);
       setIsEditing(false);
     } catch (e) {
-      console.error('[notes] discard edit failed', e);
+      console.error('[note-detail] discard edit failed', e);
       setActionError(e instanceof Error ? e.message : 'Could not revert changes');
     }
   };
@@ -338,7 +506,7 @@ export default function NoteDetailPage() {
       return;
     }
     setSaving(true);
-    const createdNorm = normalizeNoteSourceDateInput(draftCreatedAt);
+    const createdNorm = normalizeNoteSourceDateInput(originalCreatedRef.current);
     const modifiedNorm = normalizeNoteSourceDateInput(originalModifiedRef.current);
     const titleSaved = draftTitle.trim() || 'Untitled';
     const bodySaved = sanitizeNoteHtml(prepareNoteBodyHtml(draftHtml));
@@ -352,7 +520,6 @@ export default function NoteDetailPage() {
         modifiedAtSource: modifiedNorm,
       });
       originalTitleRef.current = titleSaved;
-      originalCreatedRef.current = createdNorm;
       originalMarkdownRef.current = '';
       originalBodyRef.current = bodySaved;
       originalContentTypeRef.current = CONTENT_TYPE_HTML;
@@ -360,7 +527,7 @@ export default function NoteDetailPage() {
       setIsEditing(false);
       setToastMessage('Note saved');
     } catch (e) {
-      console.error('[notes] save from detail failed', e);
+      console.error('[note-detail] save failed', e);
       setActionError(e instanceof Error ? e.message : 'Could not save note');
     } finally {
       setSaving(false);
@@ -380,7 +547,7 @@ export default function NoteDetailPage() {
       setDeleteModalOpen(false);
       navigate('/library', { replace: true, state: { flashToast: 'Note deleted' } });
     } catch (e) {
-      console.error('[notes] delete from detail failed', e);
+      console.error('[note-detail] delete failed', e);
       setActionError(e instanceof Error ? e.message : 'Could not delete note');
       setDeleteModalOpen(false);
     } finally {
@@ -388,189 +555,478 @@ export default function NoteDetailPage() {
     }
   };
 
-  const currentLabels = note.labels ?? [];
+  const removeLabelAt = (idx) => {
+    const next = (note.labels ?? []).filter((_, i) => i !== idx);
+    void updateNote(note.id, { labels: next });
+  };
 
-  const posAnalysisClusterEl =
-    !isEditing ? (
-      <div className={styles.posToolbarCluster} ref={posToolbarClusterRef}>
-        <div className={styles.posLegendAnchor}>
+  const onReadPointerDown = (e) => {
+    if (performance.now() < readSurfaceSuppressEditUntilRef.current) {
+      tapRef.current = null;
+      return;
+    }
+    if (e.target instanceof Element && e.target.closest('a,button,input,textarea,select,audio,video')) {
+      tapRef.current = null;
+      return;
+    }
+    tapRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const onReadPointerUp = (e) => {
+    if (performance.now() < readSurfaceSuppressEditUntilRef.current) {
+      tapRef.current = null;
+      return;
+    }
+    const start = tapRef.current;
+    tapRef.current = null;
+    if (!start) return;
+    const dx = Math.abs(e.clientX - start.x);
+    const dy = Math.abs(e.clientY - start.y);
+    if (dx > 12 || dy > 12) return;
+    if (e.target instanceof Element && e.target.closest('a,button,input,textarea,select,audio,video')) return;
+    startEdit();
+  };
+
+  const requestInsertAudio = () => {
+    if (requiresAuthForPersistence() && !user) {
+      navigate('/login');
+      return;
+    }
+    if (!isEditing) startEdit();
+    setAttachAudioOpenRequest((n) => n + 1);
+  };
+
+  const confirmAttachAudioFromSheet = () => {
+    setBottomAttachOpen(false);
+    requestInsertAudio();
+  };
+
+  const currentLabels = note.labels ?? [];
+  const labelsSheetTrimmed = normalizeLabel(labelsSheetQuery);
+  const labelsFiltered = allLabelsCatalog.filter(
+    (l) =>
+      !labelsSheetTrimmed || l.toLowerCase().includes(labelsSheetTrimmed.toLowerCase())
+  );
+  const canCreateLabel =
+    Boolean(labelsSheetTrimmed) &&
+    !allLabelsCatalog.some((l) => l.toLowerCase() === labelsSheetTrimmed.toLowerCase()) &&
+    !currentLabels.some((l) => l.toLowerCase() === labelsSheetTrimmed.toLowerCase());
+
+  const toggleLabelOnNote = (label) => {
+    const t = normalizeLabel(label);
+    if (!t) return;
+    const has = currentLabels.some((l) => l.toLowerCase() === t.toLowerCase());
+    if (has) {
+      void updateNote(note.id, {
+        labels: currentLabels.filter((l) => l.toLowerCase() !== t.toLowerCase()),
+      });
+    } else {
+      void updateNote(note.id, { labels: [...currentLabels, t] });
+    }
+  };
+
+  const addNewLabelFromSheet = () => {
+    const t = normalizeLabel(labelsSheetTrimmed);
+    if (!t) return;
+    if (currentLabels.some((l) => l.toLowerCase() === t.toLowerCase())) return;
+    void updateNote(note.id, { labels: [...currentLabels, t] });
+    setLabelsSheetQuery('');
+  };
+
+  const moreMenu =
+    moreMenuOpen &&
+    createPortal(
+      <>
+        <div
+          className={styles.sheetBackdrop}
+          data-nn-dismiss-shield
+          role="presentation"
+          onClick={() => {
+            setMoreMenuOpen(false);
+            setMoreMenuLabelsOpen(false);
+          }}
+        />
+        <div
+          className={styles.sheetPanel}
+          data-theme={canvasDark ? 'dark' : 'light'}
+          role="dialog"
+          aria-label="Note menu"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
-            className={styles.infoBtn}
-            disabled={!posAnalysisOn}
-            aria-expanded={posAnalysisOn ? posLegendOpen : false}
-            aria-haspopup="dialog"
-            aria-controls="pos-legend-popover"
-            onClick={() => {
-              if (!posAnalysisOn) return;
-              setPosLegendOpen((o) => !o);
-            }}
-            aria-label="Word tag abbreviations in this note"
-            title={
-              posAnalysisOn
-                ? 'Tag key for word labels in this note'
-                : 'Turn on Grammar to use the tag key'
-            }
+            className={`${styles.sheetMenuBtn} ${styles.sheetMenuBtnDisclosure}`}
+            onClick={() => setMoreMenuLabelsOpen(true)}
           >
-            <NoteInfoCircleIcon />
+            <Tag className={styles.sheetMenuLeadingIcon} strokeWidth={2} aria-hidden />
+            <span className={styles.sheetMenuBtnLabelGrow}>Labels</span>
+            <ChevronRight className={styles.sheetMenuChevronTrail} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={styles.sheetMenuBtn}
+            disabled={!canOcrScan}
+            title={
+              canOcrScan ? 'Import text from a photo' : 'Sign in with scan access to use image import'
+            }
+            onClick={() => {
+              if (!canOcrScan) return;
+              triggerImageToTextPicker();
+            }}
+          >
+            <ScanText className={styles.sheetMenuLeadingIcon} strokeWidth={2} aria-hidden />
+            Scan Image to Text
+          </button>
+          <button
+            type="button"
+            className={styles.sheetMenuBtn}
+            title="Insert or attach audio"
+            onClick={() => {
+              setMoreMenuOpen(false);
+              setMoreMenuLabelsOpen(false);
+              requestInsertAudio();
+            }}
+          >
+            <AudioLines className={styles.sheetMenuLeadingIcon} strokeWidth={2} aria-hidden />
+            Attach Audio
+          </button>
+          <button
+            type="button"
+            className={`${styles.sheetMenuBtn} ${styles.sheetMenuBtnDanger}`}
+            onClick={() => {
+              setMoreMenuOpen(false);
+              setMoreMenuLabelsOpen(false);
+              setDeleteModalOpen(true);
+            }}
+          >
+            <Trash2 className={styles.sheetDeleteIcon} strokeWidth={2} aria-hidden />
+            Delete
           </button>
         </div>
-        <button
-          type="button"
-          className={styles.posAnalysisBtn}
-          aria-pressed={posAnalysisOn}
-          onClick={() => setPosAnalysisOn((on) => !on)}
-          title="Show word tags under each word (read-only)"
-          aria-label="Toggle grammar (word tags)"
-        >
-          Grammar
-        </button>
-      </div>
-    ) : null;
-
-  const noteToolbar = (
-    <div className={styles.topActions} role="toolbar" aria-label="Note actions">
-      {posAnalysisClusterEl}
-      <button
-        type="button"
-        className={styles.iconBtn}
-        onClick={startEdit}
-        disabled={isEditing || saving}
-        aria-label="Edit note"
-        title="Edit"
-      >
-        <PencilIcon />
-      </button>
-      <button
-        type="button"
-        className={styles.iconBtn}
-        onClick={() => void handleSave()}
-        disabled={!isEditing || saving}
-        aria-label="Save note"
-        title="Save"
-      >
-        <SaveIcon />
-      </button>
-      <button
-        type="button"
-        className={styles.iconBtn}
-        onClick={() => setComposerOpen(true)}
-        disabled={saving}
-        aria-label="Add new note"
-        title="Add note"
-      >
-        <PlusIcon />
-      </button>
-      <button
-        type="button"
-        className={styles.iconBtn}
-        onClick={() => setDeleteModalOpen(true)}
-        disabled={saving}
-        aria-label="Delete note"
-        title="Delete"
-      >
-        <TrashIcon />
-      </button>
-      {isEditing ? (
-        <button
-          type="button"
-          className={styles.iconBtn}
-          onClick={() => void exitEditMode()}
-          disabled={saving}
-          aria-label="Exit edit mode"
-          title="Discard changes and exit edit"
-        >
-          <XIcon />
-        </button>
-      ) : null}
-    </div>
-  );
-
-  const actionErrorEl = actionError ? <p className={styles.actionError}>{actionError}</p> : null;
-
-  const headerSection = (
-    <header className={styles.header}>
-      <LabelPicker
-        idPrefix="detail"
-        availableLabels={labelSuggestions}
-        selectedLabels={currentLabels}
-        onChange={(next) => void updateNote(note.id, { labels: next })}
-        placeholder="Add label…"
-        layout="noteHeader"
-        variant="compact"
-        chipsRowEnd={<ComedyRatingTrigger note={note} variant="detail" />}
-        noteHeaderMobileRead={!isEditing && !isWideViewport}
-      >
-        <div className={styles.titleInfoRow}>
-          <span className={styles.titleInfoPair}>
-            {isEditing ? (
+        {moreMenuLabelsOpen ? (
+          <div
+            className={styles.labelsDrillPanel}
+            data-theme={canvasDark ? 'dark' : 'light'}
+            role="dialog"
+            aria-label="Labels"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.labelsDrillHeader}>
+              <Tag className={styles.labelsDrillHeaderIcon} strokeWidth={2} aria-hidden />
+              <span className={styles.labelsDrillHeaderTitle}>Labels</span>
+              <button
+                type="button"
+                className={styles.labelsDrillHeaderCollapse}
+                aria-label="Back to note menu"
+                onClick={() => setMoreMenuLabelsOpen(false)}
+              >
+                <ChevronDown strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+            <div className={styles.labelsDrillBody}>
+              <label className={styles.labelsDrillSearchLabel} htmlFor="note-detail-labels-search">
+                Search or add a label
+              </label>
               <input
-                id="note-detail-title"
-                className={styles.titleInput}
-                value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
-                aria-label="Note title"
-                placeholder="Title"
+                id="note-detail-labels-search"
+                type="search"
+                className={styles.labelsDrillSearch}
+                value={labelsSheetQuery}
+                onChange={(e) => setLabelsSheetQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  if (!canCreateLabel) return;
+                  e.preventDefault();
+                  addNewLabelFromSheet();
+                }}
+                placeholder="Search labels…"
+                autoComplete="off"
+                enterKeyHint="search"
               />
-            ) : (
-              <h1 className={styles.title}>{note.title}</h1>
-            )}
+              {canCreateLabel ? (
+                <button type="button" className={styles.labelsDrillAddNew} onClick={addNewLabelFromSheet}>
+                  <span className={styles.labelsDrillAddNewPlus} aria-hidden>
+                    +
+                  </span>
+                  <span>
+                    Add &quot;{labelsSheetTrimmed}&quot; to this note
+                  </span>
+                </button>
+              ) : null}
+              <ul className={styles.labelsDrillList} role="listbox" aria-label="Labels">
+                {labelsFiltered.length === 0 && !canCreateLabel ? (
+                  <li className={styles.labelsDrillEmpty}>No matching labels</li>
+                ) : null}
+                {labelsFiltered.map((label) => {
+                  const on = currentLabels.some((l) => l.toLowerCase() === label.toLowerCase());
+                  return (
+                    <li key={label} className={styles.labelsDrillListItem} role="none">
+                      <button
+                        type="button"
+                        className={styles.labelsDrillRow}
+                        role="option"
+                        aria-selected={on}
+                        onClick={() => toggleLabelOnNote(label)}
+                      >
+                        <FileText className={styles.labelsDrillRowIcon} strokeWidth={2} aria-hidden />
+                        <span className={styles.labelsDrillRowLabel}>{label}</span>
+                        {on ? (
+                          <Check className={styles.labelsDrillRowCheck} strokeWidth={2.5} aria-hidden />
+                        ) : (
+                          <span className={styles.labelsDrillRowCheckSpacer} aria-hidden />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        ) : null}
+      </>,
+      document.body
+    );
+
+  const grammarFixedBottom = embedToolbarInScroll
+    ? undefined
+    : `max(${vvInsetBottom}px, calc(env(safe-area-inset-bottom, 0px) + 0.65rem))`;
+
+  const bottomClusterEl = (() => {
+    if (isEditing) return null;
+    return (
+      <div className={styles.bottomCluster} data-nn-canvas={canvasDark ? 'dark' : 'light'}>
+        <div className={styles.posCluster} ref={posToolbarClusterRef}>
+          <div className={styles.posLegendAnchor}>
             <button
               type="button"
               className={styles.infoBtn}
-              onClick={() => setInfoOpen(true)}
-              aria-label="Note info"
-              title="Get info"
+              disabled={!posAnalysisOn}
+              aria-expanded={posAnalysisOn ? posLegendOpen : false}
+              onClick={() => {
+                if (!posAnalysisOn) return;
+                setPosLegendOpen((o) => !o);
+              }}
+              aria-label="Word tag key"
+              title={posAnalysisOn ? 'Word tag key' : 'Turn on Grammar to use the tag key'}
             >
-              <NoteInfoCircleIcon />
+              <Key className={styles.grammarKeyIcon} strokeWidth={2} aria-hidden />
             </button>
-          </span>
+          </div>
+          <button
+            type="button"
+            className={styles.grammarBtn}
+            aria-pressed={posAnalysisOn}
+            onClick={() => setPosAnalysisOn((on) => !on)}
+          >
+            Grammar
+          </button>
         </div>
-      </LabelPicker>
-    </header>
-  );
+      </div>
+    );
+  })();
 
   return (
-    <article className={styles.article}>
-      <>
-        <div className={styles.topBar}>
-          <BackNav />
-          {noteToolbar}
-        </div>
-        {actionErrorEl}
-        {headerSection}
-      </>
-
-      {isEditing ? (
-        <div className={styles.metaEdit}>
-          <div className={styles.metaEditField}>
-            <label className={styles.metaEditLabel} htmlFor="note-source-created">
-              Source created
-            </label>
-            <div className={styles.metaEditControlRow}>
-              <input
-                id="note-source-created"
-                className={styles.metaEditInput}
-                value={draftCreatedAt}
-                onChange={(e) => setDraftCreatedAt(e.target.value)}
-                placeholder="YYYY-MM-DD or paste text"
-                autoComplete="off"
+    <div className={`${styles.shell}${canvasDark ? ` ${styles.shellDark}` : ''}`}>
+      <div className={styles.scrollMain} ref={scrollRef}>
+        <header className={styles.topBar}>
+          <BackChevronButton aria-label="Go back" onClick={handleBack} />
+          <div className={styles.topBarNavSlot}>
+            <Toast message={toastMessage} onDismiss={dismissToast} variant="headerMinimal" />
+            <div className={styles.topBarActionsPill} data-nn-top-nav-pill>
+              <AppHeaderNav
+                menuTriggerClassName={styles.topBarMenuTriggerInPill}
+                menuOverlapPill
+                onOutsideMenuPointerDownCapture={armReadSurfaceEditSuppress}
               />
               <button
                 type="button"
-                className={styles.addToExistingNoteBtn}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-                onClick={() => openTransferWithEditorSelection()}
-                aria-label="Add selected text to another note"
+                className={styles.topBarMoreInPill}
+                aria-label="More actions"
+                aria-expanded={moreMenuOpen}
+                onClick={() => setMoreMenuOpen((o) => !o)}
               >
-                Add to Existing Note
+                <MoreHorizontal className={styles.backIcon} strokeWidth={2} aria-hidden />
               </button>
             </div>
+            {isEditing ? (
+              <button
+                type="button"
+                className={`${styles.iconCircleBtn} ${styles.iconCircleBtnAccent}`}
+                aria-label="Save note"
+                title="Save"
+                disabled={saving}
+                onClick={() => void handleSave()}
+              >
+                <Check className={styles.backIcon} strokeWidth={2.5} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        </header>
+
+        {actionError ? (
+          <p className={styles.actionErrorBanner} data-note-detail-scroll-error>
+            {actionError}
+          </p>
+        ) : null}
+
+        <div className={styles.scrollInner}>
+          <div className={styles.contentWrap}>
+          <div ref={metaRevealRef} className={styles.metaReveal}>
+            <p className={styles.dateOnly}>{lastModifiedLine}</p>
+            <div className={styles.metaCenterRow}>
+              <div className={`${labelPickerStyles.chips} ${styles.chipsCentered}`} role="list">
+                {currentLabels.map((l, i) => (
+                  <span key={`${l}-${i}`} className={labelPickerStyles.chip} role="listitem">
+                    <span className={labelPickerStyles.chipText}>{l}</span>
+                    <button
+                      type="button"
+                      className={labelPickerStyles.chipRemove}
+                      onClick={() => removeLabelAt(i)}
+                      aria-label={`Remove label ${l}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <ComedyRatingTrigger note={note} variant="detail" detailAlign="center" />
+            </div>
+          </div>
+
+          {isEditing ? (
+          <NoteEditFloatingAudioProvider>
+            <NoteEditFloatingAudioDock />
+            <div className={styles.editBlock}>
+              <NoteRichTextEditor
+                key={`${note.id}-${editSessionKey}`}
+                className={styles.editorRoot}
+                surfaceClassName={styles.editorSurface}
+                initialHtml={draftHtml}
+                onChange={setDraftHtml}
+                onEditorReady={handleEditorReady}
+                placeholder="Write your note…"
+                aria-label="Note body"
+                audioStorageScopeId={note.id}
+                toolbarVariant="mobileNotes"
+                embedMobileToolbar={embedToolbarInScroll}
+                attachAudioOpenRequest={attachAudioOpenRequest}
+                onRequestAttachSheet={() => setBottomAttachOpen(true)}
+                onAddToExistingNote={() => openTransferWithEditorSelection()}
+                editorHeader={
+                  <div className={styles.titleRow} ref={titleEditRowRef}>
+                    <div
+                      className={`${styles.titleTextSlot} ${styles.titleTextSlotEditable}`}
+                      ref={titleTextSlotRef}
+                    >
+                      <span ref={titleMeasureRef} className={styles.titleMeasure} aria-hidden />
+                      <input
+                        ref={titleInputRef}
+                        className={styles.titleField}
+                        value={draftTitle}
+                        onChange={(e) => setDraftTitle(e.target.value)}
+                        aria-label="Note title"
+                        placeholder="Title"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.titleInfoInlineBtn}
+                      aria-label="Note info"
+                      title="Note info"
+                      onClick={() => setInfoOpen(true)}
+                    >
+                      <NoteInfoCircleIcon />
+                    </button>
+                  </div>
+                }
+              />
+              {editStartedFromMarkdown ? (
+                <p className={styles.actionError}>
+                  This note was stored as Markdown. Saving stores HTML as the source from here on.
+                </p>
+              ) : null}
+            </div>
+          </NoteEditFloatingAudioProvider>
+        ) : (
+          <div
+            ref={readSurfaceRef}
+            className={styles.readSurface}
+            role="presentation"
+            onPointerDown={onReadPointerDown}
+            onPointerUp={onReadPointerUp}
+          >
+            <div className={styles.titleRow}>
+              <h1 className={styles.titleTextSlot}>{note.title}</h1>
+              <button
+                type="button"
+                className={styles.titleInfoInlineBtn}
+                aria-label="Note info"
+                title="Note info"
+                onClick={() => setInfoOpen(true)}
+              >
+                <NoteInfoCircleIcon />
+              </button>
+            </div>
+            <NoteBodyContent
+              key={note.id}
+              contentType={note.contentType}
+              bodyHtml={note.bodyHtml}
+              bodyMarkdown={note.bodyMarkdown}
+              posAnalysisEnabled={posAnalysisOn}
+              posLegendOpen={posLegendOpen}
+              onPosUsedAbbreviationsChange={handlePosUsedAbbreviationsChange}
+            />
+          </div>
+        )}
           </div>
         </div>
-      ) : null}
+      </div>
+
+      <footer className={styles.bottomBar}>
+        {embedToolbarInScroll ? bottomClusterEl : null}
+        {!isEditing ? (
+          <button
+            type="button"
+            className={`${styles.bottomBarEnd} ${styles.iconCircleBtn} ${styles.iconCircleBtnAccent} ${styles.bottomBarFab}`}
+            aria-label="New note"
+            title="New note"
+            onClick={() => setComposerOpen(true)}
+          >
+            <SquarePen className={`${styles.backIcon} ${styles.bottomBarFabIcon}`} strokeWidth={2} aria-hidden />
+          </button>
+        ) : (
+          <span className={`${styles.bottomBarEnd} ${styles.bottomBarEditSpacer}`} aria-hidden />
+        )}
+      </footer>
+
+      {!embedToolbarInScroll && bottomClusterEl
+        ? createPortal(
+            <div className={styles.bottomClusterFixedWrap} style={{ bottom: grammarFixedBottom }}>
+              {bottomClusterEl}
+            </div>,
+            document.body
+          )
+        : null}
+
+      {posAnalysisOn && posLegendOpen
+        ? createPortal(
+            <div
+              ref={posLegendLayerRef}
+              className={styles.posLegendDropdown}
+              data-nn-dismiss-shield
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setPosLegendOpen(false);
+              }}
+            >
+              <PosLegendPopover
+                abbreviations={[...posUsedAbbreviationsRef.current]}
+                onClose={() => setPosLegendOpen(false)}
+              />
+            </div>,
+            document.body
+          )
+        : null}
 
       <NoteInfoModal
         open={infoOpen}
@@ -590,40 +1046,6 @@ export default function NoteDetailPage() {
         deleting={deleteInProgress}
       />
 
-      {isEditing ? (
-        <NoteEditFloatingAudioProvider>
-          <NoteEditFloatingAudioDock />
-          <div className={styles.editWrap}>
-            <NoteRichTextEditor
-              key={`${note.id}-${editSessionKey}`}
-              initialHtml={draftHtml}
-              onChange={setDraftHtml}
-              onEditorReady={handleEditorReady}
-              placeholder="Write your note…"
-              aria-label="Note body"
-              audioStorageScopeId={note.id}
-            />
-            {editStartedFromMarkdown ? (
-              <p className={styles.convertHint}>
-                This note was stored as Markdown. It has been opened in the rich editor; saving stores HTML as the
-                source from here on.
-              </p>
-            ) : null}
-          </div>
-        </NoteEditFloatingAudioProvider>
-      ) : (
-        <NoteBodyContent
-          key={note.id}
-          className={`${styles.body} ${posAnalysisOn ? styles.bodyPosStudy : ''}`}
-          contentType={note.contentType}
-          bodyHtml={note.bodyHtml}
-          bodyMarkdown={note.bodyMarkdown}
-          posAnalysisEnabled={posAnalysisOn}
-          posLegendOpen={posLegendOpen}
-          onPosUsedAbbreviationsChange={handlePosUsedAbbreviationsChange}
-        />
-      )}
-
       <NoteTransferPanel
         visible={transferOpen}
         onRequestClose={() => setTransferOpen(false)}
@@ -634,29 +1056,55 @@ export default function NoteDetailPage() {
 
       <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
 
-      {!isEditing && posAnalysisOn && posLegendOpen
+      <ImageToTextChoiceModal
+        open={ocrChoiceModalOpen}
+        onClose={() => {
+          if (!ocrModalLoading) {
+            setOcrChoiceModalOpen(false);
+            setOcrModalError(null);
+          }
+        }}
+        onPickFile={(f) => void handleOcrFileFromModal(f)}
+        loading={ocrModalLoading}
+        error={ocrModalError}
+      />
+
+      {moreMenu}
+      {bottomAttachOpen
         ? createPortal(
-            <div
-              ref={posLegendLayerRef}
-              className={styles.posLegendDropdown}
-              data-nn-dismiss-shield
-              id="pos-legend-popover"
-              role="presentation"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setPosLegendOpen(false);
-              }}
-            >
-              <PosLegendPopover
-                abbreviations={[...posUsedAbbreviationsRef.current]}
-                onClose={() => setPosLegendOpen(false)}
-                canvasDark={false}
+            <>
+              <div
+                className={styles.attachSheetBackdrop}
+                data-nn-dismiss-shield
+                role="presentation"
+                onClick={() => setBottomAttachOpen(false)}
               />
-            </div>,
+              <div
+                className={styles.attachSheetPanel}
+                data-theme={canvasDark ? 'dark' : 'light'}
+                role="dialog"
+                aria-label="Attach to note"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {canOcrScan ? (
+                  <button type="button" className={styles.attachSheetBtn} onClick={triggerImageToTextPicker}>
+                    <ScanText className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
+                    Image
+                  </button>
+                ) : null}
+                <button type="button" className={styles.attachSheetBtn} onClick={confirmAttachAudioFromSheet}>
+                  <AudioLines className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
+                  Attach audio
+                </button>
+              </div>
+            </>,
             document.body
           )
         : null}
-
-      <Toast message={toastMessage} onDismiss={dismissToast} />
-    </article>
+    </div>
   );
+}
+
+export default function NoteDetailPage() {
+  return <NoteDetailView />;
 }

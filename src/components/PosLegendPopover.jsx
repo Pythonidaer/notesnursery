@@ -5,16 +5,14 @@ import styles from './PosLegendPopover.module.css';
  * @param {{
  *   abbreviations: string[],
  *   onClose: () => void,
- *   canvasDark?: boolean,
  * }} props
  */
-export default function PosLegendPopover({ abbreviations, onClose, canvasDark = false }) {
+export default function PosLegendPopover({ abbreviations, onClose }) {
   const rows = posLegendRows(abbreviations);
 
   return (
     <div
       className={styles.popover}
-      data-theme={canvasDark ? 'dark' : 'light'}
       role="dialog"
       aria-label="Word tag key"
       onClick={(e) => e.stopPropagation()}

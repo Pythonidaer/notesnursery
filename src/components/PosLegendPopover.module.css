@@ -8,45 +8,8 @@
   border-radius: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--popover-shadow);
   overflow: hidden;
-}
-
-.popover[data-theme='dark'] {
-  background: #2c2c2e;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-}
-
-.popover[data-theme='dark'] .header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.popover[data-theme='dark'] .title {
-  color: #f5f5f7;
-}
-
-.popover[data-theme='dark'] .closeBtn {
-  color: #98989d;
-}
-
-.popover[data-theme='dark'] .closeBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f5f5f7;
-}
-
-.popover[data-theme='dark'] .empty {
-  color: #d1d1d6;
-}
-
-.popover[data-theme='dark'] .abbr {
-  color: #f5f5f7;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-/* High-contrast body copy on charcoal (~7:1 on #2c2c2e at 0.82rem). */
-.popover[data-theme='dark'] .meaning {
-  color: #e5e5ea;
 }
 
 .header {

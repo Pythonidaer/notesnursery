@@ -1,12 +1,12 @@
-# Product requirements document — Notes test UX and related UI
+# Product requirements document — Note detail UX and related UI
 
-This document tracks **progress** on the Notes test / rich-editor experience and **queued work** for upcoming sessions, including small UI fixes and a broader theme (light/dark) initiative.
+This document tracks **progress** on the note detail / rich-editor experience and **queued work** for upcoming sessions, including small UI fixes and theme (light/dark) follow-ups.
 
 ---
 
-## Feature summary — Notes test page & editor chrome
+## Feature summary — Note detail page & editor chrome
 
-The Notes test surface (`NotesTestPage`) exercises a mobile-oriented rich editor: title + body, floating audio chrome, grammar tooling, attach flows, and read/edit parity. Work has focused on making **read and edit** feel like one product: consistent spacing, controls that match other note chrome (e.g. audio row), and fewer duplicated or misaligned affordances.
+The note detail surface (`NoteDetailPage`, route `/notes/:noteId`) exercises a mobile-oriented rich editor: title + body, floating audio chrome, grammar tooling, attach flows, and read/edit parity. Work has focused on making **read and edit** feel like one product: consistent spacing, controls that match other note chrome (e.g. audio row), and fewer duplicated or misaligned affordances.
 
 ---
 
@@ -14,7 +14,7 @@ The Notes test surface (`NotesTestPage`) exercises a mobile-oriented rich editor
 
 - **Title + info control (read vs edit)**  
   - Read mode: `titleRow` uses a single flex gap (`0.35rem`) between the heading and the info button; info hit target aligned with audio gear (`2.45rem` circle, SVG sizing).  
-  - Edit mode: **structure aligned with read** — title lives in `titleEditCluster`; info button is a **direct sibling** under the same `titleRow` so spacing uses the **same row gap**, not a second nested gap.  
+  - Edit mode: **structure aligned with read** — title uses the same `titleTextSlot` flex rules as the read `h1` (edit wraps an `input` in `titleTextSlotEditable`); info button is a **direct sibling** under the same `titleRow`.  
   - Edit title width is synced from a hidden measure span (avoids `field-sizing` under-measure); long titles use flex + horizontal scroll on the input instead of clipping.  
   - Residual risk: tiny span-vs-input metric differences are covered with minimal pixel slack; re-verify on target browsers if overlap or excess gap reappears.
 
@@ -31,7 +31,7 @@ The Notes test surface (`NotesTestPage`) exercises a mobile-oriented rich editor
 
 ## TODO — Next session UI fixes
 
-These are **scoped UI follow-ups** on the current Notes test / editor work:
+These are **scoped UI follow-ups** on the current note detail / editor work:
 
 1. **Standardize read and edit title + info icon distance**  
    - Confirm visually across breakpoints and zoom that read and edit match (single `titleRow` gap, no drift from input metrics or min-width rules).  
@@ -45,28 +45,20 @@ These are **scoped UI follow-ups** on the current Notes test / editor work:
 
 ---
 
-## TODO — Next major initiative: light / dark mode across the site
+## Shipped — light / dark mode (site-wide)
 
-**Goal:** One user-controlled appearance (light vs dark) that applies **consistently** across the app, persists per user, and does not regress contrast or accessibility.
+**Behavior:** Appearance is **Light** or **Dark**, chosen from the **hamburger menu** (`AppHeaderNav`). It applies via `html[data-theme]` and shared CSS variables in `src/index.css` (including `data-notes-canvas` on `document.documentElement` for portaled UI). **Local mode** persists in `localStorage` (`notesNursery_colorScheme`). **Production** also stores `profiles.color_scheme` in Supabase (`light` \| `dark`, nullable); on first load with no local key, the client loads the profile value after `profilePreferencesLoaded`.
 
-### Scope
+**Anti-flicker:** An inline script in `index.html` runs before the app bundle and sets `data-theme` / `data-notes-canvas` / `color-scheme` from `localStorage`, with one-time migration from legacy `notesNursery_notesTestUseDarkBg`.
 
-- **Global theme**  
-  - Introduce or extend **dark mode and light mode** so the **entire website** responds predictably when the user switches preference (not only isolated pages).
+**Implementation notes:** `ThemeProvider` (`src/context/ThemeContext.jsx`) wraps the app inside `AuthProvider`. Note detail **does not** use a separate ellipsis “Use Dark Background” toggle; the shell follows the global theme (`useTheme` + `.shellDark` for read/editor remaps).
 
-- **Data model and settings**  
-  - **Read the database schema** (Supabase / existing tables) and decide **where to store** `theme` / `color_scheme` (or equivalent) for a user.  
-  - Expose the choice as a **setting in the hamburger menu** (load on sign-in, save on change, sensible default).
+**Follow-up:** Continue migrating any remaining module CSS hex values to tokens; full contrast/accessibility pass on uncommon states.
 
-- **CSS audit before rollout**  
-  - **Review CSS across the codebase** and compare patterns to `src/pages/NotesTestPage.module.css` (tokens, `var(--*)`, hard-coded colors, ad hoc dark flags).  
-  - Document how dark/light is applied today (e.g. class on `html`/`body`, context, media queries) so new work **centralizes** tokens and avoids one-off fixes.  
-  - **Accessibility:** when the setting flips, verify contrast, focus rings, and component states so nothing becomes **inconsistent or inaccessible**.
+### After theme work (still queued)
 
-### After theme work
-
-- **Cleanup and NotesTest integration**  
-  - Once light/dark is **reliable site-wide**, continue **UI cleanup** and plan **next steps for NotesTest UI integration** (e.g. promoting patterns into shared components or the main note detail flow) without fighting duplicate theme logic.
+- **Cleanup on note detail**  
+  - Continue **UI cleanup** on `NoteDetailPage` (former notes-test layout, now default at `/notes/:noteId`).
 
 ---
 

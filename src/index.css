@@ -1,4 +1,7 @@
 :root {
+  /* Note detail chrome; portaled nodes (Grammar pill) sit under body and must read vars from here. */
+  --notes-content-max: 66rem;
+  --notes-bottom-fab-size: 3.134rem;
   --bg: #faf9f7;
   --surface: #ffffff;
   --surface-active: #f3f1ed;
@@ -10,6 +13,34 @@
   --on-accent: #ffffff;
   --danger: #b42318;
   --code-bg: #f0eeea;
+  --shadow-elevated: 0 4px 20px rgba(26, 25, 23, 0.08);
+  --shadow-elevated-strong: 0 8px 28px rgba(0, 0, 0, 0.12);
+  --backdrop-scrim: rgba(26, 25, 23, 0.35);
+  --dialog-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --popover-shadow: 0 10px 36px rgba(0, 0, 0, 0.12);
+  --bottom-sheet-backdrop: rgba(0, 0, 0, 0.4);
+  --accent-pill: rgba(45, 106, 79, 0.2);
+}
+
+html[data-theme='dark'] {
+  --bg: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface-active: #3a3a3c;
+  --text: #f5f5f7;
+  --muted: #98989d;
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #40916c;
+  --accent-muted: #6b9e82;
+  --on-accent: #ffffff;
+  --danger: #ff453a;
+  --code-bg: #3a3a3c;
+  --shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-elevated-strong: 0 8px 28px rgba(0, 0, 0, 0.5);
+  --backdrop-scrim: rgba(0, 0, 0, 0.55);
+  --dialog-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --popover-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --bottom-sheet-backdrop: rgba(0, 0, 0, 0.55);
+  --accent-pill: rgba(107, 158, 130, 0.35);
 }
 
 *,
@@ -22,6 +53,8 @@ html {
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, sans-serif;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+  color: var(--text);
 }
 
 body {
@@ -41,15 +74,15 @@ body {
   flex-direction: column;
 }
 
-/* Notes-test detail: pin shell to viewport so inner .scrollMain is the scrollport (not the window). */
-.appShell--notesTestDetail {
+/* Note detail: pin shell to viewport so inner .scrollMain is the scrollport (not the window). */
+.appShell--noteDetail {
   height: 100dvh;
   max-height: 100dvh;
   min-height: 100dvh;
   overflow: hidden;
 }
 
-.appShell--notesTestDetail .appMain--notesTestDetail {
+.appShell--noteDetail .appMain--noteDetail {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -89,7 +122,7 @@ body {
   padding: 1.75rem 1.25rem 2.5rem;
 }
 
-.appMain--notesTestDetail {
+.appMain--noteDetail {
   padding: 0;
 }
 

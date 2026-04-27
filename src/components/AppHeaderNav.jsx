@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
 import styles from './AppHeaderNav.module.css';
 
 const PILL_ANCHOR_SEL = '[data-nn-top-nav-pill]';
@@ -21,6 +22,7 @@ export default function AppHeaderNav({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { colorScheme, setColorScheme } = useTheme();
   const remote = useSupabaseBackend();
   const [open, setOpen] = useState(false);
   const menuId = useId();
@@ -124,11 +126,6 @@ export default function AppHeaderNav({
         </Link>
       </li>
       <li className={styles.menuItem}>
-        <Link to="/notes-test" className={styles.menuLink} onClick={close}>
-          Notes test
-        </Link>
-      </li>
-      <li className={styles.menuItem}>
         <Link to="/analysis" className={styles.menuLink} onClick={close}>
           Analysis
         </Link>
@@ -137,6 +134,28 @@ export default function AppHeaderNav({
         <Link to="/instructions" className={styles.menuLink} onClick={close}>
           Instructions
         </Link>
+      </li>
+      <li className={styles.menuDivider} role="separator" />
+      <li className={styles.menuMeta}>Appearance</li>
+      <li className={styles.menuItem}>
+        <div className={styles.appearanceToggle} role="group" aria-label="Color scheme">
+          <button
+            type="button"
+            className={`${styles.appearanceBtn} ${colorScheme === 'light' ? styles.appearanceBtnActive : ''}`}
+            aria-pressed={colorScheme === 'light'}
+            onClick={() => void setColorScheme('light')}
+          >
+            Light
+          </button>
+          <button
+            type="button"
+            className={`${styles.appearanceBtn} ${colorScheme === 'dark' ? styles.appearanceBtnActive : ''}`}
+            aria-pressed={colorScheme === 'dark'}
+            onClick={() => void setColorScheme('dark')}
+          >
+            Dark
+          </button>
+        </div>
       </li>
     </>
   );

@@ -8,7 +8,6 @@ import styles from './ImageToTextChoiceModal.module.css';
  *   open: boolean,
  *   onClose: () => void,
  *   onPickFile: (file: File) => void,
- *   canvasDark?: boolean,
  *   loading?: boolean,
  *   error?: string | null,
  * }} props
@@ -17,7 +16,6 @@ export default function ImageToTextChoiceModal({
   open,
   onClose,
   onPickFile,
-  canvasDark = false,
   loading = false,
   error = null,
 }) {
@@ -51,7 +49,6 @@ export default function ImageToTextChoiceModal({
     >
       <div
         className={styles.dialog}
-        data-theme={canvasDark ? 'dark' : 'light'}
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-to-text-title"

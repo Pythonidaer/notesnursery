@@ -100,13 +100,13 @@ Copy `.env.example` to `.env.local` and adjust.
 
 ### Tables (summary)
 
-- `profiles` — user id, username, optional default label preference
+- `profiles` — user id, username, optional default label preference, optional `color_scheme` (`light` \| `dark`) for appearance
 - `notes` — `body_html` (primary for edited notes), optional legacy `body_markdown`, `content_type` (`html` \| `markdown`), metadata (including optional `comedy_rating`)
 - `labels` — per-user label names
 - `note_labels` — many-to-many between notes and labels
 - `note_embeddings` — semantic search: one row per note per user (`user_id`, `note_id`, `source_text`, `embedding` as `vector(384)`, `updated_at`); see [docs/SEMANTIC_SEARCH.md](docs/SEMANTIC_SEARCH.md)
 
-Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`), optional audio display names (`005_note_audio_display_names.sql`), and semantic search RLS/RPC (`006_semantic_search_rls_and_rpc.sql`) once `note_embeddings` exists in your project.
+Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`), optional audio display names (`005_note_audio_display_names.sql`), semantic search RLS/RPC (`006_semantic_search_rls_and_rpc.sql`) once `note_embeddings` exists, and profile appearance (`007_profile_color_scheme.sql`).
 
 ## Scripts
 

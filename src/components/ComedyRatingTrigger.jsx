@@ -18,10 +18,9 @@ import styles from './ComedyRatingTrigger.module.css';
  *   note: { id: string, title: string, comedyRating?: number | null, labels?: string[] },
  *   variant: 'card' | 'library' | 'detail',
  *   detailAlign?: 'trailing' | 'center',
- *   canvasDark?: boolean,
  * }} props
  */
-export default function ComedyRatingTrigger({ note, variant, detailAlign = 'trailing', canvasDark = false }) {
+export default function ComedyRatingTrigger({ note, variant, detailAlign = 'trailing' }) {
   const { user } = useAuth();
   const { updateNote } = useNotes();
   const useRemote = useSupabaseBackend();
@@ -92,7 +91,6 @@ export default function ComedyRatingTrigger({ note, variant, detailAlign = 'trai
         onSave={handleSave}
         saving={saving}
         errorMessage={saveError}
-        canvasDark={canvasDark}
       />
     </>
   );

@@ -1,4 +1,5 @@
 import { getSupabase } from '../lib/supabaseClient.js';
+import { normalizeColorScheme } from '../utils/colorScheme.js';
 import { normalizeLabel } from '../utils/noteLabels.js';
 
 /**
@@ -49,6 +50,44 @@ export async function fetchProfileDefaultLabel(userId) {
  * @param {string} userId
  * @param {string | null} labelId — `null` clears the default
  */
+/**
+ * @param {string} userId
+ * @returns {Promise<'light' | 'dark' | null>}
+ */
+export async function fetchProfileColorScheme(userId) {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('color_scheme')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[db] fetchProfileColorScheme', error);
+    throw error;
+  }
+
+  return normalizeColorScheme(profile?.color_scheme);
+}
+
+/**
+ * @param {string} userId
+ * @param {'light' | 'dark'} scheme
+ */
+export async function updateProfileColorScheme(userId, scheme) {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const { error } = await supabase.from('profiles').update({ color_scheme: scheme }).eq('id', userId);
+
+  if (error) {
+    console.error('[db] updateProfileColorScheme', error);
+    throw error;
+  }
+}
+
 export async function updateDefaultLabelId(userId, labelId) {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Supabase not configured');

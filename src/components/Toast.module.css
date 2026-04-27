@@ -15,7 +15,7 @@
   text-align: center;
 }
 
-/* In-flow chip beside nav actions (e.g. notes-test header). */
+/* In-flow chip beside nav actions (e.g. note detail top bar). */
 .toastHeaderMinimal {
   position: static;
   left: auto;

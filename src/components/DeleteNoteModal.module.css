@@ -8,7 +8,7 @@
   padding: 1rem;
   max-height: 100dvh;
   overflow-y: auto;
-  background: rgba(26, 25, 23, 0.35);
+  background: var(--backdrop-scrim);
 }
 
 .dialog {
@@ -19,7 +19,7 @@
   border-radius: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--dialog-shadow);
 }
 
 .header {
@@ -73,7 +73,7 @@
 .btnDelete {
   border: 1px solid transparent;
   background: var(--danger);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btnDelete:hover:not(:disabled) {

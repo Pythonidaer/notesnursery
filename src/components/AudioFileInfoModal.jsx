@@ -21,7 +21,6 @@ import styles from './AudioFileInfoModal.module.css';
  *   storagePath: string,
  *   editor?: import('@tiptap/core').Editor | null,
  *   onDisplayNameSaved?: (storagePath: string, newName: string) => void,
- *   canvasDark?: boolean,
  *   allowEditorActions?: boolean,
  *   onRequestTranscribe?: () => void,
  *   onRequestRemoveFromNote?: () => void,
@@ -38,7 +37,6 @@ export default function AudioFileInfoModal({
   storagePath,
   editor,
   onDisplayNameSaved,
-  canvasDark: canvasDarkProp,
   allowEditorActions = false,
   onRequestTranscribe,
   onRequestRemoveFromNote,
@@ -48,7 +46,6 @@ export default function AudioFileInfoModal({
   const [draftName, setDraftName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(/** @type {string | null} */ (null));
-  const [canvasDarkDetected, setCanvasDarkDetected] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const canRename = Boolean(remote && userId && storagePath?.trim() && getSupabase());
@@ -74,16 +71,7 @@ export default function AudioFileInfoModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose, detailsOpen]);
 
-  useEffect(() => {
-    if (!open) return;
-    const el = document.querySelector('[data-notes-canvas]');
-    setCanvasDarkDetected(el?.getAttribute('data-notes-canvas') === 'dark');
-  }, [open]);
-
   if (!open) return null;
-
-  const canvasDark = canvasDarkProp ?? canvasDarkDetected;
-  const theme = canvasDark ? 'dark' : undefined;
 
   const uploadedLabel = uploadedAt?.trim()
     ? (() => {
@@ -130,7 +118,6 @@ export default function AudioFileInfoModal({
     <div
       className={baseStyles.backdrop}
       data-nn-dismiss-shield
-      data-theme={theme}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -138,7 +125,6 @@ export default function AudioFileInfoModal({
     >
       <div
         className={`${baseStyles.dialog} ${baseStyles.dialogWide}`}
-        data-theme={theme}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

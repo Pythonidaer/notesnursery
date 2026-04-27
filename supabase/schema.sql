@@ -6,7 +6,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text not null,
   created_at timestamptz not null default now(),
-  default_label_id uuid references public.labels (id) on delete set null
+  default_label_id uuid references public.labels (id) on delete set null,
+  color_scheme text check (color_scheme is null or color_scheme in ('light', 'dark'))
 );
 
 -- Notes (imported or user-created)

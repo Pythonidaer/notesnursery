@@ -162,7 +162,6 @@ function useToolbarRerender(editor) {
  *   attachAudioOpenRequest?: number,
  *   onRequestAttachSheet?: () => void,
  *   embedMobileToolbar?: boolean,
- *   uiCanvasDark?: boolean,
  * }} props
  */
 function MenuBar({
@@ -174,7 +173,6 @@ function MenuBar({
   attachAudioOpenRequest = 0,
   onRequestAttachSheet,
   embedMobileToolbar = false,
-  uiCanvasDark = false,
 }) {
   const [colorOpen, setColorOpen] = useState(false);
   const [colorModalOpen, setColorModalOpen] = useState(false);
@@ -210,7 +208,7 @@ function MenuBar({
   const isMobile = toolbarVariant === 'mobileNotes';
   const lastAttachAudioReqRef = useRef(0);
 
-  /** Align fixed pill with notes-test bottom chrome (Grammar row); lift above keyboard when needed. */
+  /** Align fixed pill with note detail bottom chrome (Grammar row); lift above keyboard when needed. */
   const fixedToolbarBottom =
     isMobile && isWideViewport && !embedMobileToolbar
       ? `max(${vvInset}px, calc(env(safe-area-inset-bottom, 0px) + 0.52rem))`
@@ -880,19 +878,10 @@ function MenuBar({
   return (
     <>
       {isMobile && embedMobileToolbar ? (
-        <div
-          className={styles.toolbarMobileEmbedded}
-          data-nn-canvas={uiCanvasDark ? 'dark' : 'light'}
-        >
-          {mobileToolbarPill}
-        </div>
+        <div className={styles.toolbarMobileEmbedded}>{mobileToolbarPill}</div>
       ) : isMobile ? (
         createPortal(
-          <div
-            className={styles.toolbarMobileFixed}
-            data-nn-canvas={uiCanvasDark ? 'dark' : 'light'}
-            style={{ bottom: fixedToolbarBottom }}
-          >
+          <div className={styles.toolbarMobileFixed} style={{ bottom: fixedToolbarBottom }}>
             {mobileToolbarPill}
           </div>,
           document.body
@@ -909,7 +898,6 @@ function MenuBar({
           userId={user.id}
           audioStorageScopeId={audioStorageScopeId}
           editor={editor}
-          canvasDark={uiCanvasDark}
           onBlocked={() => setAudioInsertBlockedOpen(true)}
           onUploadFailure={(detail) => {
             setUploadErr(detail);
@@ -938,13 +926,11 @@ function MenuBar({
         canRemoveLink={linkCanRemove}
         onApply={(url, displayName) => applyLinkFromModal(url, displayName)}
         onRemoveLink={removeLinkFromModal}
-        canvasDark={uiCanvasDark}
       />
       <TextColorModal
         open={colorModalOpen}
         onClose={() => setColorModalOpen(false)}
         initialColor={currentColor}
-        canvasDark={uiCanvasDark}
         onApply={(v) => applyColor(v)}
       />
     </>
@@ -967,7 +953,6 @@ function MenuBar({
  *   attachAudioOpenRequest?: number,
  *   onRequestAttachSheet?: () => void,
  *   embedMobileToolbar?: boolean,
- *   uiCanvasDark?: boolean,
  *   editorHeader?: import('react').ReactNode,
  * }} props
  */
@@ -986,7 +971,6 @@ export default function NoteRichTextEditor({
   attachAudioOpenRequest = 0,
   onRequestAttachSheet,
   embedMobileToolbar = false,
-  uiCanvasDark = false,
   editorHeader = null,
 }) {
   const audioScopeFallbackRef = useRef(
@@ -1058,7 +1042,6 @@ export default function NoteRichTextEditor({
         attachAudioOpenRequest={attachAudioOpenRequest}
         onRequestAttachSheet={onRequestAttachSheet}
         embedMobileToolbar={embedMobileToolbar}
-        uiCanvasDark={uiCanvasDark}
       />
       {editorHeader}
       {toolbarVariant === 'mobileNotes' ? (
@@ -1066,7 +1049,6 @@ export default function NoteRichTextEditor({
           editor={editor}
           open={formatSheetOpen}
           onClose={() => setFormatSheetOpen(false)}
-          canvasDark={uiCanvasDark}
         />
       ) : null}
       <div

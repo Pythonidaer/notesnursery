@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Notes Nursery</title>
+    <script>
+      (function () {
+        var KEY = 'notesNursery_colorScheme';
+        var LEG = 'notesNursery_notesTestUseDarkBg';
+        var v = localStorage.getItem(KEY);
+        if (v !== 'light' && v !== 'dark') {
+          if (localStorage.getItem(LEG) === '1') {
+            v = 'dark';
+            try {
+              localStorage.setItem(KEY, v);
+              localStorage.removeItem(LEG);
+            } catch (e) {}
+          } else {
+            v = 'light';
+          }
+        }
+        document.documentElement.setAttribute('data-theme', v);
+        document.documentElement.setAttribute('data-notes-canvas', v);
+        document.documentElement.style.colorScheme = v;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate, useParams } from 'react-router-dom';
 import AppHeaderNav from './components/AppHeaderNav.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ImportPage from './pages/ImportPage.jsx';
@@ -9,9 +9,17 @@ import LibraryPage from './pages/LibraryPage.jsx';
 import EmailConfirmedPage from './pages/EmailConfirmedPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NoteDetailPage from './pages/NoteDetailPage.jsx';
-import NotesTestPage from './pages/NotesTestPage.jsx';
 import AnalysisPage from './pages/AnalysisPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
+
+function LegacyNotesTestHubRedirect() {
+  return <Navigate to="/library" replace />;
+}
+
+function LegacyNotesTestDetailRedirect() {
+  const { noteId } = useParams();
+  return <Navigate to={`/notes/${noteId}`} replace />;
+}
 
 /**
  * Once the user opens Analysis, keep that route subtree mounted and toggle visibility
@@ -24,11 +32,11 @@ export default function App() {
     analysisPinnedRef.current = true;
   }
   const analysisPinned = analysisPinnedRef.current;
-  const isNotesTestDetail = /^\/notes-test\/[^/]+$/.test(pathname);
+  const isNoteDetailShell = /^\/notes\/[^/]+$/.test(pathname);
 
   return (
-    <div className={`appShell${isNotesTestDetail ? ' appShell--notesTestDetail' : ''}`}>
-      {!isNotesTestDetail ? (
+    <div className={`appShell${isNoteDetailShell ? ' appShell--noteDetail' : ''}`}>
+      {!isNoteDetailShell ? (
         <header className="appHeader">
           <Link to="/" className="appBrand">
             Notes Nursery
@@ -36,7 +44,7 @@ export default function App() {
           <AppHeaderNav />
         </header>
       ) : null}
-      <main className={`appMain${isNotesTestDetail ? ' appMain--notesTestDetail' : ''}`}>
+      <main className={`appMain${isNoteDetailShell ? ' appMain--noteDetail' : ''}`}>
         {analysisPinned ? (
           <div hidden={pathname !== '/analysis'} className="analysisKeepAliveHost">
             <AnalysisPage />
@@ -50,8 +58,8 @@ export default function App() {
           <Route path="/instructions" element={<InstructionsPage />} />
           <Route path="/analysis" element={analysisPinned ? null : <AnalysisPage />} />
           <Route path="/notes/:noteId" element={<NoteDetailPage />} />
-          <Route path="/notes-test" element={<NotesTestPage />} />
-          <Route path="/notes-test/:noteId" element={<NotesTestPage />} />
+          <Route path="/notes-test" element={<LegacyNotesTestHubRedirect />} />
+          <Route path="/notes-test/:noteId" element={<LegacyNotesTestDetailRedirect />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/auth/email-confirmed" element={<EmailConfirmedPage />} />
