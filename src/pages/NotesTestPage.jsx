@@ -8,11 +8,10 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  ListChecks,
+  Key,
   Moon,
   MoreHorizontal,
-  Paperclip,
-  ScanLine,
+  ScanText,
   SquarePen,
   Sun,
   Tag,
@@ -25,6 +24,7 @@ import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
 import NoteBodyContent from '../components/NoteBodyContent.jsx';
 import NoteInfoCircleIcon from '../components/NoteInfoCircleIcon.jsx';
 import NoteInfoModal from '../components/NoteInfoModal.jsx';
+import ImageToTextChoiceModal from '../components/ImageToTextChoiceModal.jsx';
 import NoteRichTextEditor from '../components/NoteRichTextEditor.jsx';
 import NoteTransferPanel from '../components/NoteTransferPanel.jsx';
 import PosLegendPopover from '../components/PosLegendPopover.jsx';
@@ -35,6 +35,8 @@ import PageContentWrap from '../components/PageContentWrap.jsx';
 import { requiresAuthForPersistence, useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { useVisualViewportKeyboardInset } from '../hooks/useVisualViewportKeyboardInset.js';
 import { collectAllLabels, normalizeLabel } from '../utils/noteLabels.js';
 import { normalizeNoteSourceDateInput } from '../utils/parseAppleNoteDate.js';
 import {
@@ -45,6 +47,9 @@ import {
 import { getNoteHtmlForRichEditor } from '../utils/noteEditorHtml.js';
 import { prepareNoteBodyHtml } from '../utils/parsePlainTextNoteToHtml.js';
 import { sanitizeNoteHtml } from '../utils/sanitizeNoteHtml.js';
+import { ocrImageFileToText } from '../lib/ocrImageToText.js';
+import { getSupabase } from '../lib/supabaseClient.js';
+import { appendOcrPlainTextToTipTap } from '../utils/appendOcrPlainTextToTipTap.js';
 import { isOcrImageToTextUser } from '../utils/ocrImageToTextGate.js';
 import labelPickerStyles from '../components/LabelPicker.module.css';
 import styles from './NotesTestPage.module.css';
@@ -120,14 +125,20 @@ function NotesTestDetail() {
   const [posLegendOpen, setPosLegendOpen] = useState(false);
   const posUsedAbbreviationsRef = useRef(/** @type {string[]} */ ([]));
   const posToolbarClusterRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const posLegendLayerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tiptapRef = useRef(/** @type {import('@tiptap/core').Editor | null} */ (null));
-  const pendingEditorActionRef = useRef(/** @type {null | 'task'} */ (null));
+  const titleEditRowRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const titleEditClusterRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const titleMeasureRef = useRef(/** @type {HTMLSpanElement | null} */ (null));
+  const titleInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [moreMenuLabelsOpen, setMoreMenuLabelsOpen] = useState(false);
   const [labelsSheetQuery, setLabelsSheetQuery] = useState('');
   const [bottomAttachOpen, setBottomAttachOpen] = useState(false);
   const [attachAudioOpenRequest, setAttachAudioOpenRequest] = useState(0);
-  const [ocrPickerOpenRequest, setOcrPickerOpenRequest] = useState(0);
+  const [ocrChoiceModalOpen, setOcrChoiceModalOpen] = useState(false);
+  const [ocrModalLoading, setOcrModalLoading] = useState(false);
+  const [ocrModalError, setOcrModalError] = useState(/** @type {string | null} */ (null));
   const pendingOcrAfterEditRef = useRef(false);
   const [useDarkBg, setUseDarkBg] = useState(() => {
     try {
@@ -136,10 +147,19 @@ function NotesTestDetail() {
       return false;
     }
   });
+  /**
+   * Sticky-under-header toolbar only on narrow viewports so the pill avoids the bottom Grammar
+   * row / keyboard. From lg (1024px) up, keep the format bar fixed to the bottom via portal —
+   * typical laptop/desktop layout.
+   */
+  const embedToolbarInScroll = useMediaQuery('(max-width: 1023.98px)');
+  const vvInsetBottom = useVisualViewportKeyboardInset();
   const scrollRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const metaRevealRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const readSurfaceRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tapRef = useRef(/** @type {{ x: number, y: number } | null} */ (null));
+  /** Pointer that starts on a modal backdrop can end on the note underneath; block tap-to-edit briefly (Apple Notes-style). */
+  const readSurfaceSuppressEditUntilRef = useRef(0);
 
   const canOcrScan = useMemo(
     () => Boolean(remote && user && isOcrImageToTextUser(user)),
@@ -155,13 +175,6 @@ function NotesTestDetail() {
 
   const handleEditorReady = useCallback((ed) => {
     tiptapRef.current = ed;
-    if (!ed) return;
-    const p = pendingEditorActionRef.current;
-    if (!p) return;
-    queueMicrotask(() => {
-      if (p === 'task') ed.chain().focus().toggleTaskList().run();
-      pendingEditorActionRef.current = null;
-    });
   }, []);
 
   const openTransferWithEditorSelection = useCallback(() => {
@@ -193,7 +206,9 @@ function NotesTestDetail() {
     setLabelsSheetQuery('');
     setBottomAttachOpen(false);
     setAttachAudioOpenRequest(0);
-    setOcrPickerOpenRequest(0);
+    setOcrChoiceModalOpen(false);
+    setOcrModalLoading(false);
+    setOcrModalError(null);
     pendingOcrAfterEditRef.current = false;
     posUsedAbbreviationsRef.current = [];
     originalBodyRef.current = '';
@@ -202,10 +217,25 @@ function NotesTestDetail() {
     originalTitleRef.current = '';
     originalCreatedRef.current = '';
     originalModifiedRef.current = '';
-    pendingEditorActionRef.current = null;
   }, [noteId]);
 
   const dismissToast = useCallback(() => setToastMessage(null), []);
+
+  const READ_SURFACE_EDIT_SUPPRESS_MS = 520;
+  const armReadSurfaceEditSuppress = useCallback(() => {
+    readSurfaceSuppressEditUntilRef.current = performance.now() + READ_SURFACE_EDIT_SUPPRESS_MS;
+  }, []);
+
+  useEffect(() => {
+    const onPointerDownCapture = (e) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (!t.matches('[data-nn-dismiss-shield]')) return;
+      armReadSurfaceEditSuppress();
+    };
+    document.addEventListener('pointerdown', onPointerDownCapture, true);
+    return () => document.removeEventListener('pointerdown', onPointerDownCapture, true);
+  }, [armReadSurfaceEditSuppress]);
 
   const toggleNotesTestDarkBg = useCallback(() => {
     setUseDarkBg((prev) => {
@@ -231,15 +261,24 @@ function NotesTestDetail() {
   }, [posAnalysisOn]);
 
   useEffect(() => {
+    if (!isEditing) return;
+    setPosAnalysisOn(false);
+    setPosLegendOpen(false);
+  }, [isEditing]);
+
+  useEffect(() => {
     if (!posLegendOpen) return;
     const onKey = (e) => {
       if (e.key === 'Escape') setPosLegendOpen(false);
     };
     const onDown = (e) => {
-      const el = posToolbarClusterRef.current;
-      if (el && e.target instanceof Node && !el.contains(e.target)) {
-        setPosLegendOpen(false);
-      }
+      const t = e.target;
+      if (!(t instanceof Node)) return;
+      const cluster = posToolbarClusterRef.current;
+      const layer = posLegendLayerRef.current;
+      if (cluster?.contains(t)) return;
+      if (layer?.contains(t)) return;
+      setPosLegendOpen(false);
     };
     window.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown, true);
@@ -248,6 +287,63 @@ function NotesTestDetail() {
       document.removeEventListener('mousedown', onDown, true);
     };
   }, [posLegendOpen]);
+
+  /** `field-sizing: content` under-measures proportional title fonts; measure in a hidden span instead. */
+  const syncTitleFieldWidth = useCallback(() => {
+    const row = titleEditRowRef.current;
+    const cluster = titleEditClusterRef.current;
+    const meas = titleMeasureRef.current;
+    const input = titleInputRef.current;
+    if (!row || !cluster || !meas || !input) return;
+
+    const btn = row.querySelector(':scope > button');
+    const btnW = btn instanceof HTMLElement ? btn.getBoundingClientRect().width : 0;
+    const rowCs = getComputedStyle(row);
+    const gapPx = parseFloat(rowCs.columnGap || rowCs.gap) || 0;
+    const maxUsable = Math.max(48, row.getBoundingClientRect().width - btnW - gapPx);
+
+    const inputCs = getComputedStyle(input);
+    const padH = (parseFloat(inputCs.paddingLeft) || 0) + (parseFloat(inputCs.paddingRight) || 0);
+    meas.textContent = draftTitle.length > 0 ? draftTitle : 'Title';
+    const natural = meas.scrollWidth + padH + 2;
+
+    if (natural <= maxUsable) {
+      cluster.style.flex = '';
+      cluster.style.minWidth = '';
+      cluster.style.width = '';
+      input.style.flex = '0 0 auto';
+      input.style.width = `${Math.ceil(Math.max(natural, draftTitle.length > 0 ? 40 : 64))}px`;
+      input.style.minWidth = '';
+      input.style.maxWidth = '';
+      input.style.overflowX = 'visible';
+    } else {
+      cluster.style.flex = '1 1 auto';
+      cluster.style.minWidth = '0';
+      cluster.style.width = '';
+      input.style.flex = '1 1 auto';
+      input.style.width = 'auto';
+      input.style.minWidth = '0';
+      input.style.maxWidth = 'none';
+      input.style.overflowX = 'auto';
+    }
+  }, [draftTitle]);
+
+  useLayoutEffect(() => {
+    if (!isEditing) return;
+    syncTitleFieldWidth();
+  }, [isEditing, syncTitleFieldWidth]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const onResize = () => syncTitleFieldWidth();
+    window.addEventListener('resize', onResize);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      vv?.removeEventListener('resize', onResize);
+    };
+  }, [isEditing, syncTitleFieldWidth]);
 
   useEffect(() => {
     if (!moreMenuOpen) return;
@@ -296,9 +392,17 @@ function NotesTestDetail() {
   useEffect(() => {
     if (!isEditing || !pendingOcrAfterEditRef.current) return;
     pendingOcrAfterEditRef.current = false;
-    const id = requestAnimationFrame(() => setOcrPickerOpenRequest((n) => n + 1));
+    const id = requestAnimationFrame(() => setOcrChoiceModalOpen(true));
     return () => cancelAnimationFrame(id);
   }, [isEditing]);
+
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = useDarkBg ? '#1c1c1e' : '#faf9f7';
+    return () => {
+      document.body.style.backgroundColor = prev;
+    };
+  }, [useDarkBg]);
 
   if (remote && !authInitializing && !user) {
     return <Navigate to="/login" replace />;
@@ -380,9 +484,32 @@ function NotesTestDetail() {
     setIsEditing(true);
   };
 
+  const handleOcrFileFromModal = async (/** @type {File} */ file) => {
+    if (!canOcrScan || !file) return;
+    const supabase = getSupabase();
+    if (!supabase) {
+      setOcrModalError('Sign in to import text from images');
+      return;
+    }
+    setOcrModalError(null);
+    setOcrModalLoading(true);
+    try {
+      const text = await ocrImageFileToText(supabase, file);
+      const ed = tiptapRef.current;
+      if (ed) appendOcrPlainTextToTipTap(ed, text);
+      setOcrChoiceModalOpen(false);
+      setToastMessage('Text added from image');
+    } catch (e) {
+      setOcrModalError(e instanceof Error ? e.message : 'Could not read text from image');
+    } finally {
+      setOcrModalLoading(false);
+    }
+  };
+
   const triggerImageToTextPicker = () => {
     setMoreMenuOpen(false);
     setBottomAttachOpen(false);
+    setOcrModalError(null);
     if (!canOcrScan) {
       setToastMessage('Image scan needs a signed-in account with access enabled.');
       return;
@@ -392,7 +519,7 @@ function NotesTestDetail() {
       startEdit();
       return;
     }
-    setOcrPickerOpenRequest((n) => n + 1);
+    setOcrChoiceModalOpen(true);
   };
 
   const exitEditMode = async () => {
@@ -490,6 +617,10 @@ function NotesTestDetail() {
   };
 
   const onReadPointerDown = (e) => {
+    if (performance.now() < readSurfaceSuppressEditUntilRef.current) {
+      tapRef.current = null;
+      return;
+    }
     if (e.target instanceof Element && e.target.closest('a,button,input,textarea,select,audio,video')) {
       tapRef.current = null;
       return;
@@ -498,6 +629,10 @@ function NotesTestDetail() {
   };
 
   const onReadPointerUp = (e) => {
+    if (performance.now() < readSurfaceSuppressEditUntilRef.current) {
+      tapRef.current = null;
+      return;
+    }
     const start = tapRef.current;
     tapRef.current = null;
     if (!start) return;
@@ -508,23 +643,18 @@ function NotesTestDetail() {
     startEdit();
   };
 
-  const toggleTaskFromBottom = () => {
-    if (!isEditing) {
-      pendingEditorActionRef.current = 'task';
-      startEdit();
-      return;
-    }
-    tiptapRef.current?.chain().focus().toggleTaskList().run();
-  };
-
-  const confirmAttachAudioFromSheet = () => {
-    setBottomAttachOpen(false);
+  const requestInsertAudio = () => {
     if (requiresAuthForPersistence() && !user) {
       navigate('/login');
       return;
     }
     if (!isEditing) startEdit();
     setAttachAudioOpenRequest((n) => n + 1);
+  };
+
+  const confirmAttachAudioFromSheet = () => {
+    setBottomAttachOpen(false);
+    requestInsertAudio();
   };
 
   const currentLabels = note.labels ?? [];
@@ -565,6 +695,7 @@ function NotesTestDetail() {
       <>
         <div
           className={styles.sheetBackdrop}
+          data-nn-dismiss-shield
           role="presentation"
           onClick={() => {
             setMoreMenuOpen(false);
@@ -578,38 +709,6 @@ function NotesTestDetail() {
           aria-label="Note menu"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={styles.sheetQuickRow}>
-            <button
-              type="button"
-              className={`${styles.sheetQuickBtn} ${canOcrScan ? styles.sheetQuickBtnInteractive : ''}`}
-              disabled={!canOcrScan}
-              title={canOcrScan ? 'Import text from a photo' : 'Sign in with scan access to use image import'}
-              onClick={() => {
-                if (!canOcrScan) return;
-                setMoreMenuOpen(false);
-                setMoreMenuLabelsOpen(false);
-                triggerImageToTextPicker();
-              }}
-            >
-              <ScanLine className={styles.sheetQuickIcon} strokeWidth={2} aria-hidden />
-              Scan
-            </button>
-            <button
-              type="button"
-              className={`${styles.sheetQuickBtn} ${styles.sheetQuickBtnInteractive}`}
-              onClick={() => {
-                setMoreMenuOpen(false);
-                setMoreMenuLabelsOpen(false);
-                setInfoOpen(true);
-              }}
-            >
-              <span className={styles.sheetQuickIconWrap} aria-hidden>
-                <NoteInfoCircleIcon />
-              </span>
-              Info
-            </button>
-            <div className={styles.sheetQuickReserved} aria-hidden />
-          </div>
           <button
             type="button"
             className={`${styles.sheetMenuBtn} ${styles.sheetMenuBtnDisclosure}`}
@@ -618,6 +717,34 @@ function NotesTestDetail() {
             <Tag className={styles.sheetMenuLeadingIcon} strokeWidth={2} aria-hidden />
             <span className={styles.sheetMenuBtnLabelGrow}>Labels</span>
             <ChevronRight className={styles.sheetMenuChevronTrail} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={styles.sheetMenuBtn}
+            disabled={!canOcrScan}
+            title={
+              canOcrScan ? 'Import text from a photo' : 'Sign in with scan access to use image import'
+            }
+            onClick={() => {
+              if (!canOcrScan) return;
+              triggerImageToTextPicker();
+            }}
+          >
+            <ScanText className={styles.sheetMenuLeadingIcon} strokeWidth={2} aria-hidden />
+            Scan Image to Text
+          </button>
+          <button
+            type="button"
+            className={styles.sheetMenuBtn}
+            title="Insert or attach audio"
+            onClick={() => {
+              setMoreMenuOpen(false);
+              setMoreMenuLabelsOpen(false);
+              requestInsertAudio();
+            }}
+          >
+            <AudioLines className={styles.sheetMenuLeadingIcon} strokeWidth={2} aria-hidden />
+            Attach Audio
           </button>
           <button
             type="button"
@@ -729,6 +856,44 @@ function NotesTestDetail() {
       document.body
     );
 
+  const grammarFixedBottom = embedToolbarInScroll
+    ? undefined
+    : `max(${vvInsetBottom}px, calc(env(safe-area-inset-bottom, 0px) + 0.52rem))`;
+
+  const bottomClusterEl = (() => {
+    if (isEditing) return null;
+    return (
+      <div className={styles.bottomCluster} data-nn-canvas={useDarkBg ? 'dark' : 'light'}>
+        <div className={styles.posCluster} ref={posToolbarClusterRef}>
+          <div className={styles.posLegendAnchor}>
+            <button
+              type="button"
+              className={styles.infoBtn}
+              disabled={!posAnalysisOn}
+              aria-expanded={posAnalysisOn ? posLegendOpen : false}
+              onClick={() => {
+                if (!posAnalysisOn) return;
+                setPosLegendOpen((o) => !o);
+              }}
+              aria-label="Word tag key"
+              title={posAnalysisOn ? 'Word tag key' : 'Turn on Grammar to use the tag key'}
+            >
+              <Key className={styles.grammarKeyIcon} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+          <button
+            type="button"
+            className={styles.grammarBtn}
+            aria-pressed={posAnalysisOn}
+            onClick={() => setPosAnalysisOn((on) => !on)}
+          >
+            Grammar
+          </button>
+        </div>
+      </div>
+    );
+  })();
+
   return (
     <div
       className={`${styles.shell}${useDarkBg ? ` ${styles.shellDark}` : ''}`}
@@ -738,8 +903,13 @@ function NotesTestDetail() {
         <header className={styles.topBar}>
           <BackChevronButton aria-label="Go back" onClick={handleBack} />
           <div className={styles.topBarNavSlot}>
-            <div className={styles.topBarActionsPill}>
-              <AppHeaderNav menuTriggerClassName={styles.topBarMenuTriggerInPill} />
+            <Toast message={toastMessage} onDismiss={dismissToast} variant="headerMinimal" />
+            <div className={styles.topBarActionsPill} data-nn-top-nav-pill>
+              <AppHeaderNav
+                menuTriggerClassName={styles.topBarMenuTriggerInPill}
+                menuOverlapPill
+                onOutsideMenuPointerDownCapture={armReadSurfaceEditSuppress}
+              />
               <button
                 type="button"
                 className={styles.topBarMoreInPill}
@@ -772,6 +942,7 @@ function NotesTestDetail() {
         ) : null}
 
         <div className={styles.scrollInner}>
+          <div className={styles.contentWrap}>
           <div ref={metaRevealRef} className={styles.metaReveal}>
             <p className={styles.dateOnly}>{lastModifiedLine}</p>
             <div className={styles.metaCenterRow}>
@@ -790,7 +961,7 @@ function NotesTestDetail() {
                   </span>
                 ))}
               </div>
-              <ComedyRatingTrigger note={note} variant="detail" detailAlign="center" />
+              <ComedyRatingTrigger note={note} variant="detail" detailAlign="center" canvasDark={useDarkBg} />
             </div>
           </div>
 
@@ -809,19 +980,34 @@ function NotesTestDetail() {
                 aria-label="Note body"
                 audioStorageScopeId={note.id}
                 toolbarVariant="mobileNotes"
-                embedMobileToolbar
-                ocrPickerOpenRequest={ocrPickerOpenRequest}
+                embedMobileToolbar={embedToolbarInScroll}
+                uiCanvasDark={useDarkBg}
                 attachAudioOpenRequest={attachAudioOpenRequest}
                 onRequestAttachSheet={() => setBottomAttachOpen(true)}
                 onAddToExistingNote={() => openTransferWithEditorSelection()}
                 editorHeader={
-                  <input
-                    className={styles.titleField}
-                    value={draftTitle}
-                    onChange={(e) => setDraftTitle(e.target.value)}
-                    aria-label="Note title"
-                    placeholder="Title"
-                  />
+                  <div className={styles.titleRow} ref={titleEditRowRef}>
+                    <div className={styles.titleEditCluster} ref={titleEditClusterRef}>
+                      <span ref={titleMeasureRef} className={styles.titleMeasure} aria-hidden />
+                      <input
+                        ref={titleInputRef}
+                        className={styles.titleField}
+                        value={draftTitle}
+                        onChange={(e) => setDraftTitle(e.target.value)}
+                        aria-label="Note title"
+                        placeholder="Title"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.titleInfoInlineBtn}
+                      aria-label="Note info"
+                      title="Note info"
+                      onClick={() => setInfoOpen(true)}
+                    >
+                      <NoteInfoCircleIcon />
+                    </button>
+                  </div>
                 }
               />
               {editStartedFromMarkdown ? (
@@ -839,7 +1025,18 @@ function NotesTestDetail() {
             onPointerDown={onReadPointerDown}
             onPointerUp={onReadPointerUp}
           >
-            <h1 className={styles.readTitle}>{note.title}</h1>
+            <div className={styles.titleRow}>
+              <h1 className={styles.readTitle}>{note.title}</h1>
+              <button
+                type="button"
+                className={styles.titleInfoInlineBtn}
+                aria-label="Note info"
+                title="Note info"
+                onClick={() => setInfoOpen(true)}
+              >
+                <NoteInfoCircleIcon />
+              </button>
+            </div>
             <NoteBodyContent
               key={note.id}
               contentType={note.contentType}
@@ -851,90 +1048,63 @@ function NotesTestDetail() {
             />
           </div>
         )}
+          </div>
         </div>
       </div>
 
       <footer className={styles.bottomBar}>
-        <div className={styles.bottomCluster}>
-          <div className={styles.posCluster} ref={posToolbarClusterRef}>
-            <div className={styles.posLegendAnchor}>
-              <button
-                type="button"
-                className={styles.infoBtn}
-                disabled={!posAnalysisOn}
-                aria-expanded={posAnalysisOn ? posLegendOpen : false}
-                onClick={() => {
-                  if (!posAnalysisOn) return;
-                  setPosLegendOpen((o) => !o);
-                }}
-                aria-label="Word tag abbreviations"
-              >
-                <NoteInfoCircleIcon />
-              </button>
-              {posAnalysisOn && posLegendOpen ? (
-                <div
-                  className={styles.posLegendDropdown}
-                  role="presentation"
-                  onClick={(e) => {
-                    if (e.target === e.currentTarget) setPosLegendOpen(false);
-                  }}
-                >
-                  <PosLegendPopover
-                    abbreviations={[...posUsedAbbreviationsRef.current]}
-                    onClose={() => setPosLegendOpen(false)}
-                  />
-                </div>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className={styles.grammarBtn}
-              aria-pressed={posAnalysisOn}
-              onClick={() => setPosAnalysisOn((on) => !on)}
-            >
-              Grammar
-            </button>
-          </div>
-          <button
-            type="button"
-            className={styles.bottomTool}
-            aria-label="Checklist"
-            title="Checklist"
-            onClick={toggleTaskFromBottom}
-          >
-            <ListChecks className={styles.bottomIcon} strokeWidth={2} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={styles.bottomTool}
-            aria-label="Attachments"
-            title="Attach"
-            aria-expanded={bottomAttachOpen}
-            onClick={() => setBottomAttachOpen(true)}
-          >
-            <Paperclip className={styles.bottomIcon} strokeWidth={2} aria-hidden />
-          </button>
-        </div>
+        {embedToolbarInScroll ? bottomClusterEl : null}
         {!isEditing ? (
           <button
             type="button"
-            className={`${styles.iconCircleBtn} ${styles.iconCircleBtnAccent}`}
+            className={`${styles.bottomBarEnd} ${styles.iconCircleBtn} ${styles.iconCircleBtnAccent} ${styles.bottomBarFab}`}
             aria-label="New note"
             title="New note"
             onClick={() => setComposerOpen(true)}
           >
-            <SquarePen className={styles.backIcon} strokeWidth={2} aria-hidden />
+            <SquarePen className={`${styles.backIcon} ${styles.bottomBarFabIcon}`} strokeWidth={2} aria-hidden />
           </button>
         ) : (
-          <span style={{ width: '2.5rem' }} aria-hidden />
+          <span className={`${styles.bottomBarEnd} ${styles.bottomBarEditSpacer}`} aria-hidden />
         )}
       </footer>
+
+      {!embedToolbarInScroll && bottomClusterEl
+        ? createPortal(
+            <div className={styles.bottomClusterFixedWrap} style={{ bottom: grammarFixedBottom }}>
+              {bottomClusterEl}
+            </div>,
+            document.body
+          )
+        : null}
+
+      {posAnalysisOn && posLegendOpen
+        ? createPortal(
+            <div
+              ref={posLegendLayerRef}
+              className={styles.posLegendDropdown}
+              data-nn-dismiss-shield
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setPosLegendOpen(false);
+              }}
+            >
+              <PosLegendPopover
+                abbreviations={[...posUsedAbbreviationsRef.current]}
+                onClose={() => setPosLegendOpen(false)}
+                canvasDark={useDarkBg}
+              />
+            </div>,
+            document.body
+          )
+        : null}
 
       <NoteInfoModal
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
         sourceFileName={note.sourceFileName}
         createdAtSource={note.createdAtSource}
+        canvasDark={useDarkBg}
       />
 
       <DeleteNoteModal
@@ -958,13 +1128,27 @@ function NotesTestDetail() {
 
       <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
 
-      <Toast message={toastMessage} onDismiss={dismissToast} />
+      <ImageToTextChoiceModal
+        open={ocrChoiceModalOpen}
+        onClose={() => {
+          if (!ocrModalLoading) {
+            setOcrChoiceModalOpen(false);
+            setOcrModalError(null);
+          }
+        }}
+        onPickFile={(f) => void handleOcrFileFromModal(f)}
+        canvasDark={useDarkBg}
+        loading={ocrModalLoading}
+        error={ocrModalError}
+      />
+
       {moreMenu}
       {bottomAttachOpen
         ? createPortal(
             <>
               <div
-                className={styles.sheetBackdrop}
+                className={styles.attachSheetBackdrop}
+                data-nn-dismiss-shield
                 role="presentation"
                 onClick={() => setBottomAttachOpen(false)}
               />
@@ -977,8 +1161,8 @@ function NotesTestDetail() {
               >
                 {canOcrScan ? (
                   <button type="button" className={styles.attachSheetBtn} onClick={triggerImageToTextPicker}>
-                    <ScanLine className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
-                    Image to text
+                    <ScanText className={styles.attachSheetIcon} strokeWidth={2} aria-hidden />
+                    Image
                   </button>
                 ) : null}
                 <button type="button" className={styles.attachSheetBtn} onClick={confirmAttachAudioFromSheet}>

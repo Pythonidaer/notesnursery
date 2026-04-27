@@ -30,6 +30,7 @@ import insertStyles from './InsertAudioModal.module.css';
  *     reason: string,
  *     isLikelySizeLimit: boolean,
  *   }) => void,
+ *   canvasDark?: boolean,
  * }} props
  */
 export default function InsertAudioModal({
@@ -40,6 +41,7 @@ export default function InsertAudioModal({
   editor,
   onBlocked,
   onUploadFailure,
+  canvasDark = false,
 }) {
   const fileInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
   const [library, setLibrary] = useState(/** @type {Awaited<ReturnType<typeof listUserNoteAudioFiles>>} */ ([]));
@@ -93,6 +95,8 @@ export default function InsertAudioModal({
   }, [open, userId]);
 
   if (!open) return null;
+
+  const theme = canvasDark ? 'dark' : undefined;
 
   const insertAttrs = (attrs) => {
     if (!editor) return;
@@ -198,6 +202,8 @@ export default function InsertAudioModal({
   return createPortal(
     <div
       className={styles.backdrop}
+      data-nn-dismiss-shield
+      data-theme={theme}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -205,6 +211,7 @@ export default function InsertAudioModal({
     >
       <div
         className={`${styles.dialog} ${styles.dialogWide}`}
+        data-theme={theme}
         role="dialog"
         aria-modal="true"
         aria-labelledby="insert-audio-title"

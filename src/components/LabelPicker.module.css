@@ -521,3 +521,14 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* 16px+ on narrow viewports avoids iOS Safari zooming the whole page when the label field is focused */
+@media (max-width: 639px) {
+  .input {
+    font-size: 1rem;
+  }
+
+  .rootCompact .input {
+    font-size: 1rem;
+  }
+}

@@ -97,6 +97,12 @@
   pointer-events: none;
 }
 
+/* Lucide paperclip reads very wide at equal width/height; slim the footprint. */
+.iconPaperclip {
+  width: 0.78rem;
+  height: 0.95rem;
+}
+
 .colorWrap {
   position: relative;
   display: inline-flex;
@@ -486,6 +492,33 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
+/* Portaled toolbar is under document.body — use explicit dark chrome (matches notes-test shellDark). */
+.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarMobilePill,
+.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarMobilePill {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, #2c2c2e 90%, transparent);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn {
+  color: #f5f5f7;
+}
+
+.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn:hover,
+.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toolbarMobileFixed[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtnActive,
+.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtnActive {
+  background: rgba(255, 255, 255, 0.14);
+  color: #95c4a8;
+}
+
+.toolbarMobileEmbedded[data-nn-canvas='dark'] .toolbarInnerMobile .toolBtn {
+  color: #f5f5f7;
+}
+
 .toolbarMobileEmbedded {
   position: sticky;
   top: var(--notesTestTopBarApprox, 3.35rem);
@@ -538,12 +571,24 @@
   height: 1.28rem;
 }
 
+.toolbarInnerMobile .iconPaperclip {
+  width: 0.95rem;
+  height: 1.15rem;
+}
+
 .toolbarInnerMobile .toolbarSep {
   display: none;
 }
 
 .surfaceMobileNotes {
-  scroll-margin-bottom: 5.5rem;
+  scroll-margin-bottom: 6.25rem;
+}
+
+@media (min-width: 640px) {
+  .surfaceMobileNotes {
+    /* Format pill + bottom Grammar row (taller pills) */
+    scroll-margin-bottom: 7.35rem;
+  }
 }
 
 .surfaceMobileNotesEmbedded {

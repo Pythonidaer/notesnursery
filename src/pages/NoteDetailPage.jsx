@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import PlusIcon from '../components/PlusIcon.jsx';
 import ComedyRatingTrigger from '../components/ComedyRatingTrigger.jsx';
@@ -176,6 +177,7 @@ export default function NoteDetailPage() {
   /** Must stay a ref: updating state after POS overlay runs re-renders the body and reapplies innerHTML, wiping tags. */
   const posUsedAbbreviationsRef = useRef(/** @type {string[]} */ ([]));
   const posToolbarClusterRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const posLegendLayerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const tiptapRef = useRef(/** @type {import('@tiptap/core').Editor | null} */ (null));
 
   /** Switch to explicit mobile read-only header structure (title → chips → selector/stars). */
@@ -240,10 +242,13 @@ export default function NoteDetailPage() {
       if (e.key === 'Escape') setPosLegendOpen(false);
     };
     const onDown = (e) => {
-      const el = posToolbarClusterRef.current;
-      if (el && e.target instanceof Node && !el.contains(e.target)) {
-        setPosLegendOpen(false);
-      }
+      const t = e.target;
+      if (!(t instanceof Node)) return;
+      const cluster = posToolbarClusterRef.current;
+      const layer = posLegendLayerRef.current;
+      if (cluster?.contains(t)) return;
+      if (layer?.contains(t)) return;
+      setPosLegendOpen(false);
     };
     window.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown, true);
@@ -409,21 +414,6 @@ export default function NoteDetailPage() {
           >
             <NoteInfoCircleIcon />
           </button>
-          {posAnalysisOn && posLegendOpen ? (
-            <div
-              className={styles.posLegendDropdown}
-              id="pos-legend-popover"
-              role="presentation"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setPosLegendOpen(false);
-              }}
-            >
-              <PosLegendPopover
-                abbreviations={[...posUsedAbbreviationsRef.current]}
-                onClose={() => setPosLegendOpen(false)}
-              />
-            </div>
-          ) : null}
         </div>
         <button
           type="button"
@@ -643,6 +633,28 @@ export default function NoteDetailPage() {
       />
 
       <FloatingNewNoteComposer visible={composerOpen} onRequestClose={() => setComposerOpen(false)} />
+
+      {!isEditing && posAnalysisOn && posLegendOpen
+        ? createPortal(
+            <div
+              ref={posLegendLayerRef}
+              className={styles.posLegendDropdown}
+              data-nn-dismiss-shield
+              id="pos-legend-popover"
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setPosLegendOpen(false);
+              }}
+            >
+              <PosLegendPopover
+                abbreviations={[...posUsedAbbreviationsRef.current]}
+                onClose={() => setPosLegendOpen(false)}
+                canvasDark={false}
+              />
+            </div>,
+            document.body
+          )
+        : null}
 
       <Toast message={toastMessage} onDismiss={dismissToast} />
     </article>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Settings } from 'lucide-react';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
-import NoteInfoCircleIcon from './NoteInfoCircleIcon.jsx';
 import '../styles/noteAudio.css';
 
 /**
@@ -43,26 +43,26 @@ export default function NoteAudioReadBlock({ attrs, onOpenInfo }) {
           {error ? <p className="nn-audio-read-error">{error}</p> : null}
           {!error && !src ? <span className="nn-audio-read-loading">Loading…</span> : null}
           {src ? (
-            <audio
-              className="nn-audio-element"
-              controls
-              preload="metadata"
-              src={src}
-              aria-label={label}
-            />
+            <div className="nn-audio-pill">
+              <audio
+                className="nn-audio-element"
+                controls
+                preload="metadata"
+                src={src}
+                aria-label={label}
+              />
+            </div>
           ) : null}
         </div>
-        <div className="nn-audio-tools">
-          <button
-            type="button"
-            className="nn-app-info-btn"
-            onClick={() => onOpenInfo(attrs)}
-            aria-label="Audio file info"
-            title="Info"
-          >
-            <NoteInfoCircleIcon />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="nn-audio-gear-btn"
+          onClick={() => onOpenInfo(attrs)}
+          aria-label="Audio settings"
+          title="Audio settings"
+        >
+          <Settings strokeWidth={2} aria-hidden />
+        </button>
       </div>
       <figcaption className="nn-audio-caption nn-audio-sr-only">{label}</figcaption>
     </figure>

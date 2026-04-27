@@ -14,3 +14,30 @@
   max-width: min(90vw, 22rem);
   text-align: center;
 }
+
+/* In-flow chip beside nav actions (e.g. notes-test header). */
+.toastHeaderMinimal {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  z-index: auto;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  border-radius: 999px;
+  box-shadow: none;
+  max-width: min(38vw, 9.5rem);
+  text-align: start;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

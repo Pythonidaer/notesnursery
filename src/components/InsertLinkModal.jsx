@@ -12,6 +12,7 @@ import linkStyles from './InsertLinkModal.module.css';
  *   canRemoveLink: boolean,
  *   onApply: (url: string, displayName?: string) => void,
  *   onRemoveLink: () => void,
+ *   canvasDark?: boolean,
  * }} props
  */
 export default function InsertLinkModal({
@@ -22,6 +23,7 @@ export default function InsertLinkModal({
   canRemoveLink,
   onApply,
   onRemoveLink,
+  canvasDark = false,
 }) {
   const [draft, setDraft] = useState('');
   const [draftName, setDraftName] = useState('');
@@ -61,9 +63,13 @@ export default function InsertLinkModal({
     onClose();
   };
 
+  const theme = canvasDark ? 'dark' : undefined;
+
   return createPortal(
     <div
       className={styles.backdrop}
+      data-nn-dismiss-shield
+      data-theme={theme}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -71,6 +77,7 @@ export default function InsertLinkModal({
     >
       <div
         className={`${styles.dialog} ${styles.dialogWide}`}
+        data-theme={theme}
         role="dialog"
         aria-modal="true"
         aria-labelledby="insert-link-title"

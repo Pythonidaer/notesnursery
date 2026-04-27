@@ -126,20 +126,26 @@ export default function NoteBodyContent({
     }
   }, [posAnalysisEnabled]);
 
+  const syncPosOverlay = useCallback(() => {
+    const root = readBodyRef.current;
+    if (!root || !posAnalysisEnabled) return;
+    applyPosOverlayToReadBody(root, {
+      contentTypeHtml: mode === CONTENT_TYPE_HTML,
+    });
+    const found = new Set();
+    root.querySelectorAll('.nn-pos-tag').forEach((el) => {
+      const t = el.textContent?.trim();
+      if (t) found.add(t);
+    });
+    onPosUsedAbbreviationsChange?.(Array.from(found).sort((a, b) => a.localeCompare(b)));
+  }, [posAnalysisEnabled, mode, onPosUsedAbbreviationsChange]);
+
   useLayoutEffect(() => {
     if (!posAnalysisEnabled || !readBodyRef.current) {
       onPosUsedAbbreviationsChange?.([]);
       return;
     }
-    applyPosOverlayToReadBody(readBodyRef.current, {
-      contentTypeHtml: mode === CONTENT_TYPE_HTML,
-    });
-    const found = new Set();
-    readBodyRef.current.querySelectorAll('.nn-pos-tag').forEach((el) => {
-      const t = el.textContent?.trim();
-      if (t) found.add(t);
-    });
-    onPosUsedAbbreviationsChange?.(Array.from(found).sort((a, b) => a.localeCompare(b)));
+    syncPosOverlay();
   }, [
     posAnalysisEnabled,
     posLegendOpen,
@@ -148,8 +154,29 @@ export default function NoteBodyContent({
     bodyMarkdown,
     readSegmentsWithDisplayNames,
     readBodyEpoch,
+    syncPosOverlay,
     onPosUsedAbbreviationsChange,
   ]);
+
+  /** Ctrl/Cmd± zoom changes layout + can clobber innerHTML mutations before React reconciles; re-apply overlay. */
+  useEffect(() => {
+    if (!posAnalysisEnabled) return;
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        syncPosOverlay();
+      });
+    };
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', schedule);
+    window.addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      vv?.removeEventListener('resize', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [posAnalysisEnabled, syncPosOverlay]);
 
   if (mode === CONTENT_TYPE_MARKDOWN) {
     const md = bodyMarkdown ?? '';
@@ -239,6 +266,7 @@ export default function NoteBodyContent({
         uploadedAt={audioInfo?.uploadedAt ?? ''}
         userId={audioUserId}
         storagePath={audioInfo?.storagePath ?? ''}
+        allowEditorActions={false}
         onDisplayNameSaved={(path, name) => {
           setDisplayNameByPath((prev) => ({ ...prev, [path]: name }));
         }}

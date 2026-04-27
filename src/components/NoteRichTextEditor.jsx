@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -18,7 +18,6 @@ import {
   Heading1,
   Heading2,
   Heading3,
-  IndentIncrease,
   Italic,
   Link2,
   List,
@@ -26,7 +25,6 @@ import {
   ListOrdered,
   Loader2,
   Minus,
-  Outdent,
   Palette,
   Paperclip,
   ScanText,
@@ -49,8 +47,12 @@ import AudioUploadErrorModal from './AudioUploadErrorModal.jsx';
 import InsertAudioModal from './InsertAudioModal.jsx';
 import InsertLinkModal from './InsertLinkModal.jsx';
 import NoteFormatBottomSheet from './NoteFormatBottomSheet.jsx';
+import TextColorModal from './TextColorModal.jsx';
 import { escapeHtmlAttr } from '../utils/escapeHtmlAttr.js';
 import { isSelectionInsideListItem } from '../utils/insertNoteAudioBlock.js';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { useVisualViewportKeyboardInset } from '../hooks/useVisualViewportKeyboardInset.js';
+import { isDefaultStoredTextColor } from '../utils/tiptapTextColorInk.js';
 import styles from './NoteRichTextEditor.module.css';
 
 /** Block elements: if a <div> contains any of these, TipTap must not treat the div as a paragraph. */
@@ -150,31 +152,6 @@ function useToolbarRerender(editor) {
   }, [editor]);
 }
 
-/** Space from layout viewport bottom to visual viewport bottom (keyboard / accessory). */
-function useVisualViewportKeyboardInset() {
-  const [bottom, setBottom] = useState(0);
-  useLayoutEffect(() => {
-    const vv = window.visualViewport;
-    const update = () => {
-      if (!vv) {
-        setBottom(0);
-        return;
-      }
-      setBottom(Math.max(0, window.innerHeight - (vv.offsetTop + vv.height)));
-    };
-    update();
-    vv?.addEventListener('resize', update);
-    vv?.addEventListener('scroll', update);
-    window.addEventListener('resize', update);
-    return () => {
-      vv?.removeEventListener('resize', update);
-      vv?.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
-  return bottom;
-}
-
 /**
  * @param {{
  *   editor: import('@tiptap/core').Editor | null,
@@ -185,7 +162,7 @@ function useVisualViewportKeyboardInset() {
  *   attachAudioOpenRequest?: number,
  *   onRequestAttachSheet?: () => void,
  *   embedMobileToolbar?: boolean,
- *   ocrPickerOpenRequest?: number,
+ *   uiCanvasDark?: boolean,
  * }} props
  */
 function MenuBar({
@@ -197,9 +174,10 @@ function MenuBar({
   attachAudioOpenRequest = 0,
   onRequestAttachSheet,
   embedMobileToolbar = false,
-  ocrPickerOpenRequest = 0,
+  uiCanvasDark = false,
 }) {
   const [colorOpen, setColorOpen] = useState(false);
+  const [colorModalOpen, setColorModalOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -213,11 +191,7 @@ function MenuBar({
   const [linkInitialUrl, setLinkInitialUrl] = useState('');
   const [linkInitialDisplay, setLinkInitialDisplay] = useState('');
   const [linkCanRemove, setLinkCanRemove] = useState(false);
-  const colorBtnRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
   const colorPopoverRef = useRef(/** @type {HTMLDivElement | null} */ (null));
-  const [colorPopoverStyle, setColorPopoverStyle] = useState(
-    /** @type {import('react').CSSProperties | null} */ (null)
-  );
   const [insertAudioOpen, setInsertAudioOpen] = useState(false);
   const [audioInsertBlockedOpen, setAudioInsertBlockedOpen] = useState(false);
   const [uploadErr, setUploadErr] = useState(
@@ -232,19 +206,15 @@ function MenuBar({
 
   useToolbarRerender(editor);
   const vvInset = useVisualViewportKeyboardInset();
+  const isWideViewport = useMediaQuery('(min-width: 640px)');
+  const isMobile = toolbarVariant === 'mobileNotes';
   const lastAttachAudioReqRef = useRef(0);
-  const lastOcrPickerReqRef = useRef(0);
 
-  useEffect(() => {
-    if (ocrPickerOpenRequest <= 0 || !canOcr) return;
-    if (!editor) return;
-    if (ocrPickerOpenRequest === lastOcrPickerReqRef.current) return;
-    lastOcrPickerReqRef.current = ocrPickerOpenRequest;
-    setAttachOpen(false);
-    setOcrError(null);
-    setOcrOpen(true);
-    editor.chain().focus().run();
-  }, [ocrPickerOpenRequest, editor, canOcr]);
+  /** Align fixed pill with notes-test bottom chrome (Grammar row); lift above keyboard when needed. */
+  const fixedToolbarBottom =
+    isMobile && isWideViewport && !embedMobileToolbar
+      ? `max(${vvInset}px, calc(env(safe-area-inset-bottom, 0px) + 0.52rem))`
+      : vvInset;
 
   useEffect(() => {
     if (attachAudioOpenRequest <= 0) {
@@ -264,39 +234,6 @@ function MenuBar({
       setInsertAudioOpen(true);
     });
   }, [attachAudioOpenRequest, editor, canUploadAudio]);
-
-  useLayoutEffect(() => {
-    if (!colorOpen || toolbarVariant !== 'mobileNotes' || !colorBtnRef.current) {
-      setColorPopoverStyle(null);
-      return;
-    }
-    const update = () => {
-      const el = colorBtnRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const popoverMax = 12 * 16;
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      const popoverApproxH = 9 * rem;
-      let top = r.top - popoverApproxH - 8;
-      top = Math.max(8, Math.min(top, window.innerHeight - popoverApproxH - 8));
-      setColorPopoverStyle({
-        position: 'fixed',
-        top,
-        left: Math.max(8, Math.min(r.left, window.innerWidth - 8 - popoverMax)),
-        zIndex: 950,
-      });
-    };
-    update();
-    const vv = window.visualViewport;
-    vv?.addEventListener('resize', update);
-    vv?.addEventListener('scroll', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      vv?.removeEventListener('resize', update);
-      vv?.removeEventListener('scroll', update);
-      window.removeEventListener('scroll', update, true);
-    };
-  }, [colorOpen, toolbarVariant]);
 
   useEffect(() => {
     if (!colorOpen) return;
@@ -370,12 +307,9 @@ function MenuBar({
 
   if (!editor) return null;
 
-  const isMobile = toolbarVariant === 'mobileNotes';
   const toolbarInnerClass = isMobile
     ? `${styles.toolbarInner} ${styles.toolbarInnerScroll} ${styles.toolbarInnerMobile}`
     : styles.toolbarInner;
-
-  const listItemKind = () => (editor.isActive('taskItem') ? 'taskItem' : 'listItem');
 
   const focused = Boolean(editor.isFocused);
   const active = (/** @type {string} */ name, /** @type {Record<string, unknown>} */ attrs) =>
@@ -383,7 +317,10 @@ function MenuBar({
 
   const textStyleAttrs = editor.getAttributes('textStyle');
   const currentColor = typeof textStyleAttrs.color === 'string' ? textStyleAttrs.color : null;
-  const colorControlActive = focused && currentColor != null && currentColor !== '';
+  const colorUiOpen = colorOpen || colorModalOpen;
+  const hasNonDefaultMarkColor =
+    currentColor != null && currentColor !== '' && !isDefaultStoredTextColor(currentColor);
+  const colorControlActive = colorUiOpen || hasNonDefaultMarkColor;
 
   const openLinkModal = () => {
     editor.chain().focus();
@@ -427,6 +364,7 @@ function MenuBar({
 
   const applyColor = (/** @type {string | null} */ value) => {
     setColorOpen(false);
+    setColorModalOpen(false);
     if (value == null) {
       editor.chain().focus().unsetColor().run();
     } else {
@@ -451,116 +389,9 @@ function MenuBar({
   };
 
   const attachMenuEl =
-    isMobile && onRequestAttachSheet ? (
-      <>
-        {canOcr ? (
-          <div className={styles.ocrWrap} ref={ocrWrapRef}>
-            <input
-              ref={ocrCameraInputRef}
-              type="file"
-              className={styles.hiddenFileInput}
-              accept="image/*"
-              capture="environment"
-              tabIndex={-1}
-              aria-hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = '';
-                if (f) void runOcrOnFile(f);
-              }}
-            />
-            <input
-              ref={ocrFileInputRef}
-              type="file"
-              className={styles.hiddenFileInput}
-              accept="image/*"
-              tabIndex={-1}
-              aria-hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = '';
-                if (f) void runOcrOnFile(f);
-              }}
-            />
-            <button
-              type="button"
-              className={`${styles.toolBtn} ${ocrLoading ? styles.toolBtnDisabled : ''} ${ocrOpen ? styles.toolBtnActive : ''}`}
-              disabled={ocrLoading}
-              onClick={() => {
-                if (ocrLoading) return;
-                setOcrError(null);
-                setOcrOpen((o) => !o);
-              }}
-              aria-label="Add text from image"
-              title="Scan or upload image"
-              aria-expanded={ocrOpen}
-              aria-haspopup="menu"
-              aria-controls="note-ocr-image-menu-mobile"
-            >
-              {ocrLoading ? (
-                <Loader2 className={`${styles.icon} ${styles.iconSpin}`} strokeWidth={2} aria-hidden />
-              ) : (
-                <ScanText className={styles.icon} strokeWidth={2} aria-hidden />
-              )}
-            </button>
-            {ocrOpen && !ocrLoading ? (
-              <div
-                id="note-ocr-image-menu-mobile"
-                className={styles.ocrPopover}
-                role="menu"
-                aria-label="Image to text"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.ocrMenuItem}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setOcrOpen(false);
-                    ocrCameraInputRef.current?.click();
-                  }}
-                >
-                  <Camera className={styles.ocrMenuIcon} strokeWidth={2} aria-hidden />
-                  <span>Take photo</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.ocrMenuItem}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setOcrOpen(false);
-                    ocrFileInputRef.current?.click();
-                  }}
-                >
-                  <FileUp className={styles.ocrMenuIcon} strokeWidth={2} aria-hidden />
-                  <span>Choose photo</span>
-                </button>
-              </div>
-            ) : null}
-            {ocrError ? (
-              <p className={styles.ocrError} role="status" aria-live="polite">
-                {ocrError}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-        <button
-          type="button"
-          className={styles.toolBtn}
-          onClick={() => {
-            setColorOpen(false);
-            setOcrOpen(false);
-            setAttachOpen(false);
-            onRequestAttachSheet();
-          }}
-          aria-label="Attachments"
-          title="Attach"
-        >
-          <Paperclip className={styles.icon} strokeWidth={2} aria-hidden />
-        </button>
-      </>
-    ) : isMobile && (canOcr || canUploadAudio || onAddToExistingNote) ? (
+    isMobile && onRequestAttachSheet
+      ? null
+      : isMobile && (canOcr || canUploadAudio || onAddToExistingNote) ? (
       <div className={styles.attachWrap} ref={attachWrapRef}>
         {canOcr ? (
           <>
@@ -605,7 +436,7 @@ function MenuBar({
           aria-label="Attachments"
           title="Attach"
         >
-          <Paperclip className={styles.icon} strokeWidth={2} aria-hidden />
+          <Paperclip className={`${styles.icon} ${styles.iconPaperclip}`} strokeWidth={2} aria-hidden />
         </button>
         {attachOpen ? (
           <div className={styles.attachPopover} role="menu" aria-label="Attach to note">
@@ -675,19 +506,6 @@ function MenuBar({
       </div>
     ) : null;
 
-  const sinkOrLift = (/** @type {'sink' | 'lift'} */ mode) => {
-    const k = listItemKind();
-    const alt = k === 'taskItem' ? 'listItem' : 'taskItem';
-    const chain = editor.chain().focus();
-    if (mode === 'sink') {
-      if (chain.sinkListItem(k).run()) return;
-      editor.chain().focus().sinkListItem(alt).run();
-    } else {
-      if (chain.liftListItem(k).run()) return;
-      editor.chain().focus().liftListItem(alt).run();
-    }
-  };
-
   const toolbarInner = (
       <div
         className={toolbarInnerClass}
@@ -695,7 +513,12 @@ function MenuBar({
           isMobile
             ? (e) => {
                 const t = e.target;
-                if (t instanceof Element && t.closest('button')) e.preventDefault();
+                if (!(t instanceof Element)) return;
+                const btn = t.closest('button');
+                if (!btn) return;
+                /* Let OCR / attach menu items receive real clicks (preventDefault breaks file picker). */
+                if (btn.closest(`.${styles.ocrPopover}`) || btn.closest(`.${styles.attachPopover}`)) return;
+                e.preventDefault();
               }
             : undefined
         }
@@ -706,6 +529,7 @@ function MenuBar({
             className={styles.toolBtn}
             onClick={() => {
               setAttachOpen(false);
+              setColorModalOpen(false);
               onOpenFormatSheet();
             }}
             aria-label="Text format"
@@ -869,91 +693,51 @@ function MenuBar({
         <span className={styles.toolbarSep} aria-hidden />
         <div className={styles.colorWrap} ref={colorWrapRef}>
           <button
-            ref={colorBtnRef}
             type="button"
             className={`${styles.toolBtn} ${colorControlActive ? styles.toolBtnActive : ''}`}
-            onClick={() => setColorOpen((o) => !o)}
-            aria-expanded={colorOpen}
-            aria-haspopup="listbox"
+            onClick={() => {
+              if (isMobile) {
+                setColorOpen(false);
+                setColorModalOpen((o) => !o);
+              } else {
+                setColorOpen((o) => !o);
+              }
+            }}
+            aria-expanded={isMobile ? colorModalOpen : colorOpen}
+            aria-haspopup={isMobile ? 'dialog' : 'listbox'}
             aria-label="Text color"
             title="Text color"
           >
             <Palette className={styles.icon} strokeWidth={2} aria-hidden />
           </button>
-          {colorOpen ? (
-            isMobile ? (
-              createPortal(
-                <div
-                  ref={colorPopoverRef}
-                  className={styles.colorPopover}
-                  style={
-                    colorPopoverStyle ?? {
-                      position: 'fixed',
-                      left: 8,
-                      top: 8,
-                      zIndex: 950,
-                    }
+          {colorOpen && !isMobile ? (
+            <div ref={colorPopoverRef} className={styles.colorPopover} role="listbox" aria-label="Text color">
+              {TEXT_COLOR_SWATCHES.map((sw) => (
+                <button
+                  key={sw.label}
+                  type="button"
+                  role="option"
+                  className={styles.colorSwatchBtn}
+                  title={sw.label}
+                  aria-label={sw.label}
+                  aria-selected={
+                    sw.value == null
+                      ? !currentColor
+                      : currentColor != null &&
+                        currentColor.replace(/\s/g, '').toLowerCase() ===
+                          sw.value.replace(/\s/g, '').toLowerCase()
                   }
-                  role="listbox"
-                  aria-label="Text color"
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => applyColor(sw.value)}
                 >
-                  {TEXT_COLOR_SWATCHES.map((sw) => (
-                    <button
-                      key={sw.label}
-                      type="button"
-                      role="option"
-                      className={styles.colorSwatchBtn}
-                      title={sw.label}
-                      aria-label={sw.label}
-                      aria-selected={
-                        sw.value == null
-                          ? !currentColor
-                          : currentColor != null &&
-                            currentColor.replace(/\s/g, '').toLowerCase() ===
-                              sw.value.replace(/\s/g, '').toLowerCase()
-                      }
-                      onPointerDown={(e) => e.preventDefault()}
-                      onClick={() => applyColor(sw.value)}
-                    >
-                      {sw.value == null ? (
-                        <span className={styles.colorSwatchDefault}>A</span>
-                      ) : (
-                        <span className={styles.colorSwatch} style={{ backgroundColor: sw.value }} />
-                      )}
-                    </button>
-                  ))}
-                </div>,
-                document.body
-              )
-            ) : (
-              <div ref={colorPopoverRef} className={styles.colorPopover} role="listbox" aria-label="Text color">
-                {TEXT_COLOR_SWATCHES.map((sw) => (
-                  <button
-                    key={sw.label}
-                    type="button"
-                    role="option"
-                    className={styles.colorSwatchBtn}
-                    title={sw.label}
-                    aria-label={sw.label}
-                    aria-selected={
-                      sw.value == null
-                        ? !currentColor
-                        : currentColor != null &&
-                          currentColor.replace(/\s/g, '').toLowerCase() ===
-                            sw.value.replace(/\s/g, '').toLowerCase()
-                    }
-                    onPointerDown={(e) => e.preventDefault()}
-                    onClick={() => applyColor(sw.value)}
-                  >
-                    {sw.value == null ? (
-                      <span className={styles.colorSwatchDefault}>A</span>
-                    ) : (
-                      <span className={styles.colorSwatch} style={{ backgroundColor: sw.value }} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )
+                  {sw.value == null ? (
+                    <span className={styles.colorSwatchDefault}>A</span>
+                  ) : (
+                    <span className={styles.colorSwatch} style={{ backgroundColor: sw.value }} />
+                  )}
+                </button>
+              ))}
+            </div>
           ) : null}
         </div>
         <button
@@ -967,28 +751,6 @@ function MenuBar({
         >
           <Link2 className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
-        {isMobile ? (
-          <>
-            <button
-              type="button"
-              className={styles.toolBtn}
-              onClick={() => sinkOrLift('lift')}
-              aria-label="Outdent list"
-              title="Outdent"
-            >
-              <Outdent className={styles.icon} strokeWidth={2} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={styles.toolBtn}
-              onClick={() => sinkOrLift('sink')}
-              aria-label="Indent list"
-              title="Indent"
-            >
-              <IndentIncrease className={styles.icon} strokeWidth={2} aria-hidden />
-            </button>
-          </>
-        ) : null}
         {!isMobile ? (
           <button
             type="button"
@@ -1118,10 +880,19 @@ function MenuBar({
   return (
     <>
       {isMobile && embedMobileToolbar ? (
-        <div className={styles.toolbarMobileEmbedded}>{mobileToolbarPill}</div>
+        <div
+          className={styles.toolbarMobileEmbedded}
+          data-nn-canvas={uiCanvasDark ? 'dark' : 'light'}
+        >
+          {mobileToolbarPill}
+        </div>
       ) : isMobile ? (
         createPortal(
-          <div className={styles.toolbarMobileFixed} style={{ bottom: vvInset }}>
+          <div
+            className={styles.toolbarMobileFixed}
+            data-nn-canvas={uiCanvasDark ? 'dark' : 'light'}
+            style={{ bottom: fixedToolbarBottom }}
+          >
             {mobileToolbarPill}
           </div>,
           document.body
@@ -1138,6 +909,7 @@ function MenuBar({
           userId={user.id}
           audioStorageScopeId={audioStorageScopeId}
           editor={editor}
+          canvasDark={uiCanvasDark}
           onBlocked={() => setAudioInsertBlockedOpen(true)}
           onUploadFailure={(detail) => {
             setUploadErr(detail);
@@ -1166,6 +938,14 @@ function MenuBar({
         canRemoveLink={linkCanRemove}
         onApply={(url, displayName) => applyLinkFromModal(url, displayName)}
         onRemoveLink={removeLinkFromModal}
+        canvasDark={uiCanvasDark}
+      />
+      <TextColorModal
+        open={colorModalOpen}
+        onClose={() => setColorModalOpen(false)}
+        initialColor={currentColor}
+        canvasDark={uiCanvasDark}
+        onApply={(v) => applyColor(v)}
       />
     </>
   );
@@ -1187,7 +967,7 @@ function MenuBar({
  *   attachAudioOpenRequest?: number,
  *   onRequestAttachSheet?: () => void,
  *   embedMobileToolbar?: boolean,
- *   ocrPickerOpenRequest?: number,
+ *   uiCanvasDark?: boolean,
  *   editorHeader?: import('react').ReactNode,
  * }} props
  */
@@ -1206,7 +986,7 @@ export default function NoteRichTextEditor({
   attachAudioOpenRequest = 0,
   onRequestAttachSheet,
   embedMobileToolbar = false,
-  ocrPickerOpenRequest = 0,
+  uiCanvasDark = false,
   editorHeader = null,
 }) {
   const audioScopeFallbackRef = useRef(
@@ -1278,7 +1058,7 @@ export default function NoteRichTextEditor({
         attachAudioOpenRequest={attachAudioOpenRequest}
         onRequestAttachSheet={onRequestAttachSheet}
         embedMobileToolbar={embedMobileToolbar}
-        ocrPickerOpenRequest={ocrPickerOpenRequest}
+        uiCanvasDark={uiCanvasDark}
       />
       {editorHeader}
       {toolbarVariant === 'mobileNotes' ? (
@@ -1286,6 +1066,7 @@ export default function NoteRichTextEditor({
           editor={editor}
           open={formatSheetOpen}
           onClose={() => setFormatSheetOpen(false)}
+          canvasDark={uiCanvasDark}
         />
       ) : null}
       <div

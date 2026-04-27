@@ -18,6 +18,7 @@ import styles from './ComedyRatingModal.module.css';
  *   onSave: (rating: number | null) => void | Promise<void>,
  *   saving?: boolean,
  *   errorMessage?: string | null,
+ *   canvasDark?: boolean,
  * }} props
  */
 export default function ComedyRatingModal({
@@ -29,6 +30,7 @@ export default function ComedyRatingModal({
   onSave,
   saving = false,
   errorMessage = null,
+  canvasDark = false,
 }) {
   const cancelRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
   const [draft, setDraft] = useState(/** @type {number | null} */ (null));
@@ -53,6 +55,8 @@ export default function ComedyRatingModal({
 
   if (!open) return null;
 
+  const theme = canvasDark ? 'dark' : undefined;
+
   const handleStarHalf = (starIndex, half) => {
     const v = ratingValueFromStarHalf(starIndex, half);
     if (!isValidComedyRatingValue(v)) return;
@@ -69,6 +73,8 @@ export default function ComedyRatingModal({
   return createPortal(
     <div
       className={styles.backdrop}
+      data-nn-dismiss-shield
+      data-theme={theme}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget && !saving) onClose();
@@ -76,6 +82,7 @@ export default function ComedyRatingModal({
     >
       <div
         className={styles.dialog}
+        data-theme={theme}
         role="dialog"
         aria-modal="true"
         aria-labelledby="comedy-rating-title"

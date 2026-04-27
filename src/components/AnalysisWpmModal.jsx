@@ -61,6 +61,7 @@ export default function AnalysisWpmModal({
   return createPortal(
     <div
       className={styles.backdrop}
+      data-nn-dismiss-shield
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();

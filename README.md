@@ -189,6 +189,7 @@ This is a planned improvement and not yet implemented. A more technical design o
 
 ## Future To Dos
 
+- **Rich editor toolbar:** nested list **indent / outdent** controls (currently removed until the sink/lift behavior is reliable across list types), plus a **table / grid** insert control
 - Optional: lazy-load the note editor (TipTap) and/or Markdown rendering to reduce initial JS size
 - Optional: storage cleanup for orphaned audio, export flows (toolbar upload is documented in `docs/NOTE_EDITING.md`)
 - Explore technology for detecting laughs, or at minimum mapping audio volume or intensity to text size and spacing

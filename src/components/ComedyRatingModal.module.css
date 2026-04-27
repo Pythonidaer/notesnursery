@@ -22,6 +22,28 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
+.backdrop[data-theme='dark'] {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog[data-theme='dark'] {
+  --surface: #2c2c2e;
+  --surface-active: #3a3a3c;
+  --text: #f5f5f7;
+  --muted: #98989d;
+  --border: rgba(255, 255, 255, 0.14);
+  --accent: #6b9e82;
+  --on-accent: #ffffff;
+  --danger: #ff453a;
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.dialog[data-theme='dark'] .noteTitle,
+.dialog[data-theme='dark'] .hint {
+  color: #d1d1d6;
+}
+
 .header {
   padding: 0.85rem 1rem 0.5rem;
   border-bottom: 1px solid var(--border);

@@ -1,11 +1,31 @@
-.nameDd {
-  margin: 0;
+.body {
+  padding: 0 0 0.85rem;
+}
+
+.fieldBlock {
+  padding: 0.65rem 1rem 0.5rem;
+}
+
+.fieldLabel {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .nameInput {
   box-sizing: border-box;
-  width: 100%;
-  margin: 0 0 0.4rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   padding: 0.45rem 0.55rem;
   font: inherit;
   font-size: 0.9rem;
@@ -20,16 +40,10 @@
   outline-offset: 1px;
 }
 
-.nameActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
 .saveBtn {
+  flex-shrink: 0;
   margin: 0;
-  padding: 0.35rem 0.75rem;
+  padding: 0.45rem 0.75rem;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 600;
@@ -38,6 +52,7 @@
   border: 1px solid var(--accent);
   border-radius: 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .saveBtn:hover:not(:disabled) {
@@ -49,8 +64,137 @@
   cursor: not-allowed;
 }
 
+.readOnlyName {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .saveError {
   margin: 0.35rem 0 0;
   font-size: 0.82rem;
   color: var(--danger);
+}
+
+.audioHeader {
+  flex-wrap: nowrap;
+}
+
+.headerLeading {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Match mobile format toolbar control size (~2.45rem pill buttons). */
+.headerIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.45rem;
+  height: 2.45rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.headerIconBtn:hover {
+  background: var(--surface-active);
+  color: var(--text);
+}
+
+.headerGlyph {
+  width: 1.28rem;
+  height: 1.28rem;
+}
+
+.headerInfoGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+.headerInfoGlyph :global(svg) {
+  width: 1.28rem;
+  height: 1.28rem;
+}
+
+.headerCircleBtn {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 999px;
+}
+
+.divider {
+  height: 1px;
+  margin: 0.35rem 0 0;
+  background: var(--border);
+}
+
+.menuList {
+  padding: 0.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.menuRow:hover:not(:disabled) {
+  background: var(--surface-active);
+}
+
+.menuRow:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.menuRow:disabled:hover {
+  background: transparent;
+}
+
+.menuRowDanger {
+  color: var(--danger);
+}
+
+.menuRowDanger .menuIcon {
+  color: var(--danger);
+}
+
+.menuIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.menuRow:not(:disabled):hover .menuIcon {
+  color: var(--text);
+}
+
+.menuLabel {
+  flex: 1;
+  min-width: 0;
 }

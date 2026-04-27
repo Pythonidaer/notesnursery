@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
-import { Grip, Info, Trash2 } from 'lucide-react';
+import { Grip, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
@@ -213,53 +213,28 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
                       <Grip className={styles.gripIcon} strokeWidth={2} aria-hidden />
                     </button>
                   ) : null}
-                  <div className={dockUiVisible ? styles.playerPill : styles.inlinePlayerOnly}>
+                  <div className="nn-audio-pill">
                     <audio
                       ref={audioRef}
-                      className={styles.audio}
+                      className="nn-audio-element"
                       controls
                       preload="metadata"
                       src={src}
                       aria-label={label}
                     />
                   </div>
+                  <button
+                    type="button"
+                    className="nn-audio-gear-btn"
+                    onClick={() => setInfoOpen(true)}
+                    aria-label="Audio settings"
+                    title="Audio settings"
+                  >
+                    <Settings strokeWidth={2} aria-hidden />
+                  </button>
                 </div>
               </div>
             ) : null}
-          </div>
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={`${styles.textActionBtn} ${!canTranscribe ? styles.iconBtnDisabled : ''}`}
-              onClick={() => void runTranscribe()}
-              disabled={!canTranscribe || transcribeBusy}
-              aria-label="Transcribe audio"
-              title={
-                canTranscribe
-                  ? 'Transcribe (runs in your browser; first run downloads a small model)'
-                  : 'Sign in and load audio to transcribe'
-              }
-            >
-              TRANSCRIBE
-            </button>
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={() => setInfoOpen(true)}
-              aria-label="Audio file info"
-              title="Info"
-            >
-              <Info className={styles.actionIcon} strokeWidth={2} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={() => deleteNode()}
-              aria-label="Remove audio from note"
-              title="Remove from note"
-            >
-              <Trash2 className={styles.actionIcon} strokeWidth={2} aria-hidden />
-            </button>
           </div>
         </div>
         <figcaption className="nn-audio-caption nn-audio-sr-only">{label}</figcaption>
@@ -284,6 +259,16 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
         userId={user?.id ?? null}
         storagePath={typeof storagePath === 'string' ? storagePath : ''}
         editor={editor}
+        allowEditorActions
+        canTranscribe={canTranscribe && !transcribeBusy}
+        onRequestTranscribe={() => {
+          setInfoOpen(false);
+          void runTranscribe();
+        }}
+        onRequestRemoveFromNote={() => {
+          setInfoOpen(false);
+          deleteNode();
+        }}
       />
     </NodeViewWrapper>
   );

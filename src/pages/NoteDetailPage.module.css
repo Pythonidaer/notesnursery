@@ -328,12 +328,29 @@
   align-items: center;
 }
 
+/* Viewport-centered so the legend is not clipped under nearby UI; z-index above toolbars. */
 .posLegendDropdown {
-  position: absolute;
-  top: calc(100% + 0.35rem);
+  position: fixed;
+  inset: 0;
   left: 0;
-  right: auto;
-  z-index: 500;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 15, 18, 0.45);
+  z-index: 1200;
+}
+
+.posLegendDropdown > * {
+  flex-shrink: 0;
+  max-width: min(18rem, calc(100vw - 2rem));
 }
 
 @media (max-width: 639px) {
@@ -368,32 +385,6 @@
     height: 2rem;
     padding: 0 0.45rem;
     font-size: 0.74rem;
-  }
-
-  /* Tag key: centered modal over the viewport (avoids anchor-relative clipping). */
-  .posLegendDropdown {
-    position: fixed;
-    inset: 0;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    max-width: none;
-    margin: 0;
-    padding: 1rem;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(15, 15, 18, 0.45);
-    z-index: 1000;
-  }
-
-  /* PosLegendPopover root is a different module — target the panel by child combinator */
-  .posLegendDropdown > * {
-    flex-shrink: 0;
-    max-width: min(18rem, calc(100vw - 2rem));
   }
 
   .titleInfoRow {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './NoteInfoModal.module.css';
 
@@ -10,9 +10,20 @@ import styles from './NoteInfoModal.module.css';
  *   message: string,
  *   detail?: string | null,
  *   busy?: boolean,
+ *   canvasDark?: boolean,
  * }} props
  */
-export default function TranscribeAudioModal({ open, onClose, title, message, detail, busy = false }) {
+export default function TranscribeAudioModal({
+  open,
+  onClose,
+  title,
+  message,
+  detail,
+  busy = false,
+  canvasDark: canvasDarkProp,
+}) {
+  const [canvasDarkDetected, setCanvasDarkDetected] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -22,11 +33,22 @@ export default function TranscribeAudioModal({ open, onClose, title, message, de
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose, busy]);
 
+  useEffect(() => {
+    if (!open) return;
+    const el = document.querySelector('[data-notes-canvas]');
+    setCanvasDarkDetected(el?.getAttribute('data-notes-canvas') === 'dark');
+  }, [open]);
+
   if (!open) return null;
+
+  const canvasDark = canvasDarkProp ?? canvasDarkDetected;
+  const theme = canvasDark ? 'dark' : undefined;
 
   return createPortal(
     <div
       className={styles.backdrop}
+      data-nn-dismiss-shield
+      data-theme={theme}
       role="presentation"
       onClick={(e) => {
         if (busy) return;
@@ -35,6 +57,7 @@ export default function TranscribeAudioModal({ open, onClose, title, message, de
     >
       <div
         className={`${styles.dialog} ${styles.dialogWide}`}
+        data-theme={theme}
         role="dialog"
         aria-modal="true"
         aria-labelledby="transcribe-audio-title"
