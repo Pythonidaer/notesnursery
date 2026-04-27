@@ -17,9 +17,10 @@ import styles from './ComedyRatingTrigger.module.css';
  * @param {{
  *   note: { id: string, title: string, comedyRating?: number | null, labels?: string[] },
  *   variant: 'card' | 'library' | 'detail',
+ *   detailAlign?: 'trailing' | 'center',
  * }} props
  */
-export default function ComedyRatingTrigger({ note, variant }) {
+export default function ComedyRatingTrigger({ note, variant, detailAlign = 'trailing' }) {
   const { user } = useAuth();
   const { updateNote } = useNotes();
   const useRemote = useSupabaseBackend();
@@ -70,9 +71,12 @@ export default function ComedyRatingTrigger({ note, variant }) {
     </button>
   );
 
+  const detailWrapClass =
+    detailAlign === 'center' ? styles.detailSlotCenter : styles.detailSlot;
+
   return (
     <>
-      {variant === 'detail' ? <span className={styles.detailSlot}>{triggerBtn}</span> : triggerBtn}
+      {variant === 'detail' ? <span className={detailWrapClass}>{triggerBtn}</span> : triggerBtn}
       <ComedyRatingModal
         open={modalOpen}
         heading="Comedy performance"

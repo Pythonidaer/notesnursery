@@ -46,10 +46,17 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setInitializing(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+      })
+      .catch((e) => {
+        console.error('[auth] getSession', e);
+      })
+      .finally(() => {
+        setInitializing(false);
+      });
 
     const {
       data: { subscription },

@@ -41,6 +41,22 @@ body {
   flex-direction: column;
 }
 
+/* Notes-test detail: pin shell to viewport so inner .scrollMain is the scrollport (not the window). */
+.appShell--notesTestDetail {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.appShell--notesTestDetail .appMain--notesTestDetail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .appHeader {
   flex-shrink: 0;
   display: flex;
@@ -71,6 +87,10 @@ body {
   flex: 1;
   min-width: 0;
   padding: 1.75rem 1.25rem 2.5rem;
+}
+
+.appMain--notesTestDetail {
+  padding: 0;
 }
 
 .homeGateLoading {

@@ -7,6 +7,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { Paragraph } from '@tiptap/extension-paragraph';
 import { StarterKit } from '@tiptap/starter-kit';
 import {
+  ALargeSmall,
   AudioLines,
   Bold,
   Camera,
@@ -16,6 +17,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  IndentIncrease,
   Italic,
   Link2,
   List,
@@ -23,7 +25,9 @@ import {
   ListOrdered,
   Loader2,
   Minus,
+  Outdent,
   Palette,
+  Paperclip,
   ScanText,
   Strikethrough,
   TextQuote,
@@ -43,6 +47,7 @@ import AudioInsertBlockedModal from './AudioInsertBlockedModal.jsx';
 import AudioUploadErrorModal from './AudioUploadErrorModal.jsx';
 import InsertAudioModal from './InsertAudioModal.jsx';
 import InsertLinkModal from './InsertLinkModal.jsx';
+import NoteFormatBottomSheet from './NoteFormatBottomSheet.jsx';
 import { escapeHtmlAttr } from '../utils/escapeHtmlAttr.js';
 import { isSelectionInsideListItem } from '../utils/insertNoteAudioBlock.js';
 import styles from './NoteRichTextEditor.module.css';
@@ -148,15 +153,26 @@ function useToolbarRerender(editor) {
  * @param {{
  *   editor: import('@tiptap/core').Editor | null,
  *   audioStorageScopeId: string,
+ *   toolbarVariant?: 'default' | 'mobileNotes',
+ *   onOpenFormatSheet?: () => void,
+ *   onAddToExistingNote?: () => void,
  * }} props
  */
-function MenuBar({ editor, audioStorageScopeId }) {
+function MenuBar({
+  editor,
+  audioStorageScopeId,
+  toolbarVariant = 'default',
+  onOpenFormatSheet,
+  onAddToExistingNote,
+}) {
   const [colorOpen, setColorOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState(/** @type {string | null} */ (null));
   const colorWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const ocrWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const attachWrapRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const ocrCameraInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
   const ocrFileInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
   const [linkModalOpen, setLinkModalOpen] = useState(false);
@@ -203,6 +219,23 @@ function MenuBar({ editor, audioStorageScopeId }) {
     };
   }, [ocrOpen]);
 
+  useEffect(() => {
+    if (!attachOpen) return;
+    const onDown = (/** @type {MouseEvent} */ e) => {
+      const el = attachWrapRef.current;
+      if (el && e.target instanceof Node && !el.contains(e.target)) setAttachOpen(false);
+    };
+    const onKey = (/** @type {KeyboardEvent} */ e) => {
+      if (e.key === 'Escape') setAttachOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [attachOpen]);
+
   const runOcrOnFile = async (/** @type {File | undefined} */ file) => {
     if (!file || !editor) return;
     if (!isOcrImageToTextUser(user)) return;
@@ -214,6 +247,7 @@ function MenuBar({ editor, audioStorageScopeId }) {
     setOcrError(null);
     setOcrLoading(true);
     setOcrOpen(false);
+    setAttachOpen(false);
     try {
       const text = await ocrImageFileToText(supabase, file);
       appendOcrPlainTextToTipTap(editor, text);
@@ -226,6 +260,11 @@ function MenuBar({ editor, audioStorageScopeId }) {
   };
 
   if (!editor) return null;
+
+  const isMobile = toolbarVariant === 'mobileNotes';
+  const toolbarInnerClass = isMobile
+    ? `${styles.toolbarInner} ${styles.toolbarInnerScroll}`
+    : styles.toolbarInner;
 
   const focused = Boolean(editor.isFocused);
   const active = (/** @type {string} */ name, /** @type {Record<string, unknown>} */ attrs) =>
@@ -288,10 +327,153 @@ function MenuBar({ editor, audioStorageScopeId }) {
     });
   };
 
+  const attachMenuEl =
+    isMobile && (canOcr || canUploadAudio || onAddToExistingNote) ? (
+      <div className={styles.attachWrap} ref={attachWrapRef}>
+        {canOcr ? (
+          <>
+            <input
+              ref={ocrCameraInputRef}
+              type="file"
+              className={styles.hiddenFileInput}
+              accept="image/*"
+              capture="environment"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) void runOcrOnFile(f);
+              }}
+            />
+            <input
+              ref={ocrFileInputRef}
+              type="file"
+              className={styles.hiddenFileInput}
+              accept="image/*"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) void runOcrOnFile(f);
+              }}
+            />
+          </>
+        ) : null}
+        <button
+          type="button"
+          className={`${styles.toolBtn} ${attachOpen ? styles.toolBtnActive : ''}`}
+          onClick={() => {
+            setOcrOpen(false);
+            setAttachOpen((o) => !o);
+          }}
+          aria-expanded={attachOpen}
+          aria-haspopup="menu"
+          aria-label="Attachments"
+          title="Attach"
+        >
+          <Paperclip className={styles.icon} strokeWidth={2} aria-hidden />
+        </button>
+        {attachOpen ? (
+          <div className={styles.attachPopover} role="menu" aria-label="Attach to note">
+            {canOcr ? (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.attachMenuItem}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setAttachOpen(false);
+                    if (!ocrLoading) ocrCameraInputRef.current?.click();
+                  }}
+                >
+                  <Camera className={styles.attachMenuIcon} strokeWidth={2} aria-hidden />
+                  <span>Take photo</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.attachMenuItem}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setAttachOpen(false);
+                    if (!ocrLoading) ocrFileInputRef.current?.click();
+                  }}
+                >
+                  <FileUp className={styles.attachMenuIcon} strokeWidth={2} aria-hidden />
+                  <span>Choose photo</span>
+                </button>
+                <div className={styles.attachSep} aria-hidden />
+              </>
+            ) : null}
+            {canUploadAudio ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.attachMenuItem}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setAttachOpen(false);
+                  openInsertAudio();
+                }}
+              >
+                <AudioLines className={styles.attachMenuIcon} strokeWidth={2} aria-hidden />
+                <span>Insert audio</span>
+              </button>
+            ) : null}
+            {onAddToExistingNote ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.attachMenuItem}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setAttachOpen(false);
+                  onAddToExistingNote();
+                }}
+              >
+                <FileCode className={styles.attachMenuIcon} strokeWidth={2} aria-hidden />
+                <span>Add to existing note</span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
   return (
     <>
     <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
-      <div className={styles.toolbarInner}>
+      <div className={toolbarInnerClass}>
+        {isMobile && onOpenFormatSheet ? (
+          <button
+            type="button"
+            className={styles.toolBtn}
+            onClick={() => {
+              setAttachOpen(false);
+              onOpenFormatSheet();
+            }}
+            aria-label="Text format"
+            title="Format"
+          >
+            <ALargeSmall className={styles.icon} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
+        {isMobile ? (
+          <button
+            type="button"
+            className={`${styles.toolBtn} ${active('taskList') ? styles.toolBtnActive : ''}`}
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            aria-pressed={active('taskList')}
+            aria-label="Task list"
+            title="Task list"
+          >
+            <ListChecks className={styles.icon} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
+        {attachMenuEl}
         <button
           type="button"
           className={`${styles.toolBtn} ${active('bold') ? styles.toolBtnActive : ''}`}
@@ -332,37 +514,41 @@ function MenuBar({ editor, audioStorageScopeId }) {
         >
           <Strikethrough className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
-        <span className={styles.toolbarSep} aria-hidden />
-        <button
-          type="button"
-          className={`${styles.toolBtn} ${active('heading', { level: 1 }) ? styles.toolBtnActive : ''}`}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          aria-pressed={active('heading', { level: 1 })}
-          aria-label="Heading 1"
-          title="Heading 1"
-        >
-          <Heading1 className={styles.icon} strokeWidth={2} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={`${styles.toolBtn} ${active('heading', { level: 2 }) ? styles.toolBtnActive : ''}`}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          aria-pressed={active('heading', { level: 2 })}
-          aria-label="Heading 2"
-          title="Heading 2"
-        >
-          <Heading2 className={styles.icon} strokeWidth={2} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={`${styles.toolBtn} ${active('heading', { level: 3 }) ? styles.toolBtnActive : ''}`}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          aria-pressed={active('heading', { level: 3 })}
-          aria-label="Heading 3"
-          title="Heading 3"
-        >
-          <Heading3 className={styles.icon} strokeWidth={2} aria-hidden />
-        </button>
+        {!isMobile ? (
+          <>
+            <span className={styles.toolbarSep} aria-hidden />
+            <button
+              type="button"
+              className={`${styles.toolBtn} ${active('heading', { level: 1 }) ? styles.toolBtnActive : ''}`}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              aria-pressed={active('heading', { level: 1 })}
+              aria-label="Heading 1"
+              title="Heading 1"
+            >
+              <Heading1 className={styles.icon} strokeWidth={2} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={`${styles.toolBtn} ${active('heading', { level: 2 }) ? styles.toolBtnActive : ''}`}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              aria-pressed={active('heading', { level: 2 })}
+              aria-label="Heading 2"
+              title="Heading 2"
+            >
+              <Heading2 className={styles.icon} strokeWidth={2} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={`${styles.toolBtn} ${active('heading', { level: 3 }) ? styles.toolBtnActive : ''}`}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              aria-pressed={active('heading', { level: 3 })}
+              aria-label="Heading 3"
+              title="Heading 3"
+            >
+              <Heading3 className={styles.icon} strokeWidth={2} aria-hidden />
+            </button>
+          </>
+        ) : null}
         <span className={styles.toolbarSep} aria-hidden />
         <button
           type="button"
@@ -384,16 +570,18 @@ function MenuBar({ editor, audioStorageScopeId }) {
         >
           <ListOrdered className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
-        <button
-          type="button"
-          className={`${styles.toolBtn} ${active('taskList') ? styles.toolBtnActive : ''}`}
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-          aria-pressed={active('taskList')}
-          aria-label="Task list"
-          title="Task list"
-        >
-          <ListChecks className={styles.icon} strokeWidth={2} aria-hidden />
-        </button>
+        {!isMobile ? (
+          <button
+            type="button"
+            className={`${styles.toolBtn} ${active('taskList') ? styles.toolBtnActive : ''}`}
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            aria-pressed={active('taskList')}
+            aria-label="Task list"
+            title="Task list"
+          >
+            <ListChecks className={styles.icon} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
         <span className={styles.toolbarSep} aria-hidden />
         <button
           type="button"
@@ -479,18 +667,42 @@ function MenuBar({ editor, audioStorageScopeId }) {
         >
           <Link2 className={styles.icon} strokeWidth={2} aria-hidden />
         </button>
-        <button
-          type="button"
-          className={`${styles.toolBtn} ${!canUploadAudio ? styles.toolBtnDisabled : ''}`}
-          onClick={openInsertAudio}
-          disabled={!canUploadAudio}
-          aria-label="Insert audio"
-          aria-haspopup="dialog"
-          title={canUploadAudio ? 'Insert audio (upload or choose existing)' : 'Sign in (Supabase) to insert audio'}
-        >
-          <AudioLines className={styles.icon} strokeWidth={2} aria-hidden />
-        </button>
-        {canOcr ? (
+        {isMobile ? (
+          <>
+            <button
+              type="button"
+              className={styles.toolBtn}
+              onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+              aria-label="Outdent list"
+              title="Outdent"
+            >
+              <Outdent className={styles.icon} strokeWidth={2} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={styles.toolBtn}
+              onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+              aria-label="Indent list"
+              title="Indent"
+            >
+              <IndentIncrease className={styles.icon} strokeWidth={2} aria-hidden />
+            </button>
+          </>
+        ) : null}
+        {!isMobile ? (
+          <button
+            type="button"
+            className={`${styles.toolBtn} ${!canUploadAudio ? styles.toolBtnDisabled : ''}`}
+            onClick={openInsertAudio}
+            disabled={!canUploadAudio}
+            aria-label="Insert audio"
+            aria-haspopup="dialog"
+            title={canUploadAudio ? 'Insert audio (upload or choose existing)' : 'Sign in (Supabase) to insert audio'}
+          >
+            <AudioLines className={styles.icon} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
+        {!isMobile && canOcr ? (
           <>
             <span className={styles.toolbarSep} aria-hidden />
             <div className={styles.ocrWrap} ref={ocrWrapRef}>
@@ -646,6 +858,8 @@ function MenuBar({ editor, audioStorageScopeId }) {
  *   'aria-label'?: string,
  *   'aria-labelledby'?: string,
  *   audioStorageScopeId?: string,
+ *   toolbarVariant?: 'default' | 'mobileNotes',
+ *   onAddToExistingNote?: () => void,
  * }} props
  */
 export default function NoteRichTextEditor({
@@ -658,6 +872,8 @@ export default function NoteRichTextEditor({
   'aria-label': ariaLabel = 'Note body',
   'aria-labelledby': ariaLabelledBy,
   audioStorageScopeId: audioStorageScopeIdProp,
+  toolbarVariant = 'default',
+  onAddToExistingNote,
 }) {
   const audioScopeFallbackRef = useRef(
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -665,6 +881,7 @@ export default function NoteRichTextEditor({
       : `audio-${Date.now()}`
   );
   const audioStorageScopeId = audioStorageScopeIdProp ?? audioScopeFallbackRef.current;
+  const [formatSheetOpen, setFormatSheetOpen] = useState(false);
 
   /** One snapshot per mount so parent `draftHtml` updates do not reset the editor. */
   const [initialSnapshot] = useState(() => {
@@ -718,7 +935,20 @@ export default function NoteRichTextEditor({
 
   return (
     <div className={`${styles.root} ${className ?? ''}`}>
-      <MenuBar editor={editor} audioStorageScopeId={audioStorageScopeId} />
+      <MenuBar
+        editor={editor}
+        audioStorageScopeId={audioStorageScopeId}
+        toolbarVariant={toolbarVariant}
+        onOpenFormatSheet={toolbarVariant === 'mobileNotes' ? () => setFormatSheetOpen(true) : undefined}
+        onAddToExistingNote={onAddToExistingNote}
+      />
+      {toolbarVariant === 'mobileNotes' ? (
+        <NoteFormatBottomSheet
+          editor={editor}
+          open={formatSheetOpen}
+          onClose={() => setFormatSheetOpen(false)}
+        />
+      ) : null}
       <div className={`${styles.surface} ${surfaceClassName ?? ''}`}>
         <EditorContent editor={editor} />
       </div>

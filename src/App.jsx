@@ -9,6 +9,7 @@ import LibraryPage from './pages/LibraryPage.jsx';
 import EmailConfirmedPage from './pages/EmailConfirmedPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NoteDetailPage from './pages/NoteDetailPage.jsx';
+import NotesTestPage from './pages/NotesTestPage.jsx';
 import AnalysisPage from './pages/AnalysisPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 
@@ -23,16 +24,19 @@ export default function App() {
     analysisPinnedRef.current = true;
   }
   const analysisPinned = analysisPinnedRef.current;
+  const isNotesTestDetail = /^\/notes-test\/[^/]+$/.test(pathname);
 
   return (
-    <div className="appShell">
-      <header className="appHeader">
-        <Link to="/" className="appBrand">
-          Notes Nursery
-        </Link>
-        <AppHeaderNav />
-      </header>
-      <main className="appMain">
+    <div className={`appShell${isNotesTestDetail ? ' appShell--notesTestDetail' : ''}`}>
+      {!isNotesTestDetail ? (
+        <header className="appHeader">
+          <Link to="/" className="appBrand">
+            Notes Nursery
+          </Link>
+          <AppHeaderNav />
+        </header>
+      ) : null}
+      <main className={`appMain${isNotesTestDetail ? ' appMain--notesTestDetail' : ''}`}>
         {analysisPinned ? (
           <div hidden={pathname !== '/analysis'} className="analysisKeepAliveHost">
             <AnalysisPage />
@@ -46,6 +50,8 @@ export default function App() {
           <Route path="/instructions" element={<InstructionsPage />} />
           <Route path="/analysis" element={analysisPinned ? null : <AnalysisPage />} />
           <Route path="/notes/:noteId" element={<NoteDetailPage />} />
+          <Route path="/notes-test" element={<NotesTestPage />} />
+          <Route path="/notes-test/:noteId" element={<NotesTestPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/auth/email-confirmed" element={<EmailConfirmedPage />} />
