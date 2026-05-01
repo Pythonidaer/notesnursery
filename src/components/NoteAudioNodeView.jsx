@@ -11,6 +11,7 @@ import AudioFileInfoModal from './AudioFileInfoModal.jsx';
 import TranscribeAudioModal from './TranscribeAudioModal.jsx';
 import { useNoteEditFloatingAudio } from './NoteEditFloatingAudioContext.jsx';
 import '../styles/noteAudio.css';
+import NoteAudioCustomControls from './NoteAudioCustomControls.jsx';
 import styles from './NoteAudioNodeView.module.css';
 
 /**
@@ -213,16 +214,7 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
                       <Grip className={styles.gripIcon} strokeWidth={2} aria-hidden />
                     </button>
                   ) : null}
-                  <div className="nn-audio-pill">
-                    <audio
-                      ref={audioRef}
-                      className="nn-audio-element"
-                      controls
-                      preload="metadata"
-                      src={src}
-                      aria-label={label}
-                    />
-                  </div>
+                  <NoteAudioCustomControls ref={audioRef} src={src} label={label} />
                   <button
                     type="button"
                     className="nn-audio-gear-btn"

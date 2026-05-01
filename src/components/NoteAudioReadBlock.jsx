@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Settings } from 'lucide-react';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
+import NoteAudioCustomControls from './NoteAudioCustomControls.jsx';
 import '../styles/noteAudio.css';
 
 /**
@@ -42,17 +43,7 @@ export default function NoteAudioReadBlock({ attrs, onOpenInfo }) {
         <div className="nn-audio-player-wrap">
           {error ? <p className="nn-audio-read-error">{error}</p> : null}
           {!error && !src ? <span className="nn-audio-read-loading">Loading…</span> : null}
-          {src ? (
-            <div className="nn-audio-pill">
-              <audio
-                className="nn-audio-element"
-                controls
-                preload="metadata"
-                src={src}
-                aria-label={label}
-              />
-            </div>
-          ) : null}
+          {src ? <NoteAudioCustomControls src={src} label={label} /> : null}
         </div>
         <button
           type="button"

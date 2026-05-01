@@ -123,6 +123,15 @@
   margin-left: auto;
 }
 
+.autosaveStatus {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .topBarActionsPill {
   position: relative;
   display: inline-flex;

@@ -88,10 +88,15 @@ function NoteDetailView() {
   const originalTitleRef = useRef('');
   const originalCreatedRef = useRef('');
   const originalModifiedRef = useRef('');
+  const draftTitleRef = useRef('');
+  const draftHtmlRef = useRef('');
+  const persistRunIdRef = useRef(0);
   const [infoOpen, setInfoOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const [saving, setSaving] = useState(false);
+  /** Brief “Saved” after idle auto-persist (manual save uses toast). */
+  const [autosaveUi, setAutosaveUi] = useState(/** @type {'saved' | null} */ (null));
   const [toastMessage, setToastMessage] = useState(/** @type {string | null} */ (null));
   const [actionError, setActionError] = useState(/** @type {string | null} */ (null));
   const [transferOpen, setTransferOpen] = useState(false);
@@ -185,7 +190,20 @@ function NoteDetailView() {
     originalTitleRef.current = '';
     originalCreatedRef.current = '';
     originalModifiedRef.current = '';
+    setAutosaveUi(null);
+    persistRunIdRef.current = 0;
   }, [noteId]);
+
+  useEffect(() => {
+    draftTitleRef.current = draftTitle;
+    draftHtmlRef.current = draftHtml;
+  }, [draftTitle, draftHtml]);
+
+  useEffect(() => {
+    if (autosaveUi !== 'saved') return;
+    const t = window.setTimeout(() => setAutosaveUi(null), 1800);
+    return () => clearTimeout(t);
+  }, [autosaveUi]);
 
   const dismissToast = useCallback(() => setToastMessage(null), []);
 
@@ -352,6 +370,62 @@ function NoteDetailView() {
     return () => cancelAnimationFrame(id);
   }, [isEditing]);
 
+  const persistDraft = useCallback(
+    async ({ closeAfter, titleSaved, bodySaved, trackAutosaveUi }) => {
+      if (!noteId) return;
+      setActionError(null);
+      const createdNorm = normalizeNoteSourceDateInput(originalCreatedRef.current);
+      const modifiedNorm = normalizeNoteSourceDateInput(originalModifiedRef.current);
+      const runId = ++persistRunIdRef.current;
+      try {
+        await updateNote(noteId, {
+          title: titleSaved,
+          bodyHtml: bodySaved,
+          bodyMarkdown: null,
+          contentType: CONTENT_TYPE_HTML,
+          createdAtSource: createdNorm,
+          modifiedAtSource: modifiedNorm,
+        });
+      } catch (e) {
+        if (trackAutosaveUi) setAutosaveUi(null);
+        console.error('[note-detail] persist failed', e);
+        setActionError(e instanceof Error ? e.message : 'Could not save note');
+        throw e;
+      }
+      if (runId !== persistRunIdRef.current) return;
+      originalTitleRef.current = titleSaved;
+      originalMarkdownRef.current = '';
+      originalBodyRef.current = bodySaved;
+      originalContentTypeRef.current = CONTENT_TYPE_HTML;
+      setEditStartedFromMarkdown(false);
+      if (closeAfter) setIsEditing(false);
+      if (trackAutosaveUi) setAutosaveUi('saved');
+    },
+    [noteId, updateNote]
+  );
+
+  const AUTOSAVE_DEBOUNCE_MS = 1000;
+  useEffect(() => {
+    if (!isEditing || !noteId) return;
+    if (requiresAuthForPersistence() && !user) return;
+
+    const t = window.setTimeout(() => {
+      const titleSaved = draftTitleRef.current.trim() || 'Untitled';
+      const bodySaved = sanitizeNoteHtml(prepareNoteBodyHtml(draftHtmlRef.current));
+      const dirty =
+        titleSaved !== originalTitleRef.current || bodySaved !== originalBodyRef.current;
+      if (!dirty) return;
+      void persistDraft({
+        closeAfter: false,
+        titleSaved,
+        bodySaved,
+        trackAutosaveUi: true,
+      }).catch(() => {});
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => clearTimeout(t);
+  }, [isEditing, noteId, user, draftTitle, draftHtml, persistDraft]);
+
   if (remote && !authInitializing && !user) {
     return <Navigate to="/login" replace />;
   }
@@ -506,29 +580,18 @@ function NoteDetailView() {
       return;
     }
     setSaving(true);
-    const createdNorm = normalizeNoteSourceDateInput(originalCreatedRef.current);
-    const modifiedNorm = normalizeNoteSourceDateInput(originalModifiedRef.current);
     const titleSaved = draftTitle.trim() || 'Untitled';
     const bodySaved = sanitizeNoteHtml(prepareNoteBodyHtml(draftHtml));
     try {
-      await updateNote(note.id, {
-        title: titleSaved,
-        bodyHtml: bodySaved,
-        bodyMarkdown: null,
-        contentType: CONTENT_TYPE_HTML,
-        createdAtSource: createdNorm,
-        modifiedAtSource: modifiedNorm,
+      await persistDraft({
+        closeAfter: true,
+        titleSaved,
+        bodySaved,
+        trackAutosaveUi: false,
       });
-      originalTitleRef.current = titleSaved;
-      originalMarkdownRef.current = '';
-      originalBodyRef.current = bodySaved;
-      originalContentTypeRef.current = CONTENT_TYPE_HTML;
-      setEditStartedFromMarkdown(false);
-      setIsEditing(false);
       setToastMessage('Note saved');
     } catch (e) {
       console.error('[note-detail] save failed', e);
-      setActionError(e instanceof Error ? e.message : 'Could not save note');
     } finally {
       setSaving(false);
     }
@@ -832,6 +895,11 @@ function NoteDetailView() {
           <BackChevronButton aria-label="Go back" onClick={handleBack} />
           <div className={styles.topBarNavSlot}>
             <Toast message={toastMessage} onDismiss={dismissToast} variant="headerMinimal" />
+            {isEditing && autosaveUi === 'saved' ? (
+              <span className={styles.autosaveStatus} role="status" aria-live="polite">
+                Saved
+              </span>
+            ) : null}
             <div className={styles.topBarActionsPill} data-nn-top-nav-pill>
               <AppHeaderNav
                 menuTriggerClassName={styles.topBarMenuTriggerInPill}

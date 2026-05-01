@@ -38,7 +38,7 @@ figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
   min-width: 0;
 }
 
-/* Native controls inside a toolbar-height pill (matches Grammar / format pills ~2.45rem). */
+/* Toolbar-height pill wrap (matches Grammar / format pills ~2.45rem). */
 .nn-audio-pill {
   flex: 1;
   min-width: 0;
@@ -54,7 +54,7 @@ figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
   overflow: hidden;
 }
 
-/* Dark canvas: native <audio> draws a light control — use a light pill so the chrome fills edge-to-edge. */
+/* Dark canvas: light pill behind custom controls so ink/buttons stay readable on the app chrome. */
 [data-notes-canvas='dark'] .nn-audio-pill {
   background: #e8e8ed;
   border: 1px solid rgba(0, 0, 0, 0.12);
@@ -69,9 +69,130 @@ figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
   vertical-align: middle;
 }
 
-.nn-audio-pill .nn-audio-element {
+.nn-audio-element--hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Custom controls (Safari + all browsers): flat pill, no native media “shelf”. */
+.nn-audio-pill--custom {
+  position: relative;
+  align-items: center;
+  justify-content: stretch;
+  padding: 0 0.35rem 0 0.2rem;
+}
+
+.nn-audio-custom-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   height: 100%;
-  min-height: 2.45rem;
+  box-sizing: border-box;
+}
+
+.nn-audio-custom-play,
+.nn-audio-custom-mute {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #1a1917;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nn-audio-custom-play:hover,
+.nn-audio-custom-mute:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.nn-audio-custom-play:focus-visible,
+.nn-audio-custom-mute:focus-visible {
+  outline: 2px solid var(--accent, #2d6a4f);
+  outline-offset: 1px;
+}
+
+.nn-audio-custom-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-left: 1px;
+}
+
+.nn-audio-custom-iconSm {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.nn-audio-timePair {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: rgba(26, 25, 23, 0.85);
+  white-space: nowrap;
+}
+
+.nn-audio-scrub {
+  flex: 1;
+  min-width: 1.5rem;
+  height: 0.28rem;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.nn-audio-scrub:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.nn-audio-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: #1a1917;
+  border: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.nn-audio-scrub::-webkit-slider-runnable-track {
+  height: 0.28rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.nn-audio-scrub::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #1a1917;
+  border: none;
+}
+
+.nn-audio-scrub::-moz-range-track {
+  height: 0.28rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .nn-audio-tools {
