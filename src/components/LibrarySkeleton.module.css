@@ -1,0 +1,273 @@
+/* Visually hidden, available to screen readers */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Base bone ─────────────────────────────────────────────────────────── */
+
+.bone {
+  display: block;
+  border-radius: 6px;
+  background: var(--surface-active);
+  animation: skelPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skelPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Stagger the pulse slightly so rows don't all flash in sync */
+.list > li:nth-child(2) .bone { animation-delay: 0.1s; }
+.list > li:nth-child(3) .bone { animation-delay: 0.2s; }
+.list > li:nth-child(4) .bone { animation-delay: 0.3s; }
+.list > li:nth-child(5) .bone { animation-delay: 0.15s; }
+.list > li:nth-child(6) .bone { animation-delay: 0.25s; }
+.list > li:nth-child(7) .bone { animation-delay: 0.05s; }
+.list > li:nth-child(8) .bone { animation-delay: 0.35s; }
+
+/* ── Semantic Search panel ─────────────────────────────────────────────── */
+/* Mirrors NoteSemanticSearch .panel + .form layout */
+
+.searchPanel {
+  margin-bottom: 0.65rem;
+  padding: 0.42rem 0.62rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.searchHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.45rem;
+}
+
+.searchIcon {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.searchTitle {
+  width: 7.5rem;
+  height: 0.82rem;
+}
+
+.searchRow {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+/*
+ * inputWrap height = padding 0.06×2 + input line-height 0.8125×1.22 + padding 0.2×2 ≈ 1.52rem
+ * submit button height = padding 0.38×2 + font 0.8125×1.5 ≈ 1.98rem
+ * form is align-items:center so the taller button sets the row height;
+ * the input bone is centered within that same row.
+ */
+.searchInput {
+  flex: 1;
+  height: 1.55rem;
+  border-radius: 7px;
+}
+
+.searchBtn {
+  width: 5rem;
+  height: 2rem;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+/* ── Top bar ───────────────────────────────────────────────────────────── */
+/* Mirrors LibraryPage .topBar / .topBarEnd */
+
+.topBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.topBarEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/*
+ * h1 font-size 1.75rem × line-height 1.45 ≈ 2.54rem rendered line-box.
+ * 2.25rem matches the segment/icon button height so the top-bar row
+ * items all align to the same height without awkward size differences.
+ */
+.headingBone {
+  width: 11rem;
+  height: 2.25rem;
+}
+
+/*
+ * .segmentBtn height = padding 0.45×2 + font 0.88×1.5 ≈ 2.22rem + 2px border.
+ * Use 2.25rem to match .iconBtn exactly and keep the right-side controls flush.
+ */
+.segmentBone {
+  width: 13.5rem;
+  height: 2.25rem;
+  border-radius: 10px;
+}
+
+/* Matches .iconBtn: 2.25rem × 2.25rem */
+.iconBone {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 6px;
+}
+
+/* ── Filters toolbar ───────────────────────────────────────────────────── */
+/* Mirrors NoteFiltersToolbar .filterBlock / .filterToolbar (desktop) */
+
+.filtersBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  min-width: 0;
+}
+
+/*
+ * filterSelect height = padding 0.32×2 + font 0.86×1.5 ≈ 1.93rem + 2px border.
+ * toolbarBtn height is identical (same padding + font-size).
+ * Each bone below represents one logical control in the filters toolbar.
+ */
+
+/* "Label" text + filterSelect ("Comedy (default)") */
+.filterFieldLabel {
+  height: 1.9rem;
+  width: 10.5rem;
+  border-radius: 8px;
+}
+
+/* "Date" text + filterSelect ("All dates") */
+.filterFieldDate {
+  height: 1.9rem;
+  width: 7rem;
+  border-radius: 8px;
+}
+
+/* "Set default" / "Reset filters" action buttons */
+.filterBtnMd {
+  height: 1.9rem;
+  width: 5.25rem;
+  border-radius: 8px;
+}
+
+/* "Remove default" action button (wider label) */
+.filterBtnLg {
+  height: 1.9rem;
+  width: 6.75rem;
+  border-radius: 8px;
+}
+
+/*
+ * Mobile (≤ 639px): the real toolbar collapses the full filter panel and
+ * shows only a single "Filters" toggle button in the mobile bar.
+ * Mirror that: show the pill bone on mobile, hide the desktop bones.
+ */
+
+/* Hidden on desktop; shown on mobile only */
+.filterMobileBtn {
+  display: none;
+  height: 1.9rem;  /* matches .mobileBarBtn: padding 0.32×2 + font 0.8×1.5 ≈ 1.84rem */
+  width: 4.5rem;
+  border-radius: 8px;
+}
+
+/* Shown on desktop; hidden on mobile */
+.desktopFilter {
+  display: block;
+}
+
+/* ── Note rows ─────────────────────────────────────────────────────────── */
+/* Mirrors LibraryPage .list / .row */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Matches .row: padding 0.75rem 1rem, border-radius 10px, surface bg */
+.rowItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-sizing: border-box;
+}
+
+/* Title text line — width set inline per row */
+.rowTitle {
+  height: 1rem;
+  border-radius: 5px;
+}
+
+/* Label chip on the right */
+.rowChip {
+  width: 3.5rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* ── Mobile overrides (≤ 639px) ────────────────────────────────────────── */
+
+@media (max-width: 639px) {
+  /* Show the compact "Filters" pill bone, hide the full desktop filter bones */
+  .filterMobileBtn {
+    display: block;
+  }
+
+  .desktopFilter {
+    display: none;
+  }
+
+  /* Heading bone is narrower on small screens */
+  .headingBone {
+    width: 8rem;
+  }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+    opacity: 0.6;
+  }
+}

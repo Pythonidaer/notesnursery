@@ -11,6 +11,7 @@ import {
 import { useInitialLabelFilter } from '../hooks/useInitialLabelFilter.js';
 import { collectAllLabels, filterNotesByLabel } from '../utils/noteLabels.js';
 import FloatingNewNoteComposer from '../components/FloatingNewNoteComposer.jsx';
+import LibrarySkeleton from '../components/LibrarySkeleton.jsx';
 import PlusIcon from '../components/PlusIcon.jsx';
 import ComedyRatingSortToggle from '../components/ComedyRatingSortToggle.jsx';
 import ComedyRatingTrigger from '../components/ComedyRatingTrigger.jsx';
@@ -33,7 +34,7 @@ import PageContentWrap from '../components/PageContentWrap.jsx';
 import styles from './LibraryPage.module.css';
 
 export default function LibraryPage() {
-  const { notes, loading, error } = useNotes();
+  const { notes, noteListReady, error } = useNotes();
   const {
     user,
     defaultLabelId,
@@ -145,23 +146,14 @@ export default function LibraryPage() {
   const toastEl = <Toast message={toastMessage} onDismiss={dismissToast} />;
   const waitingForPrefs = useRemote && user && !profilePreferencesLoaded && notes.length > 0;
 
-  if (loading && notes.length === 0) {
+  // Show the skeleton while the initial notes fetch is in-flight, or while
+  // the default-label preference is still resolving after notes have loaded.
+  // Never show the empty-state based solely on notes.length === 0 before
+  // noteListReady flips to true — that array starts empty during the fetch.
+  if (!noteListReady || waitingForPrefs) {
     return (
       <>
-        <PageContentWrap>
-          <p className={styles.loading}>Loading notes…</p>
-        </PageContentWrap>
-        {toastEl}
-      </>
-    );
-  }
-
-  if (waitingForPrefs) {
-    return (
-      <>
-        <PageContentWrap>
-          <p className={styles.loading}>Loading preferences…</p>
-        </PageContentWrap>
+        <LibrarySkeleton />
         {toastEl}
       </>
     );
