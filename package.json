@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "backfill:embeddings": "node scripts/backfill-note-embeddings.js",
-    "test:embed": "node scripts/test-embed.js"
+    "test:embed": "node scripts/test-embed.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
@@ -38,6 +40,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.0",
-    "vite": "^6.3.0"
+    "vite": "^6.3.0",
+    "vitest": "^4.1.6"
   }
 }

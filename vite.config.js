@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -18,5 +18,9 @@ export default defineConfig({
     // Ensure onnxruntime-common resolves once so `registerBackend` is defined when ort-web loads.
     include: ['onnxruntime-web', 'onnxruntime-common'],
     exclude: ['@xenova/transformers'],
+  },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.js', 'src/**/*.test.jsx'],
   },
 });

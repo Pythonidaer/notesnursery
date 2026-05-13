@@ -29,7 +29,6 @@
 }
 
 .exitSearch {
-  margin-left: auto;
   padding: 0.1rem 0.32rem;
   border: none;
   border-radius: 6px;
@@ -263,6 +262,55 @@
   font-size: 0.72rem;
   color: var(--muted);
   margin-top: 0.15rem;
+}
+
+/* ── Mode toggle (Semantic | Keyword) ──────────────────────────────────────
+   Sits on the same baseline row as the heading; uses border-box sizing so
+   it does not push the header taller. The active pill is highlighted in the
+   same purple accent used elsewhere in the component.
+   ──────────────────────────────────────────────────────────────────────── */
+.modeToggle {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.modeBtn {
+  padding: 0.08rem 0.42rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.modeBtn + .modeBtn {
+  border-left: 1px solid var(--border);
+}
+
+.modeBtnActive {
+  background: #7c3aed;
+  color: #fff;
+  font-weight: 600;
+}
+
+.modeBtn:focus {
+  outline: none;
+}
+
+.modeBtn:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 1px;
 }
 
 /* Slightly roomier on larger screens; still one row. */

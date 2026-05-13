@@ -1,6 +1,16 @@
 # Hybrid search (planned)
 
-Design notes for a possible future enhancement to [semantic search](SEMANTIC_SEARCH.md). **Not implemented** in the app today.
+Design notes for a future enhancement to [semantic search](SEMANTIC_SEARCH.md).
+
+**Current state (as of this writing):**
+
+- **Semantic Search** — implemented, production. Uses Supabase PGVector + `gte-small` embeddings via edge function. Retrieval-only (not RAG).
+- **Keyword Search** — implemented, production. Client-side match on title, plain-text body, and labels: queries split on whitespace into tokens; **every** token must appear somewhere in the combined searchable text (**AND**). No backend required.
+- **Hybrid Search** — planned. Will merge both signals into one ranked result set. **Not yet implemented.**
+
+Both current modes share one search card in the UI (`NoteSemanticSearch.jsx`). The small **Semantic / Keyword** pill toggle switches between them. This separation keeps complexity low and makes each mode independently testable while the hybrid approach is designed.
+
+---
 
 ---
 
@@ -9,7 +19,7 @@ Design notes for a possible future enhancement to [semantic search](SEMANTIC_SEA
 **Hybrid search** means returning ranked notes using **more than one retrieval signal**, then combining them. In the Notes Nursery context, the goal is to pair:
 
 - **Semantic (vector) similarity** — what the note is *about* in meaning space.
-- **Keyword (text) match** — whether the user’s exact words (or substrings) appear in fields we search.
+- **Keyword (text) match** — whether the user’s query tokens appear as substrings in the fields we search (today: **AND** across all tokens on combined title/body/labels text).
 
 **Why not semantic alone?** Today’s system embeds a single vector per full note. That is a good tradeoff for small libraries, but it has known limits: proper nouns, book or venue names, and short user queries can be **under-weighted** compared to the overall “theme” of a long note. Adding an explicit text-matching pass addresses **exact-phrase and title** needs without discarding the strength of meaning-based search.
 
@@ -19,10 +29,20 @@ Design notes for a possible future enhancement to [semantic search](SEMANTIC_SEA
 
 ## 2. Current system (brief)
 
+### Semantic Search
+
 - **Model:** `gte-small` (384-dim) via Supabase Edge Function + Postgres `pgvector`.
 - **Storage:** one embedding per note in `note_embeddings` (keyed by `user_id` + `note_id`), with stored `source_text` used to build the embedded plain-text (see [SEMANTIC_SEARCH.md](SEMANTIC_SEARCH.md)).
 - **Query path:** `search-notes-semantic` embeds the query, calls `search_my_notes`, returns ranked results by **vector distance / similarity** only.
-- **Security:** RLS, `auth.uid()`-scoped RPC; no change to that principle is required for a hybrid design—only how results are *ranked* and *merged*.
+- **Security:** RLS, `auth.uid()`-scoped RPC; no change to that principle is required for a hybrid design — only how results are *ranked* and *merged*.
+
+### Keyword Search (new)
+
+- **Implementation:** `src/utils/keywordSearch.js` — pure client-side functions, no backend.
+- **Fields searched:** `note.title`, plain text from `note.bodyHtml`, and `note.labels`.
+- **Matching:** trim, lowercase, split on whitespace into tokens; build one combined searchable string from title + stripped body + labels; each token must satisfy `searchable.includes(token)` (**AND**). Case-insensitive; no stemming.
+- **Notes data source:** the same `notes` array already loaded in `NotesContext` (no additional fetch).
+- **Intentional separation:** keyword and semantic modes are deliberately kept distinct to reduce complexity and allow independent testing. Hybrid ranking will merge them later.
 
 ---
 
@@ -38,26 +58,32 @@ Design notes for a possible future enhancement to [semantic search](SEMANTIC_SEA
 
 ## 4. Proposed solution
 
-Run **two** retrieval paths in parallel (conceptually):
+Run **two** retrieval paths (both already implemented as separate modes):
 
-1. **Semantic search (existing):** current vector pipeline, unchanged in spirit.
-2. **Keyword search (new, MVP):** match the user’s query (or tokenized substrings) against **title** and **searchable text** (e.g. the same `source_text` used for embedding, and/or `body_html` stripped for display parity—implementation detail to align with the app’s canonical plain text).
+1. **Semantic search (implemented):** current vector pipeline, unchanged.
+2. **Keyword search (implemented):** client-side tokenized **AND** match on `title`, `bodyHtml` (HTML-stripped), and `labels` via `src/utils/keywordSearch.js` (`tokenizeKeywordQuery` + `searchNotesKeyword`).
 
-**Merge** results by `note_id`: each note that appears in either list gets **both** scores (with zeros where it did not appear in a branch). Sort by a **combined** score (see [§6](#6-result-merging-strategy)).
+The next step is to **merge** results by `note_id`: each note that appears in either result set gets **both** scores (with zeros where absent), then sort by a **combined** score (see [§6](#6-result-merging-strategy)).
 
-The UI can stay a **single** search box; hybrid behavior is a backend/Edge Function concern.
+The UI already shares one search card; a future `hybrid` mode value in the toggle would activate merged ranking without restructuring the component.
 
 ---
 
-## 5. Keyword search approach (MVP)
+## 5. Keyword search approach (current implementation)
 
-Keep the first version **simple and maintainable** in Postgres:
+The MVP keyword search runs **client-side** in the browser, not in Postgres:
 
-- Filter to the current user’s notes (same isolation model as today).
-- **Case-insensitive substring search**, e.g.:
-  - `title ILIKE '%' || safe_query || '%'`
-  - `source_text ILIKE ...` (or equivalent on denormalized search columns if you add them later).
-- **Sanitize the query** for `LIKE` (escape `%`, `_`, and cap length) to avoid accidental patterns and abuse.
+- Source: `notes` array from `NotesContext` (already loaded for Library/Cards views).
+- **Fields:** `title`, `bodyHtml` (tags stripped via `stripHtml()`), and `labels`.
+- **Matching:** tokenize with `query.trim().toLowerCase().split(/\s+/).filter(Boolean)`; one combined lowercase string from title, stripped body, and labels; `tokens.every((t) => searchable.includes(t))`. Case-insensitive substring per token; no stemming.
+- **Empty guard:** returns `[]` if query is empty or whitespace-only.
+- **No backend required:** works offline and does not consume Supabase edge function invocations.
+
+This is sufficient for personal libraries of hundreds of notes. If the library grows large enough that client-side filtering lags, consider the Postgres approach below as a follow-up:
+
+- `title ILIKE '%' || safe_query || '%'`
+- `source_text ILIKE ...` (same table as embeddings).
+- **Sanitize** the query for `LIKE` (escape `%`, `_`, and cap length) to prevent accidental patterns.
 
 **Optional later:** [PostgreSQL full-text search](https://www.postgresql.org/docs/current/textsearch.html) (`to_tsvector` / `to_tsquery`) for stemming, ranking (*`ts_rank`*), and better phrase handling. That adds index and migration work; ILIKE is acceptable for **100–150 notes per user** in early iterations.
 
@@ -116,6 +142,7 @@ The important property is **monotonicity**: stronger literal overlap → higher 
 
 ## 10. Future improvements
 
+- **Hybrid ranking** — combine semantic similarity with keyword signals; boost exact phrase matches, title hits, label hits, and optionally recency or star rating (see [§6–§7](#6-result-merging-strategy)).
 - **SQL-side merge and ranking** — one RPC returns merged scores; less data over the wire; easier to index for keyword search at scale.
 - **Full-text search (`tsvector` / `tsquery`)** — better than raw `ILIKE` for language-aware matching and `ts_rank`.
 - **Chunking** — multiple embeddings per long note, with careful deduplication in results.

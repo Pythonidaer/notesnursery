@@ -7,7 +7,9 @@ This guide is for **developers** and **curious users**. You do not need a machin
 ## TL;DR
 
 - You can now search your notes by **meaning** (semantic search), not just exact words.
-- This feature **retrieves** relevant notes — it does **NOT** generate answers (no AI chat yet).
+- A **Keyword Search** mode is also available — search by words in titles, body text, or labels (multi-word queries use **AND** across tokens).
+- Both modes share one search card; use the small **Semantic / Keyword** toggle beside the heading to switch.
+- Both features **retrieve** relevant notes — they do **NOT** generate answers (no AI chat yet).
 
 ---
 
@@ -79,10 +81,16 @@ The database uses these lists to run fast similarity queries and find the best m
 
 ### Semantic search vs keyword search
 
-- **Keyword search** — Looks for **exact** (or stemmed) words: if you search “dog”, you mainly get notes containing “dog”.
-- **Semantic search** — Looks for **meaning**: a note about “puppies” or “golden retrievers” can match a query about “dogs” even if the word “dogs” never appears.
+Both modes are available in the same search card. Toggle between them with the **Semantic / Keyword** pill beside the heading.
 
-**Example:**
+| | Semantic | Keyword |
+|--|----------|---------|
+| **Matches** | Meaning and concept | Whitespace-separated **tokens**; each token must appear somewhere in title + stripped body + labels (**AND**). Single word = one token. |
+| **Good for** | Ideas, paraphrases, topic exploration | Names, titles, labels; narrowing multi-word queries (every word must hit somewhere) |
+| **Requires backend** | Yes (Supabase edge function + embeddings) | No — runs entirely in the browser |
+| **Returns score** | Yes (similarity %) | No (presence/absence match) |
+
+**Semantic example:**
 
 | | |
 |--|--|
@@ -90,6 +98,17 @@ The database uses these lists to run fast similarity queries and find the best m
 | **Search query** | *“fighters who avoid getting hit”* |
 | **Keyword search** | No match — the words are different. |
 | **Semantic search** | Match — the **meaning** is similar. |
+
+**Keyword example:**
+
+| | |
+|--|--|
+| **Note content** | *“Visited Bell in Hand Tavern last Tuesday”* |
+| **Search query** | *"Bell in Hand"* |
+| **Keyword search** | Match — each token (`bell`, `in`, `hand`) appears as a substring in the combined searchable text (order does not matter). |
+| **Semantic search** | May not rank highly depending on full note context. |
+
+Multi-word keyword queries use **AND** behavior on purpose: every token must appear somewhere across title, body, or labels, which cuts noisy hits when you add more words. **OR** search, phrase-only matching, fuzzy matching, and hybrid re-ranking are future work; see [HYBRID_SEARCH.md](HYBRID_SEARCH.md).
 
 ### Similarity score
 
@@ -287,10 +306,11 @@ If you see **`UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM`**, redeploy functions wi
 
 ## 11. Future improvements
 
+- **Hybrid Search** — Merge semantic and keyword signals into a single ranked result set with configurable weights. See [HYBRID_SEARCH.md](HYBRID_SEARCH.md) for design details.
 - **RAG** — Optional “answer this question using my notes” with a separate LLM step.
 - **Chunking** — Split long notes into sections for finer retrieval.
-- **Better ranking** — Blend semantic score with recency, labels, or keyword filters.
-- **UI** — Highlight why a note matched, filters combined with semantic search, empty states.
+- **Better ranking** — Blend semantic score with recency, star rating, or label boosts.
+- **UI** — Highlight matched terms, show why a note ranked (semantic vs keyword).
 - **Caching** — Cache query embeddings for repeated searches (if needed at scale).
 
 ---
@@ -322,12 +342,14 @@ If you see **`UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM`**, redeploy functions wi
 |-------|----------|
 | Migration (RLS + `search_my_notes`) | `supabase/migrations/006_semantic_search_rls_and_rpc.sql` |
 | Source text for embedding | `src/utils/noteEmbeddingSourceText.js` |
-| Library UI | `src/components/NoteSemanticSearch.jsx` |
-| Client invoke helper | `src/lib/semanticSearch.js` |
-| Embed function | `supabase/functions/embed-note-text/` |
-| Search function | `supabase/functions/search-notes-semantic/` |
+| Search UI (semantic + keyword toggle) | `src/components/NoteSemanticSearch.jsx` |
+| Keyword search utility + tests | `src/utils/keywordSearch.js`, `src/utils/keywordSearch.test.js` |
+| Semantic client invoke helper | `src/lib/semanticSearch.js` |
+| Embed edge function | `supabase/functions/embed-note-text/` |
+| Semantic search edge function | `supabase/functions/search-notes-semantic/` |
 | Backfill | `scripts/backfill-note-embeddings.js` |
 | Embed smoke test | `scripts/test-embed.js` |
+| Hybrid search design | `docs/HYBRID_SEARCH.md` |
 
 ---
 
