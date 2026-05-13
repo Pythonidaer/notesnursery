@@ -135,8 +135,9 @@
 }
 
 /*
- * Slightly below 16px: matches heading scale and keeps the control slim.
- * iOS Safari may zoom on focus; if that’s an issue, raise toward 16px.
+ * Slightly below 16px on desktop: matches heading scale and keeps the control
+ * slim. On mobile (≤ 639px) the global iOS Safari zoom fix in index.css
+ * overrides this to 1rem (16px) to prevent viewport auto-zoom on focus.
  */
 .input {
   flex: 1;

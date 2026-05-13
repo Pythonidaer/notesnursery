@@ -131,3 +131,24 @@ body {
   color: var(--muted);
   font-size: 0.95rem;
 }
+
+/*
+ * iOS Safari auto-zoom prevention.
+ *
+ * Safari on iOS zooms the viewport when a focused form control has a computed
+ * font-size below 16px. The fix must win over CSS Module class selectors
+ * (specificity 0,1,0), so !important is used here rather than scattering
+ * per-component overrides across every module file.
+ *
+ * Scope: mobile breakpoint only (≤ 639px), matching the project's existing
+ * mobile breakpoint. Desktop font-sizes are intentionally unaffected.
+ * Pinch-to-zoom remains fully enabled.
+ */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select,
+  [contenteditable='true'] {
+    font-size: 1rem !important;
+  }
+}
