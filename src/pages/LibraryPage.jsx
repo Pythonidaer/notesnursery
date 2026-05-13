@@ -33,6 +33,9 @@ import NoteRowLabelChips from '../components/NoteRowLabelChips.jsx';
 import PageContentWrap from '../components/PageContentWrap.jsx';
 import styles from './LibraryPage.module.css';
 
+/** Minimum time (ms) the skeleton is shown on first Library load to prevent flicker. */
+const MIN_LIBRARY_SKELETON_MS = 300;
+
 export default function LibraryPage() {
   const { notes, noteListReady, error } = useNotes();
   const {
@@ -52,6 +55,15 @@ export default function LibraryPage() {
   const [toastMessage, setToastMessage] = useState(/** @type {string | null} */ (null));
   const dismissToast = useCallback(() => setToastMessage(null), []);
   const [groupByDate, setGroupByDate] = useState(false);
+
+  // Minimum skeleton display duration: prevents a jarring flash when the
+  // notes query resolves faster than MIN_LIBRARY_SKELETON_MS. Fires once on
+  // mount; does not delay any interaction after the initial load.
+  const [skeletonMinElapsed, setSkeletonMinElapsed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSkeletonMinElapsed(true), MIN_LIBRARY_SKELETON_MS);
+    return () => clearTimeout(t);
+  }, []);
   const [labelFilter, setLabelFilter] = useInitialLabelFilter({
     defaultLabelName,
     profilePreferencesLoaded,
@@ -148,9 +160,11 @@ export default function LibraryPage() {
 
   // Show the skeleton while the initial notes fetch is in-flight, or while
   // the default-label preference is still resolving after notes have loaded.
+  // Also enforce the minimum display duration so the skeleton never flickers
+  // in and out in under MIN_LIBRARY_SKELETON_MS on fast connections.
   // Never show the empty-state based solely on notes.length === 0 before
   // noteListReady flips to true — that array starts empty during the fetch.
-  if (!noteListReady || waitingForPrefs) {
+  if (!noteListReady || waitingForPrefs || !skeletonMinElapsed) {
     return (
       <>
         <LibrarySkeleton />
