@@ -124,6 +124,10 @@ The app stores the Supabase session in **browser localStorage** (`sb-<project-re
 
 Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybrid columns (`004_hybrid_note_content.sql`), optional audio display names (`005_note_audio_display_names.sql`), semantic search RLS/RPC (`006_semantic_search_rls_and_rpc.sql`) once `note_embeddings` exists, and profile appearance (`007_profile_color_scheme.sql`).
 
+### Note-audio storage bucket
+
+Create a **private** bucket named `note-audio` (if it does not exist) with allowed MIME types **`audio/mpeg`** (`.mp3`) and **`audio/wav`** (manual uploads). **Record** (`/recordings`) converts to MP3 in the browser before upload — you do **not** need WebM/M4A on the bucket. See [docs/recording-sessions.md](docs/recording-sessions.md).
+
 ## Scripts
 
 ```bash

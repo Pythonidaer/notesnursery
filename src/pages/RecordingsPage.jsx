@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import RecordingControls from '../components/audio/RecordingControls.jsx';
 import RecordingDraftList from '../components/audio/RecordingDraftList.jsx';
+import Toast from '../components/Toast.jsx';
 import PageContentWrap from '../components/PageContentWrap.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -51,6 +52,9 @@ export default function RecordingsPage() {
   const [libraryError, setLibraryError] = useState(/** @type {string | null} */ (null));
   const [busyId, setBusyId] = useState(/** @type {string | null} */ (null));
   const [pageError, setPageError] = useState(/** @type {string | null} */ (null));
+  const [successMessage, setSuccessMessage] = useState(/** @type {string | null} */ (null));
+  const [highlightPath, setHighlightPath] = useState(/** @type {string | null} */ (null));
+  const dismissSuccess = useCallback(() => setSuccessMessage(null), []);
 
   const refreshDrafts = useCallback(async () => {
     if (!user?.id) {
@@ -142,6 +146,8 @@ export default function RecordingsPage() {
       }
       setBusyId(draftId);
       setPageError(null);
+      setSuccessMessage(null);
+      setHighlightPath(null);
       await putRecordingDraft({
         ...row,
         status: 'uploading',
@@ -150,10 +156,17 @@ export default function RecordingsPage() {
       });
       await refreshDrafts();
       try {
-        await uploadRecordingDraft(user.id, row);
+        const uploaded = await uploadRecordingDraft(user.id, row);
+        const label =
+          (row.displayName && row.displayName.trim()) ||
+          uploaded.fileName.replace(/\.mp3$/i, '') ||
+          'Recording';
         await deleteRecordingDraft(draftId);
         await refreshDrafts();
         await refreshUploaded();
+        setHighlightPath(uploaded.path);
+        setSuccessMessage(`Uploaded “${label}” as MP3`);
+        window.setTimeout(() => setHighlightPath(null), 4000);
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Upload failed';
         const latest = await getRecordingDraft(draftId);
@@ -187,7 +200,7 @@ export default function RecordingsPage() {
     return (
       <PageContentWrap>
         <article className={styles.page}>
-          <h1 className={styles.title}>Recordings</h1>
+          <h1 className={styles.title}>Record</h1>
           <p className={styles.gate}>
             Recording Sessions need cloud storage. Run the app in production mode with Supabase
             configured.
@@ -201,7 +214,7 @@ export default function RecordingsPage() {
     return (
       <PageContentWrap>
         <article className={styles.page}>
-          <h1 className={styles.title}>Recordings</h1>
+          <h1 className={styles.title}>Record</h1>
           <p className={styles.gate}>Loading…</p>
         </article>
       </PageContentWrap>
@@ -216,12 +229,14 @@ export default function RecordingsPage() {
 
   return (
     <PageContentWrap>
+      <Toast message={successMessage} onDismiss={dismissSuccess} variant="success" />
       <article className={styles.page}>
-        <h1 className={styles.title}>Recordings</h1>
+        <h1 className={styles.title}>Record</h1>
         <p className={styles.lead}>
-          Record audio in your browser, save it locally while you work, then upload to your private
-          library. Attach recordings to notes later with <strong>Insert audio</strong> — they are not
-          added to notes automatically.
+          Record audio in your browser and preview it locally (WebM, M4A, or WAV depending on your
+          device). <strong>Upload / Save</strong> converts to <strong>MP3</strong> before sending to
+          Supabase — same format as your usual uploads. Attach clips in notes with{' '}
+          <strong>Insert audio</strong>; nothing is added to a note automatically.
         </p>
 
         <p
@@ -230,6 +245,12 @@ export default function RecordingsPage() {
         >
           {online ? 'Online' : 'Offline — recordings are saved on this device until upload succeeds'}
         </p>
+
+        {successMessage ? (
+          <p className={styles.successBanner} role="status" aria-live="polite">
+            {successMessage}
+          </p>
+        ) : null}
 
         {pageError ? (
           <p className={styles.error} role="alert">
@@ -283,7 +304,15 @@ export default function RecordingsPage() {
           {!libraryLoading && uploaded.length > 0 ? (
             <ul className={styles.uploadedList}>
               {uploaded.map((row) => (
-                <li key={row.path} className={styles.uploadedItem}>
+                <li
+                  key={row.path}
+                  className={[
+                    styles.uploadedItem,
+                    highlightPath === row.path ? styles.uploadedItemHighlight : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
                   <span>{row.displayName ?? row.fileName}</span>
                   <span className={styles.uploadedMeta}>
                     {formatBytes(row.sizeBytes)} ·{' '}

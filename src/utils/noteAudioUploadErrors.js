@@ -1,3 +1,4 @@
+import { formatStorageMimeRejectedMessage } from '../lib/audio/noteAudioStoragePolicy.js';
 import { formatBytes } from './formatBytes.js';
 
 /**
@@ -12,7 +13,7 @@ export function describeNoteAudioUploadFailure(err, ctx) {
     ctx.fileSizeBytes > ctx.maxBytes ||
     /413|payload too large|too large|maximum|size limit|entity too large|request entity/i.test(raw + lower);
 
-  let reason = raw || 'Upload failed';
+  let reason = formatStorageMimeRejectedMessage(raw || 'Upload failed');
   if (isLikelySizeLimit && ctx.fileSizeBytes > ctx.maxBytes) {
     reason = `This file (${formatBytes(ctx.fileSizeBytes)}) exceeds the current upload limit (${formatBytes(ctx.maxBytes)}).`;
   } else if (isLikelySizeLimit) {

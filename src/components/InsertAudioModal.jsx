@@ -244,8 +244,8 @@ export default function InsertAudioModal({
             {uploading ? 'Uploading…' : 'Upload new file'}
           </button>
           <p className={insertStyles.hint}>
-            Upload: .wav or .mp3. Your library also includes browser recordings (.webm, .m4a, etc.) from{' '}
-            <strong>Recordings</strong>. Maximum {formatBytes(NOTE_AUDIO_MAX_UPLOAD_BYTES)} per file.
+            .wav or .mp3 — maximum {formatBytes(NOTE_AUDIO_MAX_UPLOAD_BYTES)} per file. Browser
+            recordings from <strong>Record</strong> are stored as .mp3 after upload.
           </p>
 
           <span className={insertStyles.subheading} id="insert-audio-library-label">

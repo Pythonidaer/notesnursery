@@ -1,6 +1,8 @@
 import { NOTE_AUDIO_MAX_UPLOAD_BYTES } from '../../constants/noteAudio.js';
 import { uploadNoteAudioFile } from '../noteAudioUpload.js';
 import { upsertNoteAudioDisplayName } from '../noteAudioDisplayNames.js';
+import { convertRecordingBlobToMp3 } from './convertRecordingToMp3.js';
+import { formatStorageMimeRejectedMessage } from './noteAudioStoragePolicy.js';
 import { buildRecordingFileName } from './recordingMimeTypes.js';
 import { recordingDraftToBlob } from './recordingDraftDb.js';
 
@@ -13,18 +15,32 @@ export const RECORDINGS_AUDIO_SCOPE = 'recordings';
  * @returns {Promise<{ path: string, fileName: string, mimeType: string, sizeBytes: number }>}
  */
 export async function uploadRecordingDraft(userId, draft) {
-  const blob = recordingDraftToBlob(draft);
-  if (blob.size > NOTE_AUDIO_MAX_UPLOAD_BYTES) {
+  const sourceBlob = recordingDraftToBlob(draft);
+  if (sourceBlob.size > NOTE_AUDIO_MAX_UPLOAD_BYTES) {
     throw new Error(
-      `Recording (${Math.round(blob.size / 1024 / 1024)} MB) exceeds the upload limit.`
+      `Recording (${Math.round(sourceBlob.size / 1024 / 1024)} MB) exceeds the upload limit.`
     );
   }
-  const fileName = buildRecordingFileName(draft.startedAt, draft.extension);
-  const file = new File([blob], fileName, {
-    type: draft.mimeType || blob.type || 'application/octet-stream',
-  });
-  const uploaded = await uploadNoteAudioFile(userId, RECORDINGS_AUDIO_SCOPE, file);
-  const label = (draft.displayName && draft.displayName.trim()) || fileName;
+
+  const mp3Blob = await convertRecordingBlobToMp3(sourceBlob);
+  if (mp3Blob.size > NOTE_AUDIO_MAX_UPLOAD_BYTES) {
+    throw new Error(
+      `MP3 (${Math.round(mp3Blob.size / 1024 / 1024)} MB) exceeds the upload limit after conversion.`
+    );
+  }
+
+  const fileName = buildRecordingFileName(draft.startedAt, 'mp3');
+  const file = new File([mp3Blob], fileName, { type: 'audio/mpeg' });
+
+  let uploaded;
+  try {
+    uploaded = await uploadNoteAudioFile(userId, RECORDINGS_AUDIO_SCOPE, file);
+  } catch (e) {
+    const raw = e instanceof Error ? e.message : String(e);
+    throw new Error(formatStorageMimeRejectedMessage(raw));
+  }
+
+  const label = (draft.displayName && draft.displayName.trim()) || fileName.replace(/\.mp3$/i, '');
   const rec = await upsertNoteAudioDisplayName(userId, uploaded.path, label);
   if (!rec.ok) {
     console.error('[recording] display name', rec.error);

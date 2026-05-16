@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { canPreviewAudioMime } from '../../lib/audio/recordingMimeTypes.js';
 import { recordingDraftStatusMessage } from '../../lib/audio/recordingStatusMessages.js';
 import { recordingDraftToBlob } from '../../lib/audio/recordingDraftDb.js';
 import { formatBytes } from '../../utils/formatBytes.js';
@@ -105,10 +106,18 @@ function RecordingDraftCard({
     online,
     uploadError: draft.uploadError,
   });
+  const previewSupported = canPreviewAudioMime(draft.mimeType);
   const canPreview =
-    draft.status === 'stopped-local' ||
-    draft.status === 'upload-pending' ||
-    draft.status === 'failed';
+    previewSupported &&
+    (draft.status === 'stopped-local' ||
+      draft.status === 'upload-pending' ||
+      draft.status === 'failed');
+  const showPreviewUnavailable =
+    !previewSupported &&
+    (draft.status === 'stopped-local' ||
+      draft.status === 'upload-pending' ||
+      draft.status === 'failed') &&
+    Boolean(blob?.size);
   const canUpload =
     (draft.status === 'stopped-local' || draft.status === 'upload-pending') && online;
   const showRetry = draft.status === 'failed' || (draft.status === 'upload-pending' && online);
@@ -139,6 +148,12 @@ function RecordingDraftCard({
           aria-label="Preview recording"
         />
       ) : null}
+      {showPreviewUnavailable ? (
+        <p className={styles.previewUnavailable}>
+          Preview is not supported for {draft.extension.toUpperCase()} in this browser. You can still
+          upload if your Supabase bucket allows this format (see docs/recording-sessions.md).
+        </p>
+      ) : null}
 
       <label className={styles.draftLabel}>
         Display name
@@ -160,7 +175,7 @@ function RecordingDraftCard({
             disabled={busy}
             onClick={() => onUpload(draft.draftId)}
           >
-            {busy ? 'Uploading…' : 'Upload / Save'}
+            {busy ? 'Converting to MP3…' : 'Upload / Save'}
           </button>
         ) : null}
         {showRetry ? (
@@ -170,7 +185,7 @@ function RecordingDraftCard({
             disabled={busy || !online}
             onClick={() => onRetry(draft.draftId)}
           >
-            Retry upload
+            {busy ? 'Converting…' : 'Retry upload'}
           </button>
         ) : null}
         {!online && draft.status !== 'uploading' && draft.status !== 'uploaded' ? (

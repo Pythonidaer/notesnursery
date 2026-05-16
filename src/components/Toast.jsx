@@ -6,7 +6,7 @@ import styles from './Toast.module.css';
  * @param {{
  *   message: string | null,
  *   onDismiss: () => void,
- *   variant?: 'default' | 'headerMinimal',
+ *   variant?: 'default' | 'success' | 'headerMinimal',
  * }} props
  */
 export default function Toast({ message, onDismiss, variant = 'default' }) {
@@ -18,8 +18,13 @@ export default function Toast({ message, onDismiss, variant = 'default' }) {
 
   if (!message) return null;
 
-  const className =
-    variant === 'headerMinimal' ? `${styles.toast} ${styles.toastHeaderMinimal}` : styles.toast;
+  const className = [
+    styles.toast,
+    variant === 'headerMinimal' ? styles.toastHeaderMinimal : '',
+    variant === 'success' ? styles.toastSuccess : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={className} role="status" aria-live="polite">

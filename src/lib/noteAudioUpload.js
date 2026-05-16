@@ -1,4 +1,5 @@
 import { NOTE_AUDIO_BUCKET } from '../constants/noteAudio.js';
+import { resolveStorageContentType } from './audio/noteAudioStoragePolicy.js';
 import { buildNoteAudioObjectPath } from '../utils/noteAudioPaths.js';
 import { getSupabase } from './supabaseClient.js';
 
@@ -15,7 +16,11 @@ export async function uploadNoteAudioFile(userId, scopeId, file) {
     throw new Error('Supabase is not configured');
   }
   const path = buildNoteAudioObjectPath(userId, scopeId, file.name);
-  const contentType = file.type && file.type.trim() ? file.type : undefined;
+  const extMatch = /\.([a-z0-9]+)$/i.exec(file.name);
+  const contentType = resolveStorageContentType(
+    extMatch?.[1] ?? '',
+    file.type && file.type.trim() ? file.type : ''
+  );
   const { data, error } = await supabase.storage.from(NOTE_AUDIO_BUCKET).upload(path, file, {
     cacheControl: '3600',
     upsert: false,

@@ -15,6 +15,12 @@
   text-align: center;
 }
 
+.toastSuccess {
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, #fff 30%);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
 /* In-flow chip beside nav actions (e.g. note detail top bar). */
 .toastHeaderMinimal {
   position: static;

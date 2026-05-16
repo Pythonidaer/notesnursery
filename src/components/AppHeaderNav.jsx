@@ -127,7 +127,7 @@ export default function AppHeaderNav({
       </li>
       <li className={styles.menuItem}>
         <Link to="/recordings" className={styles.menuLink} onClick={close}>
-          Recordings
+          Record
         </Link>
       </li>
       <li className={styles.menuItem}>
