@@ -1,9 +1,10 @@
 import { NOTE_AUDIO_BUCKET } from '../constants/noteAudio.js';
+import { NOTE_AUDIO_LISTABLE_EXT_PATTERN } from '../constants/noteAudioExtensions.js';
 import { fetchNoteAudioDisplayNamesForPaths } from './noteAudioDisplayNames.js';
 import { getSupabase } from './supabaseClient.js';
 
 /**
- * Lists `.wav` / `.mp3` objects under each `{userId}/*` prefix (matches upload paths).
+ * Lists listable audio objects under each `{userId}/*` prefix (wav, mp3, webm, m4a, mp4).
  * Merges user-editable `displayName` from `note_audio_display_names` when available.
  */
 export async function listUserNoteAudioFiles(userId) {
@@ -24,7 +25,7 @@ export async function listUserNoteAudioFiles(userId) {
   for (const scope of scopes ?? []) {
     if (!scope?.name) continue;
 
-    if (/\.(wav|mp3)$/i.test(scope.name) && scope.metadata && typeof scope.metadata.size === 'number') {
+    if (NOTE_AUDIO_LISTABLE_EXT_PATTERN.test(scope.name) && scope.metadata && typeof scope.metadata.size === 'number') {
       out.push({
         path: `${userId}/${scope.name}`,
         fileName: scope.name,
@@ -43,7 +44,7 @@ export async function listUserNoteAudioFiles(userId) {
     if (errSub) continue;
 
     for (const f of files ?? []) {
-      if (!f?.name || !/\.(wav|mp3)$/i.test(f.name)) continue;
+      if (!f?.name || !NOTE_AUDIO_LISTABLE_EXT_PATTERN.test(f.name)) continue;
       const path = `${prefix}/${f.name}`;
       const size = f.metadata?.size;
       const mime = f.metadata?.mimetype;

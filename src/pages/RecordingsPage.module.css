@@ -1,0 +1,270 @@
+.page {
+  width: 100%;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.lead {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.gate {
+  color: var(--muted);
+}
+
+.connection {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+}
+
+.connectionOffline {
+  color: var(--danger, #c0392b);
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.error {
+  color: var(--danger, #c0392b);
+}
+
+/* Recording controls */
+.recordingControls {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface, var(--bg));
+}
+
+.recordingControlsTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.recordingMeta {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  min-height: 1.25em;
+}
+
+.recordingStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.recordingDuration {
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.recordingFormat {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.recordingError {
+  margin: 0 0 0.75rem;
+  color: var(--danger, #c0392b);
+  font-size: 0.9rem;
+}
+
+.recordingBtnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.recordingBtn {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.recordingBtn:disabled,
+.recordingBtnPrimary:disabled,
+.recordingBtnDanger:disabled,
+.draftBtn:disabled,
+.draftBtnPrimary:disabled,
+.draftBtnDanger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.recordingBtnPrimary {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--accent, #2d6a4f);
+  color: #fff;
+  cursor: pointer;
+}
+
+.recordingBtnDanger {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--danger, #c0392b);
+  background: var(--bg);
+  color: var(--danger, #c0392b);
+  cursor: pointer;
+}
+
+/* Draft list */
+.draftList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.draftCard {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface, var(--bg));
+}
+
+.draftHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.35rem;
+}
+
+.draftTitle {
+  font-weight: 600;
+}
+
+.draftMeta {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.draftStatus {
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+}
+
+.draftPreview {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  min-height: 2.5rem;
+}
+
+.draftLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.65rem;
+}
+
+.draftInput {
+  min-height: 2.75rem;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.draftActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.draftBtn,
+.draftBtnPrimary,
+.draftBtnDanger {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.draftBtnPrimary {
+  background: var(--accent, #2d6a4f);
+  border-color: transparent;
+  color: #fff;
+}
+
+.draftBtnDanger {
+  border-color: var(--danger, #c0392b);
+  color: var(--danger, #c0392b);
+}
+
+.offlineHint {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.uploadedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.uploadedItem {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.uploadedItem:last-child {
+  border-bottom: none;
+}
+
+.uploadedMeta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}

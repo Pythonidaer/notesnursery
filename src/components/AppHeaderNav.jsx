@@ -126,6 +126,11 @@ export default function AppHeaderNav({
         </Link>
       </li>
       <li className={styles.menuItem}>
+        <Link to="/recordings" className={styles.menuLink} onClick={close}>
+          Recordings
+        </Link>
+      </li>
+      <li className={styles.menuItem}>
         <Link to="/analysis" className={styles.menuLink} onClick={close}>
           Analysis
         </Link>

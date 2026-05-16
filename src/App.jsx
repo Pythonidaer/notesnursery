@@ -10,6 +10,7 @@ import EmailConfirmedPage from './pages/EmailConfirmedPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NoteDetailPage from './pages/NoteDetailPage.jsx';
 import AnalysisPage from './pages/AnalysisPage.jsx';
+import RecordingsPage from './pages/RecordingsPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 
 function LegacyNotesTestHubRedirect() {
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/cards" element={<CardsPage />} />
           <Route path="/instructions" element={<InstructionsPage />} />
           <Route path="/analysis" element={analysisPinned ? null : <AnalysisPage />} />
+          <Route path="/recordings" element={<RecordingsPage />} />
           <Route path="/notes/:noteId" element={<NoteDetailPage />} />
           <Route path="/notes-test" element={<LegacyNotesTestHubRedirect />} />
           <Route path="/notes-test/:noteId" element={<LegacyNotesTestDetailRedirect />} />
