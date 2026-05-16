@@ -87,21 +87,40 @@ function RecordingDraftCard({
   const audioRef = useRef(/** @type {HTMLAudioElement | null} */ (null));
   const [previewUrl, setPreviewUrl] = useState(/** @type {string | null} */ (null));
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [localDisplayName, setLocalDisplayName] = useState(() => draft.displayName ?? '');
 
   const byteLength = useMemo(() => recordingDraftByteLength(draft), [draft]);
-  const blob = useMemo(() => {
-    if (!byteLength) return null;
-    try {
-      return recordingDraftToBlob(draft);
-    } catch {
-      return null;
-    }
-  }, [draft, byteLength]);
+  /** Stable while only displayName / status metadata changes — avoids revoking preview on rename. */
+  const previewAudioKey = `${draft.draftId}:${byteLength}:${draft.mimeType}`;
 
   const previewMime = normalizeRecordingMimeType(draft.mimeType);
 
   useEffect(() => {
+    setLocalDisplayName(draft.displayName ?? '');
+  }, [draft.draftId]);
+
+  useEffect(() => {
+    const saved = draft.displayName ?? '';
+    if (localDisplayName === saved) return;
+    const timer = window.setTimeout(() => {
+      onDisplayNameChange(draft.draftId, localDisplayName);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [localDisplayName, draft.draftId, draft.displayName, onDisplayNameChange]);
+
+  useEffect(() => {
     setPreviewFailed(false);
+    if (!byteLength) {
+      setPreviewUrl(null);
+      return;
+    }
+    let blob;
+    try {
+      blob = recordingDraftToBlob(draft);
+    } catch {
+      setPreviewUrl(null);
+      return;
+    }
     if (!blob || blob.size === 0) {
       setPreviewUrl(null);
       return;
@@ -109,7 +128,8 @@ function RecordingDraftCard({
     const url = URL.createObjectURL(blob);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [blob]);
+    // previewAudioKey only — displayName / status updates must not reload <audio>
+  }, [previewAudioKey]);
 
   const statusMsg = recordingDraftStatusMessage(draft.status, {
     online,
@@ -129,7 +149,9 @@ function RecordingDraftCard({
     <li className={styles.draftCard}>
       <div className={styles.draftHeader}>
         <span className={styles.draftTitle}>
-          {draft.displayName?.trim() || `Recording ${new Date(draft.startedAt).toLocaleString()}`}
+          {localDisplayName.trim() ||
+            draft.displayName?.trim() ||
+            `Recording ${new Date(draft.startedAt).toLocaleString()}`}
         </span>
         <span className={styles.draftMeta}>
           {formatDuration(draft.duration)} · {draft.extension.toUpperCase()}
@@ -173,10 +195,15 @@ function RecordingDraftCard({
         <input
           type="text"
           className={styles.draftInput}
-          value={draft.displayName ?? ''}
+          value={localDisplayName}
           placeholder="Optional name for your library"
           disabled={busy || draft.status === 'uploading'}
-          onChange={(e) => onDisplayNameChange(draft.draftId, e.target.value)}
+          onChange={(e) => setLocalDisplayName(e.target.value)}
+          onBlur={() => {
+            if ((draft.displayName ?? '') !== localDisplayName) {
+              onDisplayNameChange(draft.draftId, localDisplayName);
+            }
+          }}
         />
       </label>
 
