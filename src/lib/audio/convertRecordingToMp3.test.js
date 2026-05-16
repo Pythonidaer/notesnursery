@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { float32ToInt16Pcm } from './convertRecordingToMp3.js';
+import { float32ToInt16Pcm, friendlyRecordingDecodeError } from './convertRecordingToMp3.js';
+
+describe('friendlyRecordingDecodeError', () => {
+  it('maps Safari object-not-found decode errors', () => {
+    expect(friendlyRecordingDecodeError(new Error('The object can not be found here.'))).toMatch(
+      /Discard/
+    );
+  });
+});
 
 describe('float32ToInt16Pcm', () => {
   it('clamps and scales float samples to 16-bit PCM', () => {

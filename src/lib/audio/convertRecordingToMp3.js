@@ -5,6 +5,23 @@ const MP3_SAMPLE_BLOCK = 1152;
 export const RECORDING_MP3_KBPS = 128;
 
 /**
+ * @param {unknown} err
+ */
+export function friendlyRecordingDecodeError(err) {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  if (/object can not be found|cannot be found here|not found here/i.test(msg)) {
+    return (
+      'This recording could not be read on this device (incomplete or unsupported capture). ' +
+      'Discard it, then record again and wait for Stop to finish before uploading.'
+    );
+  }
+  if (/EncodingError|decode|decoding failed/i.test(msg)) {
+    return `Could not decode this recording (${msg}). Try discarding and recording again.`;
+  }
+  return msg || 'Decode failed';
+}
+
+/**
  * @param {Float32Array} floats
  * @returns {Int16Array}
  */
@@ -18,7 +35,6 @@ export function float32ToInt16Pcm(floats) {
 }
 
 /**
- * Encode a decoded AudioBuffer to MP3 bytes (loaded lazily — ~100KB+ only on upload).
  * @param {AudioBuffer} audioBuffer
  * @param {number} [kbps]
  * @returns {Promise<Blob>}
@@ -55,9 +71,26 @@ export async function audioBufferToMp3Blob(audioBuffer, kbps = RECORDING_MP3_KBP
 }
 
 /**
- * Decode any browser-captured blob (webm, m4a, wav, …) and return MP3 bytes for Storage.
- * Preview can keep using the original blob; call this only when uploading.
- *
+ * @param {AudioContext} ctx
+ * @param {ArrayBuffer} arrayBuffer
+ * @returns {Promise<AudioBuffer>}
+ */
+function decodeAudioDataCompat(ctx, arrayBuffer) {
+  const copy = arrayBuffer.slice(0);
+  try {
+    const result = ctx.decodeAudioData(copy);
+    if (result && typeof result.then === 'function') {
+      return result;
+    }
+  } catch {
+    /* fall back to callback API (older WebKit) */
+  }
+  return new Promise((resolve, reject) => {
+    ctx.decodeAudioData(copy, resolve, reject);
+  });
+}
+
+/**
  * @param {Blob} sourceBlob
  * @returns {Promise<Blob>}
  */
@@ -65,7 +98,13 @@ export async function convertRecordingBlobToMp3(sourceBlob) {
   if (typeof window === 'undefined') {
     throw new Error('MP3 conversion is only available in the browser.');
   }
-  const AudioCtx = window.AudioContext || /** @type {typeof AudioContext | undefined} */ (window.webkitAudioContext);
+  if (!sourceBlob.size) {
+    throw new Error('Recording is empty. Discard and record again.');
+  }
+
+  const AudioCtx =
+    window.AudioContext ||
+    /** @type {typeof AudioContext | undefined} */ (window.webkitAudioContext);
   if (!AudioCtx) {
     throw new Error('This browser cannot decode audio for MP3 conversion.');
   }
@@ -73,13 +112,16 @@ export async function convertRecordingBlobToMp3(sourceBlob) {
   const arrayBuffer = await sourceBlob.arrayBuffer();
   const ctx = new AudioCtx();
   try {
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    const audioBuffer = await decodeAudioDataCompat(ctx, arrayBuffer);
+    if (!audioBuffer.length) {
+      throw new Error('Recording has no audio frames.');
+    }
     return await audioBufferToMp3Blob(audioBuffer);
   } catch (e) {
-    const detail = e instanceof Error ? e.message : 'Decode failed';
-    throw new Error(
-      `Could not convert this recording to MP3 (${detail}). Try a shorter clip, or upload an MP3 from your device instead.`
-    );
+    throw new Error(friendlyRecordingDecodeError(e));
   } finally {
     await ctx.close().catch(() => {});
   }

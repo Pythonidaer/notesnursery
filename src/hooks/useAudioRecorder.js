@@ -178,7 +178,7 @@ export function useAudioRecorder(userId) {
       mimeType: detected.mimeType,
       extension: detected.extension,
       status: 'recording',
-      chunks: [],
+      audioBuffer: new ArrayBuffer(0),
     });
 
     recorder.start(1000);
@@ -223,18 +223,36 @@ export function useAudioRecorder(userId) {
 
     pauseDurationTimer();
 
+    // iOS Safari often omits the final chunk unless we flush before stop.
+    if (typeof rec.requestData === 'function' && rec.state !== 'inactive') {
+      try {
+        rec.requestData();
+      } catch {
+        /* ignore */
+      }
+    }
+
     await new Promise((resolve) => {
+      const done = () => resolve(undefined);
       const prev = rec.onstop;
-      rec.onstop = () => {
-        if (typeof prev === 'function') prev.call(rec);
-        resolve(undefined);
+      rec.onstop = (/** @type {Event} */ ev) => {
+        if (typeof prev === 'function') prev.call(rec, ev);
+        done();
+      };
+      const timer = window.setTimeout(done, 500);
+      const wrap = () => {
+        window.clearTimeout(timer);
+        done();
       };
       try {
         if (rec.state !== 'inactive') rec.stop();
+        else wrap();
       } catch {
-        resolve(undefined);
+        wrap();
       }
     });
+
+    await new Promise((r) => window.setTimeout(r, 80));
 
     stopTracks();
     const duration = Math.max(0, Math.floor(accumulatedMsRef.current / 1000));

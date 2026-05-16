@@ -56,9 +56,15 @@ Storage path: `{userId}/recordings/{uuid}_{safeFileName}`.
 - Same asset can be reused in multiple notes.
 - Matches “upload first, embed later” for file uploads.
 
+## Mobile / iOS
+
+- Draft audio is stored as a merged **`ArrayBuffer`** in IndexedDB (Safari often corrupts `Blob[]` arrays, which caused **“The object can not be found here”** on MP3 conversion and **Error** in the preview player).
+- **Stop** calls `requestData()` before `stop()` so the last capture chunk is not lost.
+- If preview fails, **Upload / Save** may still work; otherwise discard and record again.
+
 ## IndexedDB local recovery
 
-Chunks are written during recording. Drafts survive refresh until upload succeeds or you **Discard**.
+Audio bytes are appended during recording. Drafts survive refresh until upload succeeds or you **Discard**.
 
 ## Route
 
