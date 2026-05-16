@@ -98,6 +98,22 @@ Copy `.env.example` to `.env.local` and adjust.
 4. **Authentication → URL Configuration**: add your real site URL and redirect allow list entries the app uses after email confirmation, for example `https://YOUR_DOMAIN/auth/email-confirmed` (and `http://localhost:5173/auth/email-confirmed` for local testing). Set **`VITE_SITE_URL`** in production builds to your deployed origin (no trailing slash) so verification emails use that host instead of localhost.
 5. Copy **Project URL** and **anon public** key into `.env.local` with `VITE_APP_MODE=production`.
 
+### Session persistence (production)
+
+The app stores the Supabase session in **browser localStorage** (`sb-<project-ref>-auth-token`). If you are sent to **Log in** after revisiting the site:
+
+1. **DevTools → Application → Local Storage** (same origin as the app):
+   - After sign-in: the `sb-*-auth-token` key should exist.
+   - When logged out unexpectedly: if the key is **missing**, storage was cleared or you are on a different origin (`www` vs apex, `http` vs `https`, or a preview URL without production env). If the key is **present**, check the Network tab for failed `grant_type=refresh_token` requests and the console for `[auth]` messages (dev builds log auth events).
+2. **Vercel (or host) environment** for the deployment you use:
+   - `VITE_APP_MODE=production`
+   - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set and matching **Project Settings → API**
+   - Recommended: `VITE_SITE_URL` = your public origin (no trailing slash)
+3. **Supabase Dashboard → Authentication**:
+   - **URL Configuration**: **Site URL** exactly matches how users open the app; redirect URLs include `https://YOUR_DOMAIN/auth/email-confirmed`
+   - **Providers → Email**: if **Confirm email** is on, there is no session until the user confirms
+   - **Settings** (JWT / sessions): review access-token expiry, refresh-token lifetime, rotation, and inactivity limits
+
 ### Tables (summary)
 
 - `profiles` — user id, username, optional default label preference, optional `color_scheme` (`light` \| `dark`) for appearance

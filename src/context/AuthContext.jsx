@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useSupabaseBackend } from '../config/appConfig.js';
+import { useSupabaseBackend, VITE_SUPABASE_URL } from '../config/appConfig.js';
 import * as profileRemote from '../data/profileSupabase.js';
+import { logAuthStoragePresence, subscribeToAuthSession } from '../lib/authSessionBootstrap.js';
 import { getSupabase } from '../lib/supabaseClient.js';
 
 const AuthContext = createContext(null);
@@ -13,6 +14,8 @@ export async function getCurrentUser() {
   if (!useSupabaseBackend()) return null;
   const supabase = getSupabase();
   if (!supabase) return null;
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (sessionData.session?.user) return sessionData.session.user;
   const {
     data: { user },
     error,
@@ -21,9 +24,7 @@ export async function getCurrentUser() {
     console.error('[auth] getCurrentUser', error);
     return null;
   }
-  if (user) return user;
-  const { data: sessionData } = await supabase.auth.getSession();
-  return sessionData.session?.user ?? null;
+  return user ?? null;
 }
 
 export function AuthProvider({ children }) {
@@ -46,24 +47,17 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        setSession(data.session);
-      })
-      .catch((e) => {
-        console.error('[auth] getSession', e);
-      })
-      .finally(() => {
+    const logEvents = import.meta.env.DEV;
+    return subscribeToAuthSession(supabase, {
+      onSession: setSession,
+      onReady: () => {
+        if (logEvents && VITE_SUPABASE_URL) {
+          logAuthStoragePresence(VITE_SUPABASE_URL);
+        }
         setInitializing(false);
-      });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
+      },
+      logEvents,
     });
-    return () => subscription.unsubscribe();
   }, [useRemote]);
 
   useEffect(() => {
