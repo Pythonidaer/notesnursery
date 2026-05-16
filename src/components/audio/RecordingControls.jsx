@@ -9,7 +9,6 @@ function formatDuration(sec) {
 /**
  * @param {{
  *   durationSec: number,
- *   formatLabel: string,
  *   status: string,
  *   liveMessage: string,
  *   isRecording: boolean,
@@ -26,7 +25,6 @@ function formatDuration(sec) {
  */
 export default function RecordingControls({
   durationSec,
-  formatLabel,
   liveMessage,
   isRecording,
   isPaused,
@@ -55,11 +53,6 @@ export default function RecordingControls({
         <span className={styles.recordingDuration} aria-label="Duration">
           {formatDuration(durationSec)}
         </span>
-        {formatLabel ? (
-          <span className={styles.recordingFormat} title="Detected recording format">
-            {formatLabel}
-          </span>
-        ) : null}
       </div>
 
       {error ? (

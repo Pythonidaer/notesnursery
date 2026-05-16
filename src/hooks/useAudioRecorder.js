@@ -298,6 +298,5 @@ export function useAudioRecorder(userId) {
     resumeRecording,
     stopRecording,
     resetRecorderUi,
-    formatLabel: extension ? `${mimeType || 'audio'} (.${extension})` : '',
   };
 }

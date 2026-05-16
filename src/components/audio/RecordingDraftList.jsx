@@ -17,53 +17,6 @@ function formatDuration(sec) {
 
 /**
  * @param {{
- *   drafts: import('../../lib/audio/recordingDraftDb.js').RecordingDraft[],
- *   online: boolean,
- *   busyId: string | null,
- *   onDisplayNameChange: (draftId: string, name: string) => void,
- *   onUpload: (draftId: string) => void,
- *   onRetry: (draftId: string) => void,
- *   onDiscard: (draftId: string) => void,
- *   styles: Record<string, string>,
- * }} props
- */
-export default function RecordingDraftList({
-  drafts,
-  online,
-  busyId,
-  onDisplayNameChange,
-  onUpload,
-  onRetry,
-  onDiscard,
-  styles,
-}) {
-  if (drafts.length === 0) {
-    return (
-      <p className={styles.muted}>No local drafts. Stopped recordings appear here until uploaded.</p>
-    );
-  }
-
-  return (
-    <ul className={styles.draftList}>
-      {drafts.map((draft) => (
-        <RecordingDraftCard
-          key={draft.draftId}
-          draft={draft}
-          online={online}
-          busy={busyId === draft.draftId}
-          onDisplayNameChange={onDisplayNameChange}
-          onUpload={onUpload}
-          onRetry={onRetry}
-          onDiscard={onDiscard}
-          styles={styles}
-        />
-      ))}
-    </ul>
-  );
-}
-
-/**
- * @param {{
  *   draft: import('../../lib/audio/recordingDraftDb.js').RecordingDraft,
  *   online: boolean,
  *   busy: boolean,
@@ -72,9 +25,11 @@ export default function RecordingDraftList({
  *   onRetry: (draftId: string) => void,
  *   onDiscard: (draftId: string) => void,
  *   styles: Record<string, string>,
+ *   rootClassName?: string,
+ *   heading?: string,
  * }} props
  */
-function RecordingDraftCard({
+export function RecordingDraftCard({
   draft,
   online,
   busy,
@@ -83,6 +38,8 @@ function RecordingDraftCard({
   onRetry,
   onDiscard,
   styles,
+  rootClassName,
+  heading,
 }) {
   const audioRef = useRef(/** @type {HTMLAudioElement | null} */ (null));
   const [previewUrl, setPreviewUrl] = useState(/** @type {string | null} */ (null));
@@ -145,14 +102,19 @@ function RecordingDraftCard({
     (draft.status === 'stopped-local' || draft.status === 'upload-pending') && online;
   const showRetry = draft.status === 'failed' || (draft.status === 'upload-pending' && online);
 
+  const cardClass = rootClassName ?? styles.draftCard;
+
   return (
-    <li className={styles.draftCard}>
+    <div className={cardClass}>
+      {heading ? <h2 className={styles.recordingControlsTitle}>{heading}</h2> : null}
       <div className={styles.draftHeader}>
-        <span className={styles.draftTitle}>
-          {localDisplayName.trim() ||
-            draft.displayName?.trim() ||
-            `Recording ${new Date(draft.startedAt).toLocaleString()}`}
-        </span>
+        {!heading ? (
+          <span className={styles.draftTitle}>
+            {localDisplayName.trim() ||
+              draft.displayName?.trim() ||
+              `Recording ${new Date(draft.startedAt).toLocaleString()}`}
+          </span>
+        ) : null}
         <span className={styles.draftMeta}>
           {formatDuration(draft.duration)} · {draft.extension.toUpperCase()}
           {byteLength ? ` · ${formatBytes(byteLength)}` : ''}
@@ -240,6 +202,39 @@ function RecordingDraftCard({
           Discard
         </button>
       </div>
-    </li>
+    </div>
+  );
+}
+
+export default function RecordingDraftList({
+  drafts,
+  online,
+  busyId,
+  onDisplayNameChange,
+  onUpload,
+  onRetry,
+  onDiscard,
+  styles,
+}) {
+  if (drafts.length === 0) return null;
+
+  return (
+    <ul className={styles.draftList}>
+      {drafts.map((draft) => (
+        <li key={draft.draftId}>
+          <RecordingDraftCard
+            draft={draft}
+            online={online}
+            busy={busyId === draft.draftId}
+            onDisplayNameChange={onDisplayNameChange}
+            onUpload={onUpload}
+            onRetry={onRetry}
+            onDiscard={onDiscard}
+            styles={styles}
+            rootClassName={styles.draftCard}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }

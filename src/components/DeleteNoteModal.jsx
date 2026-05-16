@@ -10,6 +10,8 @@ import styles from './DeleteNoteModal.module.css';
  *   onCancel: () => void,
  *   onConfirm: () => void,
  *   deleting?: boolean,
+ *   confirmLabel?: string,
+ *   confirmingLabel?: string,
  * }} props
  */
 export default function DeleteNoteModal({
@@ -19,6 +21,8 @@ export default function DeleteNoteModal({
   onCancel,
   onConfirm,
   deleting = false,
+  confirmLabel = 'Delete',
+  confirmingLabel = 'Deleting…',
 }) {
   const cancelRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
 
@@ -78,7 +82,7 @@ export default function DeleteNoteModal({
             onClick={onConfirm}
             disabled={deleting}
           >
-            {deleting ? 'Deleting…' : 'Delete'}
+            {deleting ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </div>
