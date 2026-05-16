@@ -89,6 +89,11 @@
   opacity: 0.85;
 }
 
+.unavailable {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .loading {
   font-size: 0.82rem;
   color: var(--muted);

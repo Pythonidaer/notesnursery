@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Settings } from 'lucide-react';
+import { isNoteAudioUnavailableMessage } from '../lib/noteAudioPlaybackErrors.js';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
 import NoteAudioCustomControls from './NoteAudioCustomControls.jsx';
 import '../styles/noteAudio.css';
@@ -36,12 +37,18 @@ export default function NoteAudioReadBlock({ attrs, onOpenInfo }) {
   }, [storagePath]);
 
   const label = typeof fileName === 'string' && fileName.trim() ? fileName.trim() : 'Audio clip';
+  const unavailable = isNoteAudioUnavailableMessage(error);
 
   return (
     <figure className="nn-audio-embed nn-audio-read-block" aria-label={label}>
       <div className="nn-audio-row">
         <div className="nn-audio-player-wrap">
-          {error ? <p className="nn-audio-read-error">{error}</p> : null}
+          {error && !unavailable ? <p className="nn-audio-read-error">{error}</p> : null}
+          {unavailable ? (
+            <span className="nn-audio-read-unavailable" role="status">
+              Audio unavailable
+            </span>
+          ) : null}
           {!error && !src ? <span className="nn-audio-read-loading">Loading…</span> : null}
           {src ? <NoteAudioCustomControls src={src} label={label} /> : null}
         </div>

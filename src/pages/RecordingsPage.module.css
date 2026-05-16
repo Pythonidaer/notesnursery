@@ -19,12 +19,9 @@
   color: var(--muted);
 }
 
-.connection {
+.offlineBanner {
   margin: 0 0 1rem;
   font-size: 0.88rem;
-}
-
-.connectionOffline {
   color: var(--danger, #c0392b);
 }
 
@@ -263,33 +260,3 @@
   color: var(--muted);
 }
 
-.uploadedList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.uploadedItem {
-  padding: 0.65rem 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
-}
-
-.uploadedItem:last-child {
-  border-bottom: none;
-}
-
-.uploadedItemHighlight {
-  margin: 0 -0.5rem;
-  padding: 0.65rem 0.5rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent, #2d6a4f) 18%, transparent);
-  border-bottom-color: transparent;
-}
-
-.uploadedMeta {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 0.15rem;
-}

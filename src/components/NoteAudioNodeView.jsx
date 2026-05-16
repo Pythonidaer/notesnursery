@@ -3,6 +3,7 @@ import { NodeViewWrapper } from '@tiptap/react';
 import { Grip, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
+import { isNoteAudioUnavailableMessage } from '../lib/noteAudioPlaybackErrors.js';
 import { createNoteAudioSignedUrl } from '../lib/noteAudioSignedUrl.js';
 import { transcribeAudioFromUrl } from '../lib/transcribeNoteAudioLocal.js';
 import { insertTranscriptBelowAudioChain } from '../utils/insertNoteAudioTranscript.js';
@@ -61,6 +62,7 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
   }, [storagePath]);
 
   const label = typeof fileName === 'string' && fileName.trim() ? fileName.trim() : 'Audio clip';
+  const unavailable = isNoteAudioUnavailableMessage(error);
 
   useEffect(() => {
     if (!setActivePlayback || !clearActivePlayback || !src) return;
@@ -184,7 +186,12 @@ export default function NoteAudioNodeView({ node, deleteNode, editor, getPos }) 
       <figure ref={anchorRef} className="nn-audio-embed" aria-label={label}>
         <div className={styles.row}>
           <div className={styles.playerSlot}>
-            {error ? <p className={styles.inlineError}>{error}</p> : null}
+            {error && !unavailable ? <p className={styles.inlineError}>{error}</p> : null}
+            {unavailable ? (
+              <span className={styles.unavailable} role="status">
+                Audio unavailable
+              </span>
+            ) : null}
             {!error && !src ? <span className={styles.loading}>Loading…</span> : null}
             {src ? (
               <div

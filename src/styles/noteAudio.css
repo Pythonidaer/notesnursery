@@ -248,3 +248,8 @@ figure.nn-audio-embed .nn-audio-caption.nn-audio-sr-only {
   font-size: 0.82rem;
   color: var(--muted);
 }
+
+.nn-audio-read-unavailable {
+  font-size: 0.82rem;
+  color: var(--muted);
+}

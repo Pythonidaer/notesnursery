@@ -15,6 +15,7 @@
 | `/library` | `LibraryPage` | List notes, filters, optional date grouping |
 | `/notes/:noteId` | `NoteDetailPage` | Read/edit note, labels, delete, composers |
 | `/recordings` | `RecordingsPage` | **Record** nav: capture → IndexedDB drafts → MP3 upload |
+| `/voice-memos` | `VoiceMemosPage` | List/delete all note-audio Storage files |
 | `/login`, `/signup` | `LoginPage`, `SignupPage` | Supabase email auth |
 
 Production mode with Supabase may redirect unauthenticated users away from protected views (e.g. note detail) per page logic.

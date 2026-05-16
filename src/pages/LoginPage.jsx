@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSupabaseBackend } from '../config/appConfig.js';
+import { safeAuthReturnPath } from '../lib/authReturnPath.js';
 import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, authError, setAuthError, user, authInitializing } = useAuth();
+  const returnTo = safeAuthReturnPath(location.state?.from);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,8 +19,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!backend || authInitializing) return;
-    if (user) navigate('/library', { replace: true });
-  }, [authInitializing, backend, navigate, user]);
+    if (user) navigate(returnTo, { replace: true });
+  }, [authInitializing, backend, navigate, returnTo, user]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -32,7 +35,7 @@ export default function LoginPage() {
     setLoading(false);
     if (error) return;
 
-    navigate('/library', { replace: true });
+    navigate(returnTo, { replace: true });
   };
 
   return (

@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
         setInitializing(false);
       },
       logEvents,
+      supabaseUrl: VITE_SUPABASE_URL || undefined,
     });
   }, [useRemote]);
 

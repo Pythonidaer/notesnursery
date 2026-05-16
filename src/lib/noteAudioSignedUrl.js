@@ -1,11 +1,15 @@
 import { NOTE_AUDIO_BUCKET, NOTE_AUDIO_SIGNED_URL_TTL_SEC } from '../constants/noteAudio.js';
+import {
+  isNoteAudioStorageMissing,
+  NOTE_AUDIO_UNAVAILABLE_MESSAGE,
+} from './noteAudioPlaybackErrors.js';
 import { getSupabase } from './supabaseClient.js';
 
 /**
  * Create a time-limited URL for private-bucket playback. Persist only `storagePath` in note HTML, not this URL.
  * @param {string} storagePath Object path within `note-audio` (no bucket prefix).
  * @param {number} [expiresInSec]
- * @returns {Promise<{ url: string | null, error: string | null }>}
+ * @returns {Promise<{ url: string | null, error: string | null, unavailable?: boolean }>}
  */
 export async function createNoteAudioSignedUrl(storagePath, expiresInSec = NOTE_AUDIO_SIGNED_URL_TTL_SEC) {
   if (!storagePath || typeof storagePath !== 'string') {
@@ -20,6 +24,9 @@ export async function createNoteAudioSignedUrl(storagePath, expiresInSec = NOTE_
     .createSignedUrl(storagePath.trim(), expiresInSec);
   if (error) {
     console.error('[note-audio] createSignedUrl', error);
+    if (isNoteAudioStorageMissing(error)) {
+      return { url: null, error: NOTE_AUDIO_UNAVAILABLE_MESSAGE, unavailable: true };
+    }
     return { url: null, error: error.message || 'Could not access audio' };
   }
   if (!data?.signedUrl) {

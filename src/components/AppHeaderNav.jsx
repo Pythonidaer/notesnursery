@@ -108,13 +108,16 @@ export default function AppHeaderNav({
 
   const toggle = () => setOpen((v) => !v);
 
+  const instructionsItem = (
+    <li className={styles.menuItem}>
+      <Link to="/instructions" className={styles.menuLink} onClick={close}>
+        Instructions
+      </Link>
+    </li>
+  );
+
   const navLinks = (
     <>
-      <li className={styles.menuItem}>
-        <Link to="/import" className={styles.menuLink} onClick={close}>
-          Import
-        </Link>
-      </li>
       <li className={styles.menuItem}>
         <Link to="/library" className={styles.menuLink} onClick={close}>
           Library
@@ -126,18 +129,23 @@ export default function AppHeaderNav({
         </Link>
       </li>
       <li className={styles.menuItem}>
+        <Link to="/import" className={styles.menuLink} onClick={close}>
+          Import
+        </Link>
+      </li>
+      <li className={styles.menuItem}>
         <Link to="/recordings" className={styles.menuLink} onClick={close}>
           Record
         </Link>
       </li>
       <li className={styles.menuItem}>
-        <Link to="/analysis" className={styles.menuLink} onClick={close}>
-          Analysis
+        <Link to="/voice-memos" className={styles.menuLink} onClick={close}>
+          Voice Memos
         </Link>
       </li>
       <li className={styles.menuItem}>
-        <Link to="/instructions" className={styles.menuLink} onClick={close}>
-          Instructions
+        <Link to="/analysis" className={styles.menuLink} onClick={close}>
+          Analysis
         </Link>
       </li>
       <li className={styles.menuDivider} role="separator" />
@@ -206,6 +214,7 @@ export default function AppHeaderNav({
           {!remote ? (
             <>
               <li className={styles.menuDivider} role="separator" />
+              {instructionsItem}
               <li className={styles.menuMeta}>Local mode — notes are not saved to the cloud.</li>
             </>
           ) : null}
@@ -218,6 +227,7 @@ export default function AppHeaderNav({
                   {user.email}
                 </li>
               ) : null}
+              {instructionsItem}
               <li className={styles.menuItem}>
                 <button type="button" className={styles.menuButton} onClick={() => void handleSignOut()}>
                   Sign out
@@ -229,6 +239,7 @@ export default function AppHeaderNav({
           {remote && !user ? (
             <>
               <li className={styles.menuDivider} role="separator" />
+              {instructionsItem}
               <li className={styles.menuItem}>
                 <Link to="/login" className={styles.menuLink} onClick={close}>
                   Log in

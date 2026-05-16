@@ -128,6 +128,8 @@ Apply `supabase/migrations/*.sql` on existing projects so `notes` includes hybri
 
 Create a **private** bucket named `note-audio` (if it does not exist) with allowed MIME types **`audio/mpeg`** (`.mp3`) and **`audio/wav`** (manual uploads). **Record** (`/recordings`) converts to MP3 in the browser before upload — you do **not** need WebM/M4A on the bucket. See [docs/recording-sessions.md](docs/recording-sessions.md).
 
+For **Voice Memos** delete to work, run `supabase/migrations/009_note_audio_storage_policies.sql` so authenticated users can **DELETE** their own objects (see [docs/voice-memos.md](docs/voice-memos.md)).
+
 ## Scripts
 
 ```bash

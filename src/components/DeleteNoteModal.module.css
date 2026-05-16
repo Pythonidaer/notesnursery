@@ -37,7 +37,7 @@
   margin: 0;
   padding: 1rem;
   font-size: 0.92rem;
-  color: var(--muted);
+  color: var(--text-secondary);
   line-height: 1.45;
 }
 

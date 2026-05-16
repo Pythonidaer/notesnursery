@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { logAuthStoragePresence, subscribeToAuthSession } from './authSessionBootstrap.js';
+import {
+  hasAuthStorageToken,
+  logAuthStoragePresence,
+  subscribeToAuthSession,
+} from './authSessionBootstrap.js';
 
 describe('subscribeToAuthSession', () => {
   it('does not call onReady until the first auth event', () => {
@@ -70,6 +74,44 @@ describe('subscribeToAuthSession', () => {
     expect(onReady).toHaveBeenCalledTimes(1);
   });
 
+  it('defers onReady when INITIAL_SESSION is null but auth token exists in storage', () => {
+    vi.useFakeTimers();
+    const url = 'https://abcdefgh.supabase.co';
+    const key = 'sb-abcdefgh-auth-token';
+    const storage = { [key]: '{"access_token":"x"}' };
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => storage[k] ?? null,
+    });
+
+    let listener = null;
+    const supabase = {
+      auth: {
+        onAuthStateChange: (cb) => {
+          listener = cb;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        },
+      },
+    };
+    const onReady = vi.fn();
+
+    subscribeToAuthSession(supabase, {
+      onSession: () => {},
+      onReady,
+      supabaseUrl: url,
+      restoreWaitMs: 5000,
+    });
+
+    listener('INITIAL_SESSION', null);
+    expect(onReady).not.toHaveBeenCalled();
+
+    const restored = { user: { id: 'user-1' }, access_token: 'at' };
+    listener('TOKEN_REFRESHED', restored);
+    expect(onReady).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it('unsubscribes when the returned cleanup runs', () => {
     const unsubscribe = vi.fn();
     const supabase = {
@@ -88,6 +130,17 @@ describe('subscribeToAuthSession', () => {
     cleanup();
 
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('hasAuthStorageToken', () => {
+  it('returns true when the Supabase auth key is present', () => {
+    const url = 'https://abcdefgh.supabase.co';
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => (k === 'sb-abcdefgh-auth-token' ? '{}' : null),
+    });
+    expect(hasAuthStorageToken(url)).toBe(true);
+    vi.unstubAllGlobals();
   });
 });
 

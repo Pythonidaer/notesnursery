@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { navigateToLoginWithReturn } from '../lib/authReturnPath.js';
 import RecordingControls from '../components/audio/RecordingControls.jsx';
 import RecordingDraftList from '../components/audio/RecordingDraftList.jsx';
 import Toast from '../components/Toast.jsx';
@@ -15,9 +16,7 @@ import {
   putRecordingDraft,
 } from '../lib/audio/recordingDraftDb.js';
 import { isMediaRecorderSupported } from '../lib/audio/recordingMimeTypes.js';
-import { RECORDINGS_AUDIO_SCOPE, uploadRecordingDraft } from '../lib/audio/uploadRecording.js';
-import { listUserNoteAudioFiles } from '../lib/noteAudioList.js';
-import { formatBytes } from '../utils/formatBytes.js';
+import { uploadRecordingDraft } from '../lib/audio/uploadRecording.js';
 import styles from './RecordingsPage.module.css';
 
 function mapStylesForControls() {
@@ -37,23 +36,18 @@ function mapStylesForControls() {
 }
 
 export default function RecordingsPage() {
+  const location = useLocation();
   const remote = useSupabaseBackend();
-  const { user, initializing: authInitializing } = useAuth();
+  const { user, authInitializing } = useAuth();
   const online = useOnlineStatus();
   const recorder = useAudioRecorder(user?.id);
 
   const [drafts, setDrafts] = useState(
     /** @type {import('../lib/audio/recordingDraftDb.js').RecordingDraft[]} */ ([])
   );
-  const [uploaded, setUploaded] = useState(
-    /** @type {Awaited<ReturnType<typeof listUserNoteAudioFiles>>} */ ([])
-  );
-  const [libraryLoading, setLibraryLoading] = useState(false);
-  const [libraryError, setLibraryError] = useState(/** @type {string | null} */ (null));
   const [busyId, setBusyId] = useState(/** @type {string | null} */ (null));
   const [pageError, setPageError] = useState(/** @type {string | null} */ (null));
   const [successMessage, setSuccessMessage] = useState(/** @type {string | null} */ (null));
-  const [highlightPath, setHighlightPath] = useState(/** @type {string | null} */ (null));
   const dismissSuccess = useCallback(() => setSuccessMessage(null), []);
 
   const refreshDrafts = useCallback(async () => {
@@ -65,29 +59,9 @@ export default function RecordingsPage() {
     setDrafts(rows);
   }, [user?.id]);
 
-  const refreshUploaded = useCallback(async () => {
-    if (!user?.id) return;
-    setLibraryLoading(true);
-    setLibraryError(null);
-    try {
-      const rows = await listUserNoteAudioFiles(user.id);
-      const scope = `/${RECORDINGS_AUDIO_SCOPE}/`;
-      setUploaded(rows.filter((r) => r.path.includes(scope)));
-    } catch (e) {
-      setLibraryError(e instanceof Error ? e.message : 'Could not load uploaded recordings');
-    } finally {
-      setLibraryLoading(false);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     void refreshDrafts();
   }, [refreshDrafts]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    void refreshUploaded();
-  }, [user?.id, refreshUploaded]);
 
   useEffect(() => {
     if (!online || !user?.id) return;
@@ -147,7 +121,6 @@ export default function RecordingsPage() {
       setBusyId(draftId);
       setPageError(null);
       setSuccessMessage(null);
-      setHighlightPath(null);
       await putRecordingDraft({
         ...row,
         status: 'uploading',
@@ -163,10 +136,7 @@ export default function RecordingsPage() {
           'Recording';
         await deleteRecordingDraft(draftId);
         await refreshDrafts();
-        await refreshUploaded();
-        setHighlightPath(uploaded.path);
         setSuccessMessage(`Uploaded “${label}” as MP3`);
-        window.setTimeout(() => setHighlightPath(null), 4000);
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Upload failed';
         const latest = await getRecordingDraft(draftId);
@@ -184,7 +154,7 @@ export default function RecordingsPage() {
         setBusyId(null);
       }
     },
-    [user?.id, online, refreshDrafts, refreshUploaded]
+    [user?.id, online, refreshDrafts]
   );
 
   const handleDiscard = useCallback(
@@ -202,8 +172,7 @@ export default function RecordingsPage() {
         <article className={styles.page}>
           <h1 className={styles.title}>Record</h1>
           <p className={styles.gate}>
-            Recording Sessions need cloud storage. Run the app in production mode with Supabase
-            configured.
+            Recording needs cloud storage. Sign in with a synced account to save uploads.
           </p>
         </article>
       </PageContentWrap>
@@ -222,7 +191,8 @@ export default function RecordingsPage() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const loginTarget = navigateToLoginWithReturn(location);
+    return <Navigate to={loginTarget.pathname} replace state={loginTarget.state} />;
   }
 
   const controlStyles = mapStylesForControls();
@@ -233,18 +203,14 @@ export default function RecordingsPage() {
       <article className={styles.page}>
         <h1 className={styles.title}>Record</h1>
         <p className={styles.lead}>
-          Record audio in your browser and preview it locally (WebM, M4A, or WAV depending on your
-          device). <strong>Upload / Save</strong> converts to <strong>MP3</strong> before sending to
-          Supabase — same format as your usual uploads. Attach clips in notes with{' '}
-          <strong>Insert audio</strong>; nothing is added to a note automatically.
+          Record audio and preview locally on your device before uploading to your profile.
         </p>
 
-        <p
-          className={[styles.connection, !online ? styles.connectionOffline : ''].filter(Boolean).join(' ')}
-          aria-live="polite"
-        >
-          {online ? 'Online' : 'Offline — recordings are saved on this device until upload succeeds'}
-        </p>
+        {!online ? (
+          <p className={styles.offlineBanner} role="status">
+            Offline — recordings stay on this device until you are back online.
+          </p>
+        ) : null}
 
         {successMessage ? (
           <p className={styles.successBanner} role="status" aria-live="polite">
@@ -290,43 +256,6 @@ export default function RecordingsPage() {
             onDiscard={(id) => void handleDiscard(id)}
             styles={styles}
           />
-        </section>
-
-        <section className={styles.section} aria-labelledby="uploaded-heading">
-          <h2 id="uploaded-heading" className={styles.sectionTitle}>
-            Uploaded recordings
-          </h2>
-          {libraryLoading ? <p className={styles.muted}>Loading…</p> : null}
-          {libraryError ? <p className={styles.error}>{libraryError}</p> : null}
-          {!libraryLoading && !libraryError && uploaded.length === 0 ? (
-            <p className={styles.muted}>No uploaded recordings yet.</p>
-          ) : null}
-          {!libraryLoading && uploaded.length > 0 ? (
-            <ul className={styles.uploadedList}>
-              {uploaded.map((row) => (
-                <li
-                  key={row.path}
-                  className={[
-                    styles.uploadedItem,
-                    highlightPath === row.path ? styles.uploadedItemHighlight : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                >
-                  <span>{row.displayName ?? row.fileName}</span>
-                  <span className={styles.uploadedMeta}>
-                    {formatBytes(row.sizeBytes)} ·{' '}
-                    {row.updatedAt ? new Date(row.updatedAt).toLocaleString() : '—'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <p className={styles.muted}>
-            Use these files in any note via{' '}
-            <Link to="/library">Library</Link> → open a note → <strong>Insert audio</strong> → choose
-            from your library.
-          </p>
         </section>
       </article>
     </PageContentWrap>

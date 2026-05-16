@@ -11,7 +11,7 @@
   height: 2.5rem;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
